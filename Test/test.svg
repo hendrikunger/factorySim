@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="iso-8859-1" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
+<path style="fill:rgb(27, 158, 119);fill-opacity:1.0;fill-rule:evenodd;stroke:rgb(0, 0, 0);stroke-width:1.0;" d="M 300, 75 L 225, 75 L 225, 0 L 300, 0 z "/>
+<path style="fill:rgb(217, 95, 2);fill-opacity:1.0;fill-rule:evenodd;stroke:rgb(0, 0, 0);stroke-width:1.0;" d="M 75, 225 L 30, 270 L 120, 270 z "/>
+<path style="fill:rgb(117, 112, 179);fill-opacity:1.0;fill-rule:evenodd;stroke:rgb(0, 0, 0);stroke-width:1.0;" d="M 150, 300 L 0, 300 L 0, 0 L 150, 0 z "/>
+</svg>

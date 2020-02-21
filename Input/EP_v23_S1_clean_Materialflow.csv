@@ -1,0 +1,31 @@
+From, To, Intensity
+Hyundai canning, Packaging type_CHEP_KLT,24
+SUBS/Gluing, Packaging type_CHEP_KLT,87
+Hyundai canning, Packaging type_undefined,13
+Packaging type_CHEP_KLT, Packaging type_CHEP_GLT,3
+Manual Weldspot, WEIL,85
+CV5, SPA Benders,33
+Packaging type_CHEP_KLT, Packaging type_carton,56
+Warehouse_inbound, SPA Benders,58
+Warehouse_inbound, Packaging type_CHEP_GLT,50
+Manual Weldspot, SPA Benders,3
+Packaging type_others, GATS Line 1,42
+Packaging type_carton, Warehouse_inbound_GATS,71
+WIX Benders, Warehouse_inbound_GATS,12
+Manual Weldspot, Warehouse_inbound,95
+Hyundai canning, Packaging type_undefined,2
+Warehouse_outbound, Packaging type_carton,31
+WEIL, Hyundai canning,26
+Packaging type_undefined, Lasercutter,83
+Packaging type_CHEP_KLT, Packaging type_carton,2
+Packaging type_CHEP_KLT, Warehouse_inbound_GATS,79
+GATS Line 2, Warehouse_inbound_GATS,80
+CV5, CV5,52
+Packaging type_others, Lasercutter,70
+GATS Line 1, Hyundai canning,81
+Lasercutter, Lasercutter,25
+Packaging type_CHEP_GLT, CV5,95
+Packaging type_undefined, Packaging type_others,96
+Warehouse_outbound, Hyundai Line,4
+Warehouse_inbound, Warehouse_outbound,32
+SPA Benders, SUBS/Gluing,50
