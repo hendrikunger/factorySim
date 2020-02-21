@@ -1,0 +1,4 @@
+tasks:
+  - init: pip3 install -r requirements.txt
+   # command: echo "Replace me with omething that should run on every start, or just
+    #  remove me entirely."

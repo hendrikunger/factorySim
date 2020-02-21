@@ -334,7 +334,7 @@ class FactorySim:
 
         with open(path, 'w') as file:
             file.write(f"From, To, Intensity\n")
-            for i in range(0,30):
+            for _ in range(0,30):
                file.write(f"{random.choice(self.machine_list).name}, {random.choice(self.machine_list).name},{random.randint(1,100)}\n")
         random.seed(RANDSEED)
         self.printTime("Zufälligen Materialfluss erstellt")
