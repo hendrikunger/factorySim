@@ -16,11 +16,13 @@ import Polygon.IO
 
 
 class FactorySim:
-    
+ #------------------------------------------------------------------------------------------------------------
+ # Loading
+ #------------------------------------------------------------------------------------------------------------
     def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = "Kekse", path_to_materialflow_file = None, outputfile = "Out", randomMF = False):
         self.WIDTH = width
         self.HEIGHT = heigth
-        
+
         self.RANDSEED = randseed
         random.seed(randseed)
         self.timezero = time()
@@ -37,6 +39,8 @@ class FactorySim:
         self.wall_list = self.importIFC_Data(self.ifc_file, "IFCWALL") 
         self.machineCollisionList = []
         self.wallCollisionList = []
+
+        self.currentRating = 0 # Holds the Rating of the current state of the Layout 
         
         allElements = Poly()
         
@@ -83,8 +87,19 @@ class FactorySim:
         if path_to_materialflow_file is None and randomMF is True:
             path_to_materialflow_file = self.random_Material_Flow()
         if path_to_materialflow_file is not None:
-            self.materialflow_file = pd.read_csv(path_to_materialflow_file, skipinitialspace=True)
+
+            self.materialflow_file = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
+            #Rename Colums
+            indexes = self.materialflow_file.columns.tolist()
+            self.materialflow_file.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
+            #Group by from and two, add up intensity of all duplicates in intensity_sum
+            self.materialflow_file['intensity_sum'] = self.materialflow_file.groupby(by=['from', 'to'])['intensity'].transform('sum')
+            #drop the duplicates and refresh index
+            self.materialflow_file = self.materialflow_file.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
         self.printTime("Materialfluss geladen")
+
+        #Evaluate current State
+        self.evaluate()
         
       
   #------------------------------------------------------------------------------------------------------------
@@ -140,7 +155,31 @@ class FactorySim:
         self.printTime(f"{elementName} geparsed")
         return elementlist
     
-    
+ #------------------------------------------------------------------------------------------------------------
+ # Evaluation
+ #------------------------------------------------------------------------------------------------------------
+    def evaluate(self):
+        self.currentRating = self.evaluateMF()                 
+        self.printTime(f"Bewertung des Layouts abgeschlossen - {self.currentRating}")
+
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateMF(self):
+        machine_dict = {machine.name: machine for machine in self.machine_list}
+
+        for index, row in self.materialflow_file.iterrows():
+            x1 = machine_dict[row['from']].center.x
+            y1 = machine_dict[row['from']].center.y
+            x2 = machine_dict[row['to']].center.x
+            y2 = machine_dict[row['to']].center.y
+            self.materialflow_file.loc[index , 'distance'] = math.sqrt(math.pow(x1-x2,2) + math.pow(y1-y2,2))
+        
+        print(self.materialflow_file)
+
+        self.printTime("Bewertung des Materialfluss abgeschlossen")
+        return 1
+
+ #------------------------------------------------------------------------------------------------------------
+ # Collision Detection
  #------------------------------------------------------------------------------------------------------------
     def findCollisions(self):
         #Machines with Machines
@@ -159,7 +198,8 @@ class FactorySim:
                     
         self.printTime("Kollisionen berechnen abgeschlossen")
 
-
+ #------------------------------------------------------------------------------------------------------------
+ # Drawing
  #------------------------------------------------------------------------------------------------------------
     def drawPositions(self, drawMaterialflow = True, drawMachineCenter = False, drawWalls = True):   
         #Drawing
@@ -220,8 +260,8 @@ class FactorySim:
         if drawMaterialflow:
             machine_dict = {machine.name: machine for machine in self.machine_list}
 
-            mf_max = self.materialflow_file.max()[2]
-            mf_min = self.materialflow_file.min()[2]
+            mf_max = self.materialflow_file.max()["intensity_sum"]
+            mf_min = self.materialflow_file.min()["intensity_sum"]
 
             for index, row in self.materialflow_file.iterrows():
                 try:
@@ -229,8 +269,8 @@ class FactorySim:
                     ctx.set_source_rgb(machine_dict[row[0]].color[0], machine_dict[row[0]].color[1], machine_dict[row[0]].color[2])
                     ctx.move_to(machine_dict[row[0]].center.x, machine_dict[row[0]].center.y)
                     ctx.line_to(machine_dict[row[1]].center.x, machine_dict[row[1]].center.y)
-                    ctx.set_line_width(row[2]/(mf_max - mf_min) * 20)
-                    ctx.stroke()                
+                    ctx.set_line_width(row["intensity_sum"]/(mf_max - mf_min) * 20)
+                    ctx.stroke()   
                 except KeyError:
                     print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
                     continue
@@ -328,7 +368,8 @@ class FactorySim:
                     
         self.printTime("Kollisionen gezeichnet")
         return surface
-    
+ #------------------------------------------------------------------------------------------------------------
+ # Helpers  
  #------------------------------------------------------------------------------------------------------------
     def random_Material_Flow(self):
         random.seed()
@@ -337,7 +378,8 @@ class FactorySim:
         with open(path, 'w') as file:
             file.write(f"From, To, Intensity\n")
             for _ in range(0,30):
-               file.write(f"{random.choice(self.machine_list).name}, {random.choice(self.machine_list).name},{random.randint(1,100)}\n")
+                samples = random.sample(self.machine_list, k=2)
+                file.write(f"{samples[0].name}, {samples[1].name},{random.randint(1,100)}\n")
         random.seed(self.RANDSEED)
         self.printTime("Zufälligen Materialfluss erstellt")
         return path
@@ -356,18 +398,17 @@ def main():
     outputfile ="Out"
 
     
-    
-    filename = "Overlapp"
+    #filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
-    #filename = "Simple"
+    filename = "Simple"
     
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input",  filename + ".ifc")
 
 
-    materialflowpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", filename + "_Materialflow.csv")
+    materialflowpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", filename + "_Materialflow_doubles.csv")
     #materialflowpath = None
     
-    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = False)
+    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True)
  
     #Machine Positions Output to PNG
     machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
