@@ -2,3 +2,7 @@ tasks:
   - init: pip3 install -r requirements.txt && bash downloadIFCOpenShell.sh
    # command: echo "Replace me with omething that should run on every start, or just
     #  remove me entirely."
+
+vscode:
+  extensions:
+    - daylerees.rainglow@1.5.2:CMeB8a/apImXE9fKgInsdQ==

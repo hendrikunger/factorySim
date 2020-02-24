@@ -14,13 +14,15 @@ from Helpers.MFO import MFO
 from Polygon import Polygon as Poly
 import Polygon.IO
 
-WIDTH, HEIGHT = 1000, 1000
-RANDSEED ="Kekse"
-
 
 class FactorySim:
     
-    def __init__(self, path_to_ifc_file, path_to_materialflow_file = None, outputfile = "Out", randomMF = False):
+    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = "Kekse", path_to_materialflow_file = None, outputfile = "Out", randomMF = False):
+        self.WIDTH = width
+        self.HEIGHT = heigth
+        
+        self.RANDSEED = randseed
+        random.seed(randseed)
         self.timezero = time()
         self.lasttime = 0
         
@@ -56,11 +58,11 @@ class FactorySim:
         #boundingBox[2]     min_value_y
         #boundingBox[3]     max_value_y
         self.printTime("Boundingbox erstellt")
-        scale_x = WIDTH / (boundingBox[1] - boundingBox[0])
-        scale_y = HEIGHT / (boundingBox[3] - boundingBox[2])
+        scale_x = self.WIDTH / (boundingBox[1] - boundingBox[0])
+        scale_y = self.HEIGHT / (boundingBox[3] - boundingBox[2])
         scale = min(scale_x, scale_y)
 
-        if((boundingBox[1] > WIDTH) or (boundingBox[3] > HEIGHT)):
+        if((boundingBox[1] > self.WIDTH) or (boundingBox[3] > self.HEIGHT)):
             for machine in self.machine_list:
                 machine.scale_Points(scale, scale, -boundingBox[0], -boundingBox[2])
             for wall in self.wall_list:
@@ -162,11 +164,11 @@ class FactorySim:
     def drawPositions(self, drawMaterialflow = True, drawMachineCenter = False, drawWalls = True):   
         #Drawing
         #Machine Positions
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
         ctx = cairo.Context(surface)
         ctx.scale(1.0, -1.0)
-        ctx.translate(0.0,-HEIGHT)
-        ctx.rectangle(0, 0, WIDTH, HEIGHT)  
+        ctx.translate(0.0,-self.HEIGHT)
+        ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
         ctx.set_source_rgb(1.0, 1.0, 1.0)
         ctx.fill()
 
@@ -241,11 +243,11 @@ class FactorySim:
     def drawDetailedMachines(self, randomcolors = False):   
         #Drawing
         #Machine Positions
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
         ctx = cairo.Context(surface)
         ctx.scale(1.0, -1.0)
-        ctx.translate(0.0,-HEIGHT)
-        ctx.rectangle(0, 0, WIDTH, HEIGHT)  
+        ctx.translate(0.0,-self.HEIGHT)
+        ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
         ctx.set_source_rgb(1.0, 1.0, 1.0)
         ctx.fill()
         
@@ -291,11 +293,11 @@ class FactorySim:
     def drawCollisions(self, drawWalls=True):
 
         #Machine Collisions
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, WIDTH, HEIGHT)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
         ctx = cairo.Context(surface)
         ctx.scale(1.0, -1.0)
-        ctx.translate(0.0,-HEIGHT)
-        ctx.rectangle(0, 0, WIDTH, HEIGHT)  
+        ctx.translate(0.0,-self.HEIGHT)
+        ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
         ctx.set_source_rgb(1.0, 1.0, 1.0)
         ctx.fill()
 
@@ -336,7 +338,7 @@ class FactorySim:
             file.write(f"From, To, Intensity\n")
             for _ in range(0,30):
                file.write(f"{random.choice(self.machine_list).name}, {random.choice(self.machine_list).name},{random.randint(1,100)}\n")
-        random.seed(RANDSEED)
+        random.seed(self.RANDSEED)
         self.printTime("Zufälligen Materialfluss erstellt")
         return path
     
@@ -353,7 +355,7 @@ def main():
            
     outputfile ="Out"
 
-    random.seed(RANDSEED)
+    
     
     filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
