@@ -159,7 +159,10 @@ class FactorySim:
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
-        self.currentRating = self.evaluateMF()                 
+        ratingMF = self.evaluateMF()          
+        self.printTime("Bewertung des Materialfluss abgeschlossen")
+
+        self.currentRating = ratingMF
         self.printTime(f"Bewertung des Layouts abgeschlossen - {self.currentRating}")
 
  #------------------------------------------------------------------------------------------------------------
@@ -172,11 +175,11 @@ class FactorySim:
             x2 = machine_dict[row['to']].center.x
             y2 = machine_dict[row['to']].center.y
             self.materialflow_file.loc[index , 'distance'] = math.sqrt(math.pow(x1-x2,2) + math.pow(y1-y2,2))
+            self.materialflow_file.loc[index , 'costs'] = self.materialflow_file.loc[index , 'distance'] * self.materialflow_file.loc[index , 'intensity_sum']
         
-        print(self.materialflow_file)
-
-        self.printTime("Bewertung des Materialfluss abgeschlossen")
-        return 1
+        output = self.materialflow_file['intensity_sum'].sum() / self.materialflow_file['costs'].sum()
+        
+        return output
 
  #------------------------------------------------------------------------------------------------------------
  # Collision Detection
