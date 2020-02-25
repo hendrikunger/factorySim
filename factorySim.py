@@ -187,8 +187,9 @@ class FactorySim:
             x2 = machine_dict[row['to']].center.x
             y2 = machine_dict[row['to']].center.y
             self.materialflow_file.loc[index , 'distance'] = math.sqrt(math.pow(x1-x2,2) + math.pow(y1-y2,2))
-            self.materialflow_file.loc[index , 'distance_norm'] = self.materialflow_file.loc[index , 'distance'] / max(self.max_value_x,  self.max_value_y)
-            self.materialflow_file.loc[index , 'costs'] = self.materialflow_file.loc[index , 'distance_norm'] * self.materialflow_file.loc[index , 'intensity_sum_norm']
+
+        self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / max(self.max_value_x,  self.max_value_y)
+        self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm']
 
         #sum of all costs /  maximum intensity (intensity sum norm * 1) 
         output = 1 - (self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum())
