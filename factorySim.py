@@ -9,6 +9,7 @@ from time import time
 import ifcopenshell
 import cairo
 import pandas as pd
+from fabulous.color import fg256, bg256, bold
 
 from Helpers.MFO import MFO 
 from Polygon import Polygon as Poly
@@ -40,7 +41,7 @@ class FactorySim:
         self.machineCollisionList = []
         self.wallCollisionList = []
 
-        self.currentRating = 0 # Holds the Rating of the current state of the Layout 
+        self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
         
         allElements = Poly()
         
@@ -57,20 +58,26 @@ class FactorySim:
 
         #Shifting and Scaling to fit into target Output Size
         boundingBox = allElements.boundingBox()      
-        #boundingBox[0]     min_value_x
-        #boundingBox[1]     max_value_x
-        #boundingBox[2]     min_value_y
-        #boundingBox[3]     max_value_y
+        self.min_value_x = boundingBox[0]     
+        self.max_value_x = boundingBox[1]     
+        self.min_value_y = boundingBox[2]     
+        self.max_value_y = boundingBox[3]     
         self.printTime("Boundingbox erstellt")
-        scale_x = self.WIDTH / (boundingBox[1] - boundingBox[0])
-        scale_y = self.HEIGHT / (boundingBox[3] - boundingBox[2])
-        scale = min(scale_x, scale_y)
+ 
+        if((self.max_value_x > self.WIDTH) or (self.max_value_y > self.HEIGHT)):
+            #Calculate new scale
+            scale_x = self.WIDTH / (self.max_value_x - self.min_value_x)
+            scale_y = self.HEIGHT / (self.max_value_y - self.min_value_y)
+            scale = min(scale_x, scale_y)
 
-        if((boundingBox[1] > self.WIDTH) or (boundingBox[3] > self.HEIGHT)):
             for machine in self.machine_list:
-                machine.scale_Points(scale, scale, -boundingBox[0], -boundingBox[2])
+                machine.scale_Points(scale, scale, -self.min_value_x, -self.min_value_y)
             for wall in self.wall_list:
-                wall.scale_Points(scale, scale, -boundingBox[0], -boundingBox[2])
+                wall.scale_Points(scale, scale, -self.min_value_x, -self.min_value_y)
+            self.min_value_x = (self.min_value_x - self.min_value_x) * scale   
+            self.max_value_x = (self.max_value_x - self.min_value_x) * scale   
+            self.min_value_y = (self.min_value_y - self.min_value_y) * scale   
+            self.max_value_y = (self.max_value_y - self.min_value_y) * scale 
         self.printTime("Skaliert")
         
         #Finding Centers and merging internal polygons
@@ -96,10 +103,10 @@ class FactorySim:
             self.materialflow_file['intensity_sum'] = self.materialflow_file.groupby(by=['from', 'to'])['intensity'].transform('sum')
             #drop the duplicates and refresh index
             self.materialflow_file = self.materialflow_file.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
+            #normalise intensity sum 
+            self.materialflow_file['intensity_sum_norm'] = self.materialflow_file['intensity_sum'] / self.materialflow_file.max()["intensity_sum"]
         self.printTime("Materialfluss geladen")
 
-        #Evaluate current State
-        self.evaluate()
         
       
   #------------------------------------------------------------------------------------------------------------
@@ -163,7 +170,12 @@ class FactorySim:
         self.printTime("Bewertung des Materialfluss abgeschlossen")
 
         self.currentRating = ratingMF
-        self.printTime(f"Bewertung des Layouts abgeschlossen - {self.currentRating}")
+        self.printTime(f"Bewertung des Layouts abgeschlossen - {self.currentRating:1.2f}")
+        print("MaterialFlow " + bg256("blue", f"{ratingMF:1.2f}"),
+            "Test " + bg256("blue", f"{ratingMF:1.2f}"),
+            "Test " + bg256("blue", f"{ratingMF:1.2f}"),
+            "Test " + bg256("blue", f"{ratingMF:1.2f}"))
+        return self.currentRating
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF(self):
@@ -175,10 +187,13 @@ class FactorySim:
             x2 = machine_dict[row['to']].center.x
             y2 = machine_dict[row['to']].center.y
             self.materialflow_file.loc[index , 'distance'] = math.sqrt(math.pow(x1-x2,2) + math.pow(y1-y2,2))
-            self.materialflow_file.loc[index , 'costs'] = self.materialflow_file.loc[index , 'distance'] * self.materialflow_file.loc[index , 'intensity_sum']
-        
-        output = self.materialflow_file['intensity_sum'].sum() / self.materialflow_file['costs'].sum()
-        
+            self.materialflow_file.loc[index , 'distance_norm'] = self.materialflow_file.loc[index , 'distance'] / max(self.max_value_x,  self.max_value_y)
+            self.materialflow_file.loc[index , 'costs'] = self.materialflow_file.loc[index , 'distance_norm'] * self.materialflow_file.loc[index , 'intensity_sum_norm']
+
+
+        #sum of all costs /  maximum intensity (intensity sum norm * 1) 
+        output = self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum()
+ 
         return output
 
  #------------------------------------------------------------------------------------------------------------
@@ -189,14 +204,14 @@ class FactorySim:
         self.machineCollisionList = []       
         for a,b in combinations(self.machine_list, 2):
             if a.hull.overlaps(b.hull):
-                print(f"Kollision zwischen {a.gid} und {b.gid} gefunden.")
+                print(fg256("red", f"Kollision zwischen {a.gid} und {b.gid} gefunden."))
                 self.machineCollisionList.append(a.hull & b.hull)
         #Machines with Walls     
         self.wallCollisionList = []
         for a in self.wall_list:
             for b in self.machine_list:
                 if a.poly.overlaps(b.hull):
-                    print(f"Kollision Wand {a.gid} und Maschine {b.gid} gefunden.")
+                    print(fg256("red", f"Kollision Wand {a.gid} und Maschine {b.gid} gefunden."))
                     self.wallCollisionList.append(a.poly & b.hull)
                     
         self.printTime("Kollisionen berechnen abgeschlossen")
@@ -391,7 +406,8 @@ class FactorySim:
 #------------------------------------------------------------------------------------------------------------
     def printTime(self, text):
         self.lasttime = (time() - self.timezero - self.lasttime)
-        print(round(self.lasttime * 1000, 3) , " - " + text)
+        number = round(self.lasttime * 1000, 2)
+        print(bold(fg256("green", f'{number:6.2f}')) , "- " + text)
 
 
 
@@ -433,8 +449,11 @@ def main():
         "Output", 
         F"{outputfile}_machine_collsions.png")
     Collisions.write_to_png(path) 
-    
-    print(f"Total runtime: {round((time() - demoFactory.timezero) * 1000, 3)} ")
+
+    #Rate current Layout
+    demoFactory.evaluate()
+
+    print("Total runtime: " + bold(fg256("green", bg256("yellow", round((time() - demoFactory.timezero) * 1000, 2)))))
 
 if __name__ == "__main__":
     main()
