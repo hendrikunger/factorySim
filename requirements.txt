@@ -3,4 +3,4 @@ pycairo==1.19.0
 pandas==0.25.3
 pandas-datareader==0.8.1
 Polygon3==3.0.8
-#https://s3.amazonaws.com/ifcopenshell-builds/ifcopenshell-python-37-v0.6.0-e44221c-linux64.zip
+fabulous==0.3.0
