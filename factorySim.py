@@ -183,7 +183,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
         ratingMF = self.evaluateMF()          
-        self.printTime(f"Bewertung des Materialfluss abgeschlossen - {ratingMF}")
+        self.printTime("Bewertung des Materialfluss abgeschlossen")
 
         self.currentRating = ratingMF
         self.printTime(f"Bewertung des Layouts abgeschlossen - {self.currentRating:1.2f}")
