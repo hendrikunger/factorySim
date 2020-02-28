@@ -14,6 +14,7 @@ from fabulous.color import fg256, bg256, bold
 from Helpers.MFO import MFO 
 from Polygon import Polygon as Poly
 import Polygon.IO
+import numpy as np
 
 
 class FactorySim:
@@ -105,6 +106,12 @@ class FactorySim:
             self.materialflow_file = self.materialflow_file.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
             #normalise intensity sum 
             self.materialflow_file['intensity_sum_norm'] = self.materialflow_file['intensity_sum'] / self.materialflow_file.max()["intensity_sum"]
+            #use machine index as sink and source for materialflow
+            machine_dict = {machine.name: index for index, machine in enumerate(self.machine_list)}
+            self.materialflow_file[['from','to']] = self.materialflow_file[['from','to']].replace(machine_dict)
+            #set initial values for costs
+            self.materialflow_file['costs'] = 0
+    
         self.printTime("Materialfluss geladen")
 
         
@@ -156,18 +163,27 @@ class FactorySim:
                             
                     
                 mfo_object.close_Item()
-            mfo_object.rotate_translate_Item() 
+            mfo_object.updatePosition() 
             elementlist.append(mfo_object)
             
         self.printTime(f"{elementName} geparsed")
         return elementlist
+
+ #------------------------------------------------------------------------------------------------------------
+ # Update Machines
+ #------------------------------------------------------------------------------------------------------------
+    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = 0):
+        self.machine_list[machineIndex].rotate_translate_Item(xPosition, yPosition)
+        self.findCollisions()
+        self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
+
     
  #------------------------------------------------------------------------------------------------------------
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
         ratingMF = self.evaluateMF()          
-        self.printTime("Bewertung des Materialfluss abgeschlossen")
+        self.printTime(f"Bewertung des Materialfluss abgeschlossen - {ratingMF}")
 
         self.currentRating = ratingMF
         self.printTime(f"Bewertung des Layouts abgeschlossen - {self.currentRating:1.2f}")
@@ -177,23 +193,24 @@ class FactorySim:
             "Test " + bg256("blue", f"{ratingMF:1.2f}"))
         return self.currentRating
 
+
+    def evaluateHelper(self, source, sink): 
+        x1 = self.machine_list[int(source)].center.x
+        y1 = self.machine_list[int(source)].center.y
+        x2 = self.machine_list[int(sink)].center.x
+        y2 = self.machine_list[int(sink)].center.y
+        return math.sqrt(math.pow(x1-x2,2) + math.pow(y1-y2,2))
+
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF(self):
-        machine_dict = {machine.name: machine for machine in self.machine_list}
-
-        for index, row in self.materialflow_file.iterrows():
-            x1 = machine_dict[row['from']].center.x
-            y1 = machine_dict[row['from']].center.y
-            x2 = machine_dict[row['to']].center.x
-            y2 = machine_dict[row['to']].center.y
-            self.materialflow_file.loc[index , 'distance'] = math.sqrt(math.pow(x1-x2,2) + math.pow(y1-y2,2))
-            self.materialflow_file.loc[index , 'distance_norm'] = self.materialflow_file.loc[index , 'distance'] / max(self.max_value_x,  self.max_value_y)
-            self.materialflow_file.loc[index , 'costs'] = self.materialflow_file.loc[index , 'distance_norm'] * self.materialflow_file.loc[index , 'intensity_sum_norm']
-
+        self.materialflow_file['distance'] = self.materialflow_file.apply(lambda row: self.evaluateHelper(row['from'], row['to']), axis=1)
 
         #sum of all costs /  maximum intensity (intensity sum norm * 1) 
+        maxDistance = max(self.max_value_x,  self.max_value_y)
+        self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
+        self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm'] 
         output = self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum()
- 
+
         return output
 
  #------------------------------------------------------------------------------------------------------------
@@ -204,14 +221,14 @@ class FactorySim:
         self.machineCollisionList = []       
         for a,b in combinations(self.machine_list, 2):
             if a.hull.overlaps(b.hull):
-                print(fg256("red", f"Kollision zwischen {a.gid} und {b.gid} gefunden."))
+                print(fg256("red", f"Kollision zwischen {a.name} und {b.name} gefunden."))
                 self.machineCollisionList.append(a.hull & b.hull)
         #Machines with Walls     
         self.wallCollisionList = []
         for a in self.wall_list:
             for b in self.machine_list:
                 if a.poly.overlaps(b.hull):
-                    print(fg256("red", f"Kollision Wand {a.gid} und Maschine {b.gid} gefunden."))
+                    print(fg256("red", f"Kollision Wand {a.gid} und Maschine {b.name} gefunden."))
                     self.wallCollisionList.append(a.poly & b.hull)
                     
         self.printTime("Kollisionen berechnen abgeschlossen")
@@ -219,7 +236,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, drawMaterialflow = True, drawMachineCenter = False, drawWalls = True):   
+    def drawPositions(self, drawMaterialflow = True, drawMachineCenter = False, drawWalls = True, highlight = None):   
         #Drawing
         #Machine Positions
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
@@ -234,7 +251,7 @@ class FactorySim:
         if drawWalls:
             ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
             for wall in self.wall_list:
-                ctx.set_source_rgb(0.5, 0.5, 0.5)
+                ctx.set_source_rgb(0, 0, 0)
                 #draw all walls
                 for i, loop in enumerate(wall.poly):
                     if(wall.poly.isHole(i) is False):
@@ -257,8 +274,17 @@ class FactorySim:
                             
         #draw machine positions
         ctx.set_fill_rule(cairo.FillRule.WINDING)
-        for machine in self.machine_list:
-            ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+        for index, machine in enumerate(self.machine_list):
+            #no highlights
+            if(highlight is  None):
+                ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+            #highlighted machine
+            elif(index == highlight):
+                ctx.set_source_rgb(1, 0.4, 0)
+            #other machines
+            else:
+                ctx.set_source_rgb(0.4, 0.4, 0.4)
+                
             for loop in machine.hull:
                 if(len(loop) > 0):
                     ctx.move_to(loop[0][0], loop[0][1])
@@ -276,7 +302,6 @@ class FactorySim:
 
         #Material Flow
         if drawMaterialflow:
-            machine_dict = {machine.name: machine for machine in self.machine_list}
 
             mf_max = self.materialflow_file.max()["intensity_sum"]
             mf_min = self.materialflow_file.min()["intensity_sum"]
@@ -284,9 +309,9 @@ class FactorySim:
             for index, row in self.materialflow_file.iterrows():
                 try:
                     #print(F"Draw Line from {machine_dict[row[0]].name} to {machine_dict[row[1]].name} with Intensity {row[2]}")
-                    ctx.set_source_rgb(machine_dict[row[0]].color[0], machine_dict[row[0]].color[1], machine_dict[row[0]].color[2])
-                    ctx.move_to(machine_dict[row[0]].center.x, machine_dict[row[0]].center.y)
-                    ctx.line_to(machine_dict[row[1]].center.x, machine_dict[row[1]].center.y)
+                    ctx.set_source_rgb(self.machine_list[int(row['from'])].color[0], self.machine_list[int(row['from'])].color[1], self.machine_list[int(row['from'])].color[2])
+                    ctx.move_to(self.machine_list[int(row['from'])].center.x, self.machine_list[int(row['from'])].center.y)
+                    ctx.line_to(self.machine_list[int(row['to'])].center.x, self.machine_list[int(row['to'])].center.y)
                     ctx.set_line_width(row["intensity_sum"]/(mf_max - mf_min) * 20)
                     ctx.stroke()   
                 except KeyError:
@@ -405,9 +430,10 @@ class FactorySim:
     
 #------------------------------------------------------------------------------------------------------------
     def printTime(self, text):
-        self.lasttime = (time() - self.timezero - self.lasttime)
-        number = round(self.lasttime * 1000, 2)
-        print(bold(fg256("green", f'{number:6.2f}')) , "- " + text)
+        number = (time() - self.timezero - self.lasttime)
+        self.lasttime += number
+        number = round(number * 1000, 2)
+        print(bold(fg256("green", f'{number:6.2f}ms')) , "- " + text)
 
 
 
@@ -416,21 +442,20 @@ def main():
            
     outputfile ="Out"
 
-    
     #filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
     filename = "Simple"
     
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input",  filename + ".ifc")
 
-
-    materialflowpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", filename + "_Materialflow_doubles.csv")
+    materialflowpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", filename + "_Materialflow.csv")
     #materialflowpath = None
     
     demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True)
  
     #Machine Positions Output to PNG
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
+    #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=3)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "Output", 
         F"{outputfile}_machines.png")
@@ -443,15 +468,32 @@ def main():
         F"{outputfile}_detailed_machines.png")
     detailedMachines.write_to_png(path)
  
-    #Machine Collisions Output to PNG
-    Collisions = demoFactory.drawCollisions()
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        "Output", 
-        F"{outputfile}_machine_collsions.png")
-    Collisions.write_to_png(path) 
+
 
     #Rate current Layout
     demoFactory.evaluate()
+
+    ##Change machine
+    #demoFactory.update(3,200,20,0)
+    #demoFactory.update(4,-150,100,0)
+    #demoFactory.update(1,-10,200,0)
+    #demoFactory.update(0,-50,150,0)
+
+    #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=3)
+    #path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #    "Output", 
+    #    F"{outputfile}_machines_update.png")
+    #machinePositions.write_to_png(path) 
+
+    ##Machine Collisions Output to PNG
+    #Collisions = demoFactory.drawCollisions()
+    #path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #    "Output", 
+    #    F"{outputfile}_machine_collsions.png")
+    #Collisions.write_to_png(path) 
+
+    ##Rate current Layout
+    #demoFactory.evaluate()
 
     print("Total runtime: " + bold(fg256("green", bg256("yellow", round((time() - demoFactory.timezero) * 1000, 2)))))
 

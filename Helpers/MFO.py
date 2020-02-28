@@ -14,13 +14,14 @@ class MFO:
         
         self.gid = gid
         self.name = name
+        self.color = [random.random(),random.random(),random.random()]
         self.origin = Point3D(origin_x, origin_y, origin_z)
         self.rotation = rotation  #in Radians
         self.poly = Poly()
         self.hull = Poly()
         self.polylist = []
         self.center = None
-        self.color = [random.random(),random.random(),random.random()]
+        
 
     
   
@@ -36,6 +37,7 @@ class MFO:
     
     def finish(self):
         self.poly = Poly()
+        self.hull = Poly()
         for item in self.polylist:
             for i, contour in enumerate(item):
                 self.poly.addContour(contour, item.isHole(i))
@@ -45,7 +47,7 @@ class MFO:
         self.center = Point3D(centerx, centery, 0)
 
   
-    def rotate_translate_Item(self):
+    def updatePosition(self):
         wholePoly = Poly()
         for item in self.polylist:    
             item.shift(self.origin.x, self.origin.y)
@@ -54,6 +56,14 @@ class MFO:
             boundingBox = wholePoly.boundingBox()
             if(self.rotation != 0):
                 item.rotate(self.rotation, boundingBox[0], boundingBox[2])
+    
+    def rotate_translate_Item(self, x, y, r=None):
+        self.origin.x = x
+        self.origin.y = y
+        if(r is not None):
+            self.rotation = r
+        self.updatePosition()
+        self.finish()
             
 
     def scale_Points(self, xScale, yScale, minx, miny):    
