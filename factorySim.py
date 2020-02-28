@@ -466,10 +466,11 @@ def main():
            
     outputfile ="Out"
 
-    filename = "Overlapp"
+    #filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
     #filename = "Simple"
-    
+    filename = "SimpleNoCollisions"
+
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input",  filename + ".ifc")
 
     materialflowpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", filename + "_Materialflow.csv")
@@ -500,9 +501,9 @@ def main():
 
     #Change machine
     demoFactory.update(3,200,20,0)
-    demoFactory.update(4,-150,100,0)
+    demoFactory.update(4,150,100,0)
     demoFactory.update(1,-10,200,0)
-    demoFactory.update(0,-50,150,0)
+    demoFactory.update(0, 50,150,0)
 
     machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=3)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
