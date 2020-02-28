@@ -184,17 +184,19 @@ class FactorySim:
     def evaluate(self):
         ratingMF = self.evaluateMF()          
         self.printTime("Bewertung des Materialfluss abgeschlossen")
+        ratingCollision = self.evaluateCollision()          
+        self.printTime("Kollisionsbewertung abgeschlossen")
 
-        self.currentRating = ratingMF
-        self.printTime(f"Bewertung des Layouts abgeschlossen - {self.currentRating:1.2f}")
+        self.currentRating = ratingMF + ratingCollision
+        self.printTime("Bewertung des Layouts abgeschlossen - " + bg256("blue", f"{self.currentRating:1.2f}"))
         print("MaterialFlow " + bg256("blue", f"{ratingMF:1.2f}"),
-            "Test " + bg256("blue", f"{ratingMF:1.2f}"),
+            "Kollisionen " + bg256("blue", f"{ratingCollision:1.2f}"),
             "Test " + bg256("blue", f"{ratingMF:1.2f}"),
             "Test " + bg256("blue", f"{ratingMF:1.2f}"))
         return self.currentRating
 
-
-    def evaluateHelper(self, source, sink): 
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateMF_Helper(self, source, sink): 
         x1 = self.machine_list[int(source)].center.x
         y1 = self.machine_list[int(source)].center.y
         x2 = self.machine_list[int(sink)].center.x
@@ -203,7 +205,7 @@ class FactorySim:
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF(self):
-        self.materialflow_file['distance'] = self.materialflow_file.apply(lambda row: self.evaluateHelper(row['from'], row['to']), axis=1)
+        self.materialflow_file['distance'] = self.materialflow_file.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
 
         #sum of all costs /  maximum intensity (intensity sum norm * 1) 
         maxDistance = max(self.max_value_x,  self.max_value_y)
@@ -212,6 +214,29 @@ class FactorySim:
         output = self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum()
 
         return output
+
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateCollision(self):
+        
+        machineCollisionArea = 0
+        wallCollisionArea = 0
+        totalMachineArea = 0
+
+        for collision in self.machineCollisionList:
+            machineCollisionArea += collision.area()
+        for collision in self.wallCollisionList:
+           wallCollisionArea += collision.area() 
+        for machine in self.machine_list:      
+            totalMachineArea += machine.hull.area()
+
+        #print(len(list(combinations(self.machine_list, 2))))
+        nMachineCollisions = len(self.machineCollisionList)
+        nWallCollosions = len(self.wallCollisionList)
+
+        output = 1 - (0.25 * nMachineCollisions) - (0.5 * nWallCollosions)
+  
+        return output
+
 
  #------------------------------------------------------------------------------------------------------------
  # Collision Detection
@@ -308,7 +333,6 @@ class FactorySim:
 
             for index, row in self.materialflow_file.iterrows():
                 try:
-                    #print(F"Draw Line from {machine_dict[row[0]].name} to {machine_dict[row[1]].name} with Intensity {row[2]}")
                     ctx.set_source_rgb(self.machine_list[int(row['from'])].color[0], self.machine_list[int(row['from'])].color[1], self.machine_list[int(row['from'])].color[2])
                     ctx.move_to(self.machine_list[int(row['from'])].center.x, self.machine_list[int(row['from'])].center.y)
                     ctx.line_to(self.machine_list[int(row['to'])].center.x, self.machine_list[int(row['to'])].center.y)
@@ -442,9 +466,9 @@ def main():
            
     outputfile ="Out"
 
-    #filename = "Overlapp"
+    filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
-    filename = "Simple"
+    #filename = "Simple"
     
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input",  filename + ".ifc")
 
@@ -461,41 +485,44 @@ def main():
         F"{outputfile}_machines.png")
     machinePositions.write_to_png(path) 
  
-    #detailed Machines Output to PNG
-    detailedMachines = demoFactory.drawDetailedMachines(randomcolors = True)
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        "Output", 
-        F"{outputfile}_detailed_machines.png")
-    detailedMachines.write_to_png(path)
- 
+ #------------------------------------------------------------------------------------------------------------------------------------------
+    ##detailed Machines Output to PNG
+    #detailedMachines = demoFactory.drawDetailedMachines(randomcolors = True)
+    #path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #    "Output", 
+    #    F"{outputfile}_detailed_machines.png")
+    #detailedMachines.write_to_png(path)
+ #------------------------------------------------------------------------------------------------------------------------------------------
 
 
     #Rate current Layout
     demoFactory.evaluate()
 
-    ##Change machine
-    #demoFactory.update(3,200,20,0)
-    #demoFactory.update(4,-150,100,0)
-    #demoFactory.update(1,-10,200,0)
-    #demoFactory.update(0,-50,150,0)
+    #Change machine
+    demoFactory.update(3,200,20,0)
+    demoFactory.update(4,-150,100,0)
+    demoFactory.update(1,-10,200,0)
+    demoFactory.update(0,-50,150,0)
 
-    #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=3)
-    #path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #    "Output", 
-    #    F"{outputfile}_machines_update.png")
-    #machinePositions.write_to_png(path) 
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=3)
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "Output", 
+        F"{outputfile}_machines_update.png")
+    machinePositions.write_to_png(path) 
 
-    ##Machine Collisions Output to PNG
-    #Collisions = demoFactory.drawCollisions()
-    #path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #    "Output", 
-    #    F"{outputfile}_machine_collsions.png")
-    #Collisions.write_to_png(path) 
+    #Machine Collisions Output to PNG
+    Collisions = demoFactory.drawCollisions()
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "Output", 
+        F"{outputfile}_machine_collsions.png")
+    Collisions.write_to_png(path) 
 
     ##Rate current Layout
-    #demoFactory.evaluate()
+    demoFactory.evaluate()
 
     print("Total runtime: " + bold(fg256("green", bg256("yellow", round((time() - demoFactory.timezero) * 1000, 2)))))
 
+
+    
 if __name__ == "__main__":
     main()
