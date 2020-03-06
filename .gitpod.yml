@@ -1,5 +1,10 @@
 tasks:
-  - init: pip3 install -r requirements.txt && bash downloadIFCOpenShell.sh
+  - init: pip3 install -r requirements.txt
+    command: bash downloadIFCOpenShell.sh
+  - init: git clone https://github.com/openai/gym 
+    command: cd gym
+    command: pip install -e
+
    # command: echo "Replace me with omething that should run on every start, or just
     #  remove me entirely."
 
