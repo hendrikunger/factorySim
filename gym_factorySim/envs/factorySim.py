@@ -261,16 +261,20 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, drawMaterialflow = True, drawMachineCenter = False, drawWalls = True, highlight = None):   
+    def drawPositions(self, surfaceIn=None, drawMaterialflow = True, drawMachineCenter = False, drawWalls = True, highlight = None):   
         #Drawing
         #Machine Positions
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+        if(surfaceIn is None):
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+        else:
+            surface = surfaceIn
         ctx = cairo.Context(surface)
         ctx.scale(1.0, -1.0)
         ctx.translate(0.0,-self.HEIGHT)
-        ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
-        ctx.set_source_rgb(1.0, 1.0, 1.0)
-        ctx.fill()
+        if(surfaceIn is None):
+            ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
+            ctx.set_source_rgb(1.0, 1.0, 1.0)
+            ctx.fill()
 
       #Walls
         if drawWalls:
@@ -325,6 +329,12 @@ class FactorySim:
                 ctx.arc(machine.center.x, machine.center.y, 5, 0, 2*math.pi)
                 ctx.fill()
 
+        #Machine Centers
+            if (machine.origin is not None and drawMachineCenter):
+                ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                ctx.arc(machine.origin.x, machine.origin.y, 5, 0, 2*math.pi)
+                ctx.fill()
+
         #Material Flow
         if drawMaterialflow:
 
@@ -347,16 +357,20 @@ class FactorySim:
     
     
 #------------------------------------------------------------------------------------------------------------  
-    def drawDetailedMachines(self, randomcolors = False):   
+    def drawDetailedMachines(self, surfaceIn=None, randomcolors = False):   
         #Drawing
         #Machine Positions
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+        if(surfaceIn is None):
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+        else:
+            surface = surfaceIn
         ctx = cairo.Context(surface)
         ctx.scale(1.0, -1.0)
         ctx.translate(0.0,-self.HEIGHT)
-        ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
-        ctx.set_source_rgb(1.0, 1.0, 1.0)
-        ctx.fill()
+        if(surfaceIn is None):
+            ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
+            ctx.set_source_rgb(1.0, 1.0, 1.0)
+            ctx.fill()
         
         #draw machine positions
         for machine in self.machine_list:
@@ -397,16 +411,20 @@ class FactorySim:
         return surface
 
  #------------------------------------------------------------------------------------------------------------
-    def drawCollisions(self, drawWalls=True):
+    def drawCollisions(self, surfaceIn=None, drawWalls=True):
 
         #Machine Collisions
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+        if(surfaceIn is None):
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+        else:
+            surface = surfaceIn
         ctx = cairo.Context(surface)
         ctx.scale(1.0, -1.0)
         ctx.translate(0.0,-self.HEIGHT)
-        ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
-        ctx.set_source_rgb(1.0, 1.0, 1.0)
-        ctx.fill()
+        if(surfaceIn is None):
+            ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
+            ctx.set_source_rgb(1.0, 1.0, 1.0)
+            ctx.fill()
 
         #Drawing collisions between machines
         for polygon in self.machineCollisionList:
@@ -468,20 +486,27 @@ def main():
 
     #filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
-    #filename = "Simple"
-    filename = "SimpleNoCollisions"
+    filename = "Simple"
+    #filename = "SimpleNoCollisions"
 
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input",  filename + ".ifc")
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "Input",  
+        filename + ".ifc")
 
-    materialflowpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", filename + "_Materialflow.csv")
+    file_name, _ = os.path.splitext(ifcpath)
+    materialflowpath = file_name + "_Materialflow.csv"
     #materialflowpath = None
     
     demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True)
  
     #Machine Positions Output to PNG
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=3)
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "..",
+        "..",
         "Output", 
         F"{outputfile}_machines.png")
     machinePositions.write_to_png(path) 
@@ -500,20 +525,24 @@ def main():
     demoFactory.evaluate()
 
     #Change machine
-    demoFactory.update(3,200,20,0)
-    demoFactory.update(4,150,100,0)
-    demoFactory.update(1,-10,200,0)
-    demoFactory.update(0, 50,150,0)
+    demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y)
+    #demoFactory.update(4,150,100,0)
+    #demoFactory.update(1,-10,200,0)
+    #demoFactory.update(0, 50,150,0)
 
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=3)
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "..",
+        "..",
         "Output", 
         F"{outputfile}_machines_update.png")
     machinePositions.write_to_png(path) 
 
     #Machine Collisions Output to PNG
-    Collisions = demoFactory.drawCollisions()
+    Collisions = demoFactory.drawCollisions(surfaceIn=machinePositions)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "..",
+        "..",
         "Output", 
         F"{outputfile}_machine_collsions.png")
     Collisions.write_to_png(path) 
