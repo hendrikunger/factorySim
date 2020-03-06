@@ -4,6 +4,12 @@ tasks:
   - init: git clone https://github.com/openai/gym 
     command: cd gym
     command: pip install -e
+    command: cd ..
+    command: rm -R gym
+  - init: cd `python -m site --user-site`   
+    command: curl -sS https://s3.amazonaws.com/ifcopenshell-builds/ifcopenshell-python-37-v0.6.0-e44221c-linux64.zip > file.zip 
+    command: unzip file.zip                                  
+    command: rm file.zip
 
    # command: echo "Replace me with omething that should run on every start, or just
     #  remove me entirely."
