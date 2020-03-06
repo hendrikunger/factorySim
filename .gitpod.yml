@@ -7,12 +7,14 @@ tasks:
       rm file.zip
   
   - init: | 
+      cd /workspace
       git clone https://github.com/openai/gym 
       cd gym
       pip install -e .
       cd ..
-
-
+    command: |
+      cd /workspace/factorySim
+      pip install setup.py -e .
 
 vscode:
   extensions:
