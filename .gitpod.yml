@@ -14,6 +14,7 @@ tasks:
       cd ..
     command: |
       cd /workspace/factorySim
+      pip3 -V
       pip3 install setup.py -e .
 
 vscode:
