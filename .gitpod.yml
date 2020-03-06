@@ -14,7 +14,7 @@ tasks:
       cd ..
     command: |
       cd /workspace/factorySim
-      pip install setup.py -e .
+      pip3 install setup.py -e .
 
 vscode:
   extensions:
