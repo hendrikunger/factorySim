@@ -10,7 +10,7 @@ tasks:
       cd /workspace
       git clone https://github.com/openai/gym 
       cd gym
-      pip install -e .
+      pip3 install -e .
       cd ..
     command: |
       cd /workspace/factorySim
