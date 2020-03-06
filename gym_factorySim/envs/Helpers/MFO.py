@@ -47,7 +47,7 @@ class MFO:
         self.center = Point3D(centerx, centery, 0)
 
   
-    def updatePosition(self):
+    def updatePosition(self, xShift = None, yShift = None, rotShift = None):
         wholePoly = Poly()
         for item in self.polylist:
             item.shift(self.origin.x, self.origin.y)
