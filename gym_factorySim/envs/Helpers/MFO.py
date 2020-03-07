@@ -2,10 +2,12 @@
 
 from Helpers.Point3D import Point3D
 import random
+import math
 import time
 from Polygon import Polygon as Poly
 import Polygon.Utils
 import Polygon.IO
+
 
 
 class MFO:
@@ -47,13 +49,15 @@ class MFO:
         self.center = Point3D(centerx, centery, 0)
 
   
-    def updatePosition(self, xShift = None, yShift = None, rotShift = None):
+    def updatePosition(self):
         wholePoly = Poly()
         for item in self.polylist:
             item.shift(self.origin.x, self.origin.y)
             for contour in item:
                 wholePoly.addContour(contour)
-            boundingBox = wholePoly.boundingBox()
+        
+        boundingBox = wholePoly.boundingBox()
+        for item in self.polylist:
             item.rotate(self.baseRotation, boundingBox[0], boundingBox[2])
 
 
@@ -63,22 +67,28 @@ class MFO:
         yShift = y - self.origin.y
         self.origin.x = x
         self.origin.y = y
+
+        wholePoly = Poly()
+        for item in self.polylist:
+            item.shift(xShift, yShift)
+            for contour in item:
+                wholePoly.addContour(contour)
+            
         if(r is not None):
-            rotShift = r - self.rotation
-            self.rotation = r
-
-            wholePoly = Poly()
+            boundingBox = wholePoly.boundingBox()
             for item in self.polylist:
-                if(xShift is None or yShift is None):    
-                    item.shift(self.origin.x, self.origin.y)
-                else:
-                    item.shift(xShift, yShift)
-                for contour in item:
-                    wholePoly.addContour(contour)
-                boundingBox = wholePoly.boundingBox()
-                item.rotate(rotShift, boundingBox[0], boundingBox[2])
-
+                rotShift = r - self.rotation
+                self.rotation = r
+                item.rotate(rotShift)
+                centerX = boundingBox[0] + (boundingBox[1] - boundingBox[0])/2
+                centerY = boundingBox[2] + (boundingBox[3] - boundingBox[2])/2
+                rotatedX = math.cos(rotShift) * (self.origin.x - centerX) - math.sin(rotShift) * (self.origin.y-centerY) + centerX
+                rotatedY = math.sin(rotShift) * (self.origin.x - centerX) + math.cos(rotShift) * (self.origin.y - centerY) + centerY
+                self.origin.x = rotatedX
+                self.origin.y = rotatedY
+    
         self.finish()
+
 
             
 

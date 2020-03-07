@@ -172,7 +172,8 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
-    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = 0):
+    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None):
+
         self.machine_list[machineIndex].rotate_translate_Item(xPosition, yPosition, rotation)
         self.findCollisions()
         self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
@@ -526,6 +527,7 @@ def main():
 
     #Change machine
     demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
+    #demoFactory.update(0,200,200, math.pi/2)
     #demoFactory.update(4,150,100,0)
     #demoFactory.update(1,-10,200,0)
     #demoFactory.update(0, 50,150,0)
