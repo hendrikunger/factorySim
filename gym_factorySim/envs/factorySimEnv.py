@@ -40,7 +40,7 @@ class FactorySimEnv(gym.Env):
         self.stepCount = 0
  
     def render(self, mode='human', close=False):
-        output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, highlight=self.lastMachine)
+        output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, highlight=self.currentMachine)
         output = self.factory.drawCollisions(surfaceIn = output)
 
         outputPath = "/workspace/factorySim/Output/" + f"state_{self.stepCount:04d}.png" 
