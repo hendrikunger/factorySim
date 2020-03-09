@@ -5,6 +5,9 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
+import numpy as np
+import cairo
+
 from factorySim import FactorySim
  
 class FactorySimEnv(gym.Env):  
@@ -43,8 +46,16 @@ class FactorySimEnv(gym.Env):
         output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, highlight=self.currentMachine)
         output = self.factory.drawCollisions(surfaceIn = output)
 
-        outputPath = "/workspace/factorySim/Output/" + f"state_{self.stepCount:04d}.png" 
-        output.write_to_png(outputPath) 
+
+
+        if mode == 'rgb_array':
+            buf = output.get_data()
+            data = np.ndarray(shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32, buffer=buf)
+            return data
+        elif mode == 'human':
+            outputPath = "/workspace/factorySim/Output/" + f"state_{self.stepCount:04d}.png" 
+            output.write_to_png(outputPath) 
+
 
 
 
@@ -56,7 +67,7 @@ def main():
 
    for _ in range(0,100):
     env.step(None)    
-    env.render()
+    print(env.render(mode='rgb_array'))
     
     
 if __name__ == "__main__":
