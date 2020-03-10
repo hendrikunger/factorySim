@@ -7,6 +7,7 @@ from gym.utils import seeding
 
 import numpy as np
 import cairo
+from tqdm import tqdm
 
 from factorySim import FactorySim
  
@@ -14,13 +15,13 @@ class FactorySimEnv(gym.Env):
     metadata = {'render.modes': ['human']}  
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, inputfile):
+    def __init__(self, inputfile, Loglevel):
         super()
         self.stepCount = 0
         file_name, _ = os.path.splitext(inputfile)
         materialflowpath = file_name + "_Materialflow.csv"
     
-        self.factory = FactorySim(inputfile, path_to_materialflow_file = materialflowpath)
+        self.factory = FactorySim(inputfile, path_to_materialflow_file = materialflowpath, verboseOutput = Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
         self.lastMachine = None
@@ -62,12 +63,14 @@ class FactorySimEnv(gym.Env):
 
 #------------------------------------------------------------------------------------------------------------
 def main():
-   env = FactorySimEnv("/workspace/factorySim/Input/Simple.ifc")    
-   env.render()
+    env = FactorySimEnv("/workspace/factorySim/Input/Simple.ifc", Loglevel=0)    
+    env.render()
 
-   for _ in range(0,100):
-    env.step(None)    
-    print(env.render(mode='rgb_array'))
+    for _ in tqdm(range(0,100)):
+        env.step(None)    
+        env.render(mode='rgb_array')
+    print(env.factory)
+
     
     
 if __name__ == "__main__":

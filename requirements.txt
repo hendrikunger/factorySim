@@ -4,3 +4,4 @@ pandas==0.25.3
 pandas-datareader==0.8.1
 Polygon3==3.0.8
 fabulous==0.3.0
+tqdm==4.43.0

@@ -21,9 +21,11 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = "Kekse", path_to_materialflow_file = None, outputfile = "Out", randomMF = False):
+    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = "Kekse", path_to_materialflow_file = None, outputfile = "Out", randomMF = False, verboseOutput = 0):
         self.WIDTH = width
         self.HEIGHT = heigth
+
+        self.verboseOutput = verboseOutput
 
         self.RANDSEED = randseed
         random.seed(randseed)
@@ -35,7 +37,8 @@ class FactorySim:
         #ifc_file = ifcopenshell.open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"Input","EP_v23_S1_clean.ifc"))
         self.ifc_file = ifcopenshell.open(path_to_ifc_file)
 
-        self.printTime("Datei geladen")
+        if(self.verboseOutput >= 2):
+            self.printTime("Datei geladen")
         #Importing Machines
         self.machine_list = self.importIFC_Data(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
         self.wall_list = self.importIFC_Data(self.ifc_file, "IFCWALL") 
@@ -63,7 +66,8 @@ class FactorySim:
         self.max_value_x = boundingBox[1]     
         self.min_value_y = boundingBox[2]     
         self.max_value_y = boundingBox[3]     
-        self.printTime("Boundingbox erstellt")
+        if(self.verboseOutput >= 2):
+            self.printTime("Boundingbox erstellt")
  
         if((self.max_value_x > self.WIDTH) or (self.max_value_y > self.HEIGHT)):
             #Calculate new scale
@@ -79,14 +83,16 @@ class FactorySim:
             self.max_value_x = (self.max_value_x - self.min_value_x) * scale   
             self.min_value_y = (self.min_value_y - self.min_value_y) * scale   
             self.max_value_y = (self.max_value_y - self.min_value_y) * scale 
-        self.printTime("Skaliert")
+        if(self.verboseOutput >= 2):
+            self.printTime("Skaliert")
         
         #Finding Centers and merging internal polygons
         for machine in self.machine_list:      
             machine.finish()
         for wall in self.wall_list:      
             wall.finish()
-        self.printTime("Mitten gefunden und finalisiert")
+        if(self.verboseOutput >= 2):
+            self.printTime("Mitten gefunden und finalisiert")
         
         #Find Collisions
         self.findCollisions()
@@ -112,7 +118,8 @@ class FactorySim:
             #set initial values for costs
             self.materialflow_file['costs'] = 0
     
-        self.printTime("Materialfluss geladen")
+        if(self.verboseOutput >= 2):
+            self.printTime("Materialfluss geladen")
 
         
       
@@ -166,7 +173,8 @@ class FactorySim:
             mfo_object.updatePosition() 
             elementlist.append(mfo_object)
             
-        self.printTime(f"{elementName} geparsed")
+        if(self.verboseOutput >= 2):
+            self.printTime(f"{elementName} geparsed")
         return elementlist
 
  #------------------------------------------------------------------------------------------------------------
@@ -176,7 +184,8 @@ class FactorySim:
 
         self.machine_list[machineIndex].rotate_translate_Item(xPosition, yPosition, rotation)
         self.findCollisions()
-        self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
+        if(self.verboseOutput >= 2):
+            self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
 
     
  #------------------------------------------------------------------------------------------------------------
@@ -184,16 +193,22 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
         ratingMF = self.evaluateMF()          
-        self.printTime("Bewertung des Materialfluss abgeschlossen")
+        if(self.verboseOutput >= 2):
+            self.printTime("Bewertung des Materialfluss abgeschlossen")
         ratingCollision = self.evaluateCollision()          
-        self.printTime("Kollisionsbewertung abgeschlossen")
+        if(self.verboseOutput >= 2):
+            self.printTime("Kollisionsbewertung abgeschlossen")
 
         self.currentRating = ratingMF + ratingCollision
-        self.printTime("Bewertung des Layouts abgeschlossen - " + bg256("blue", f"{self.currentRating:1.2f}"))
-        print("MaterialFlow " + bg256("blue", f"{ratingMF:1.2f}"),
-            "Kollisionen " + bg256("blue", f"{ratingCollision:1.2f}"),
-            "Test " + bg256("blue", f"{ratingMF:1.2f}"),
-            "Test " + bg256("blue", f"{ratingMF:1.2f}"))
+        if(self.verboseOutput >= 2):
+            self.printTime("Bewertung des Layouts abgeschlossen")
+        if(self.verboseOutput >= 1):
+            print("Total Rating " + bg256("blue", fg256("red" ,f"{self.currentRating:1.2f}")) + ", ",
+                "MaterialFlow " + bg256("blue", f"{ratingMF:1.2f}") + ", ",
+                "Kollisionen " + bg256("blue", f"{ratingCollision:1.2f}") + ", ",
+                "Test " + bg256("blue", f"{ratingMF:1.2f}")+ ", ",
+                "Test " + bg256("blue", f"{ratingMF:1.2f}"))
+        
         return self.currentRating
 
  #------------------------------------------------------------------------------------------------------------
@@ -247,17 +262,20 @@ class FactorySim:
         self.machineCollisionList = []       
         for a,b in combinations(self.machine_list, 2):
             if a.hull.overlaps(b.hull):
-                print(fg256("red", f"Kollision zwischen {a.name} und {b.name} gefunden."))
+                if(self.verboseOutput >= 3):
+                    print(fg256("red", f"Kollision zwischen {a.name} und {b.name} gefunden."))
                 self.machineCollisionList.append(a.hull & b.hull)
         #Machines with Walls     
         self.wallCollisionList = []
         for a in self.wall_list:
             for b in self.machine_list:
                 if a.poly.overlaps(b.hull):
-                    print(fg256("red", f"Kollision Wand {a.gid} und Maschine {b.name} gefunden."))
+                    if(self.verboseOutput >= 3):
+                        print(fg256("red", f"Kollision Wand {a.gid} und Maschine {b.name} gefunden."))
                     self.wallCollisionList.append(a.poly & b.hull)
                     
-        self.printTime("Kollisionen berechnen abgeschlossen")
+        if(self.verboseOutput >= 2):
+            self.printTime("Kollisionen berechnen abgeschlossen")
 
  #------------------------------------------------------------------------------------------------------------
  # Drawing
@@ -352,7 +370,8 @@ class FactorySim:
                 except KeyError:
                     print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
                     continue
-        self.printTime("Machinenpositionen gezeichnet")
+        if(self.verboseOutput >= 2):
+            self.printTime("Machinenpositionen gezeichnet")
     
         return surface
     
@@ -408,7 +427,8 @@ class FactorySim:
                             ctx.close_path()
                             ctx.fill()
 
-        self.printTime("Detailierte Machinenpositionen gezeichnet")
+        if(self.verboseOutput >= 2):
+            self.printTime("Detailierte Machinenpositionen gezeichnet")
         return surface
 
  #------------------------------------------------------------------------------------------------------------
@@ -452,7 +472,8 @@ class FactorySim:
                         ctx.close_path()
                         ctx.fill()            
                     
-        self.printTime("Kollisionen gezeichnet")
+        if(self.verboseOutput >= 2):
+            self.printTime("Kollisionen gezeichnet")
         return surface
  #------------------------------------------------------------------------------------------------------------
  # Helpers  
@@ -467,7 +488,8 @@ class FactorySim:
                 samples = random.sample(self.machine_list, k=2)
                 file.write(f"{samples[0].name}, {samples[1].name},{random.randint(1,100)}\n")
         random.seed(self.RANDSEED)
-        self.printTime("Zufälligen Materialfluss erstellt")
+        if(self.verboseOutput >= 2):
+            self.printTime("Zufälligen Materialfluss erstellt")
         return path
     
     
