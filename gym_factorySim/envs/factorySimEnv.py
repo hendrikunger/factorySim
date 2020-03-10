@@ -12,12 +12,13 @@ from tqdm import tqdm
 from factorySim import FactorySim
  
 class FactorySimEnv(gym.Env):  
-    metadata = {'render.modes': ['human']}  
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, inputfile, Loglevel):
+    def __init__(self, inputfile, obs_type='image', Loglevel=0):
         super()
         self.stepCount = 0
+        self._obs_type = obs_type
         file_name, _ = os.path.splitext(inputfile)
         materialflowpath = file_name + "_Materialflow.csv"
     
@@ -25,12 +26,13 @@ class FactorySimEnv(gym.Env):
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
         self.lastMachine = None
+        self.output = None
  
     def step(self, action):
 
         #Index, xPos, yPos, Rotation
         self.factory.update(self.currentMachine, random.randint(0, 1000),random.randint(0, 1000), 0)
-        self.factory.evaluate()
+        reward = self.factory.evaluate()
         self.stepCount += 1
         self.lastMachine = self.currentMachine
         self.currentMachine += 1
@@ -38,38 +40,50 @@ class FactorySimEnv(gym.Env):
         if(self.currentMachine >= self.machineCount):
             self.currentMachine = 0
 
+        self.output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, highlight=self.currentMachine)
+        self.output = self.factory.drawCollisions(surfaceIn = self.output)
+
+        done = False
+        info = {}
+    
+        return self._get_obs(), reward, done, info
         
  
     def reset(self):
         self.stepCount = 0
  
     def render(self, mode='human', close=False):
-        output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, highlight=self.currentMachine)
-        output = self.factory.drawCollisions(surfaceIn = output)
-
-
 
         if mode == 'rgb_array':
-            buf = output.get_data()
-            data = np.ndarray(shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32, buffer=buf)
-            return data
+            return self._get_np_array()
         elif mode == 'human':
-            outputPath = "/workspace/factorySim/Output/" + f"state_{self.stepCount:04d}.png" 
-            output.write_to_png(outputPath) 
+            #add rendering to window
+            return self._get_image()
+            
 
 
+    def _get_image(self):
+        outputPath = "/workspace/factorySim/Output/" + f"state_{self.stepCount:04d}.png" 
+        return self.output.write_to_png(outputPath)
 
+    def _get_np_array(self):
+        buf = self.output.get_data()
+        return np.ndarray(shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32, buffer=buf)
+
+    def _get_obs(self):
+        if self._obs_type == 'image':
+            img = self._get_np_array()
+        return img
 
 
 #------------------------------------------------------------------------------------------------------------
 def main():
-    env = FactorySimEnv("/workspace/factorySim/Input/Simple.ifc", Loglevel=0)    
-    env.render()
+    env = FactorySimEnv("/workspace/factorySim/Input/Simple.ifc", obs_type='image', Loglevel=0)    
 
     for _ in tqdm(range(0,100)):
-        env.step(None)    
-        env.render(mode='rgb_array')
-    print(env.factory)
+        observation, reward, done, info = env.step(None)    
+        #env.render(mode='human')
+        print(reward)
 
     
     
