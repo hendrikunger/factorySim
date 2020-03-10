@@ -47,6 +47,9 @@ class MFO:
         self.hull.simplify()
         centerx, centery = self.hull.center()
         self.center = Point3D(centerx, centery, 0)
+        #Calculate Origion in lower left corner
+        boundingBox = self.poly.boundingBox()
+        self.origin = Point3D(boundingBox[0], boundingBox[2], 0)
 
   
     def updatePosition(self):
@@ -62,30 +65,49 @@ class MFO:
 
 
     def rotate_translate_Item(self, x, y, r=None):
+            
+        if(r is not None):
+            wholePoly = Poly()
+            for item in self.polylist:       
+                for contour in item:
+                    wholePoly.addContour(contour)
+                    
+            boundingBox = wholePoly.boundingBox()
+            rotShift = r - self.rotation
+            self.rotation = r
+            
+            centerX = boundingBox[0] + (boundingBox[1] - boundingBox[0])/2
+            centerY = boundingBox[2] + (boundingBox[3] - boundingBox[2])/2
+            rotatedX = math.cos(rotShift) * (self.baseOrigin.x - centerX) - math.sin(rotShift) * (self.baseOrigin.y-centerY) + centerX
+            rotatedY = math.sin(rotShift) * (self.baseOrigin.x - centerX) + math.cos(rotShift) * (self.baseOrigin.y - centerY) + centerY
+            self.baseOrigin.x = rotatedX
+            self.baseOrigin.y = rotatedY
 
+            for item in self.polylist:
+                item.rotate(rotShift)
+
+            wholePoly = Poly()
+            for item in self.polylist:       
+                for contour in item:
+                    wholePoly.addContour(contour)
+                    
+            boundingBox = wholePoly.boundingBox()
+            self.origin = Point3D(boundingBox[0], boundingBox[2], 0)
+
+        
         xShift = x - self.origin.x
         yShift = y - self.origin.y
         self.origin.x = x
         self.origin.y = y
+        self.baseOrigin.x += xShift
+        self.baseOrigin.y += yShift
+        if(self.name =="Hildegard"):
+            print(f"{xShift}, {yShift}")
+            
 
-        wholePoly = Poly()
         for item in self.polylist:
             item.shift(xShift, yShift)
-            for contour in item:
-                wholePoly.addContour(contour)
-            
-        if(r is not None):
-            boundingBox = wholePoly.boundingBox()
-            for item in self.polylist:
-                rotShift = r - self.rotation
-                self.rotation = r
-                item.rotate(rotShift)
-                centerX = boundingBox[0] + (boundingBox[1] - boundingBox[0])/2
-                centerY = boundingBox[2] + (boundingBox[3] - boundingBox[2])/2
-                rotatedX = math.cos(rotShift) * (self.origin.x - centerX) - math.sin(rotShift) * (self.origin.y-centerY) + centerX
-                rotatedY = math.sin(rotShift) * (self.origin.x - centerX) + math.cos(rotShift) * (self.origin.y - centerY) + centerY
-                self.origin.x = rotatedX
-                self.origin.y = rotatedY
+
     
         self.finish()
 
@@ -99,6 +121,10 @@ class MFO:
 
         self.origin.x = (self.origin.x + minx) * xScale
         self.origin.y = (self.origin.y + miny) * yScale
+        self.baseOrigin.x = self.origin.x
+        self.baseOrigin.y = self.origin.y
+
+
  
 def main():
     testmachine = Machine("AABBAA")

@@ -280,9 +280,8 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, surfaceIn=None, drawMaterialflow = True, drawMachineCenter = False, drawWalls = True, highlight = None):   
+    def drawPositions(self, surfaceIn=None, drawMaterialflow = True, drawMachineCenter = False, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
         #Drawing
-        #Machine Positions
         if(surfaceIn is None):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
         else:
@@ -352,6 +351,12 @@ class FactorySim:
             if (machine.origin is not None and drawMachineCenter):
                 ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
                 ctx.arc(machine.origin.x, machine.origin.y, 5, 0, 2*math.pi)
+                ctx.fill()
+
+        #Machine Base Origin
+            if (machine.baseOrigin is not None and drawMachineBaseOrigin):
+                ctx.set_source_rgb(1,0,0)
+                ctx.arc(machine.baseOrigin.x, machine.baseOrigin.y, 3, 0, 2*math.pi)
                 ctx.fill()
 
         #Material Flow
@@ -522,11 +527,11 @@ def main():
     materialflowpath = file_name + "_Materialflow.csv"
     #materialflowpath = None
     
-    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True)
+    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True, verboseOutput=3)
  
     #Machine Positions Output to PNG
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=0)
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -548,13 +553,15 @@ def main():
     demoFactory.evaluate()
 
     #Change machine
-    demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
+    #demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
+    demoFactory.update(0,0,400, math.pi/2)
+    #demoFactory.update(0,100,300, math.pi/2)
     #demoFactory.update(0,200,200, math.pi/2)
     #demoFactory.update(4,150,100,0)
     #demoFactory.update(1,-10,200,0)
     #demoFactory.update(0, 50,150,0)
 
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=0)
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",

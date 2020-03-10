@@ -40,7 +40,7 @@ class FactorySimEnv(gym.Env):
         if(self.currentMachine >= self.machineCount):
             self.currentMachine = 0
 
-        self.output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, highlight=self.currentMachine)
+        self.output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, drawMachineBaseOrigin=True, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(surfaceIn = self.output)
 
         done = False
@@ -82,8 +82,8 @@ def main():
 
     for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step(None)    
-        #env.render(mode='human')
-        print(reward)
+        env.render(mode='human')
+    
 
     
     
