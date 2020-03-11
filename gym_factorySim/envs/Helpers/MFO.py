@@ -25,6 +25,8 @@ class MFO:
         self.hull = Poly()
         self.polylist = []
         self.center = None
+        self.width = 0
+        self.height = 0
         
 
     def add_Loop(self, polygonpoints, isHole=False):
@@ -50,6 +52,9 @@ class MFO:
         #Calculate Origion in lower left corner
         boundingBox = self.poly.boundingBox()
         self.origin = Point3D(boundingBox[0], boundingBox[2], 0)
+        #Calculate total Dimensions
+        self.width = boundingBox[1] - boundingBox[0]
+        self.height = boundingBox[3] - boundingBox[2]
 
   
     def updatePosition(self):
@@ -64,55 +69,51 @@ class MFO:
             item.rotate(self.baseRotation, boundingBox[0], boundingBox[2])
 
 
-    def rotate_translate_Item(self, x, y, r=None):
+    def rotate_Item(self, r):
+
+        wholePoly = Poly()
+        for item in self.polylist:       
+            for contour in item:
+                wholePoly.addContour(contour)
+                
+        boundingBox = wholePoly.boundingBox()
+        rotShift = r - self.rotation
+        self.rotation = r
             
-        if(r is not None):
-            wholePoly = Poly()
-            for item in self.polylist:       
-                for contour in item:
-                    wholePoly.addContour(contour)
+        centerX = boundingBox[0] + (boundingBox[1] - boundingBox[0])/2
+        centerY = boundingBox[2] + (boundingBox[3] - boundingBox[2])/2
+        rotatedX = math.cos(rotShift) * (self.baseOrigin.x - centerX) - math.sin(rotShift) * (self.baseOrigin.y-centerY) + centerX
+        rotatedY = math.sin(rotShift) * (self.baseOrigin.x - centerX) + math.cos(rotShift) * (self.baseOrigin.y - centerY) + centerY
+        self.baseOrigin.x = rotatedX
+        self.baseOrigin.y = rotatedY
+
+        for item in self.polylist:
+            item.rotate(rotShift)
+
+        wholePoly = Poly()
+        for item in self.polylist:       
+            for contour in item:
+                wholePoly.addContour(contour)
+                
+        boundingBox = wholePoly.boundingBox()
+        self.origin = Point3D(boundingBox[0], boundingBox[2], 0)
+
+        self.finish()
+
+
+    def translate_Item(self, x, y):
                     
-            boundingBox = wholePoly.boundingBox()
-            rotShift = r - self.rotation
-            self.rotation = r
-            
-            centerX = boundingBox[0] + (boundingBox[1] - boundingBox[0])/2
-            centerY = boundingBox[2] + (boundingBox[3] - boundingBox[2])/2
-            rotatedX = math.cos(rotShift) * (self.baseOrigin.x - centerX) - math.sin(rotShift) * (self.baseOrigin.y-centerY) + centerX
-            rotatedY = math.sin(rotShift) * (self.baseOrigin.x - centerX) + math.cos(rotShift) * (self.baseOrigin.y - centerY) + centerY
-            self.baseOrigin.x = rotatedX
-            self.baseOrigin.y = rotatedY
-
-            for item in self.polylist:
-                item.rotate(rotShift)
-
-            wholePoly = Poly()
-            for item in self.polylist:       
-                for contour in item:
-                    wholePoly.addContour(contour)
-                    
-            boundingBox = wholePoly.boundingBox()
-            self.origin = Point3D(boundingBox[0], boundingBox[2], 0)
-
-        
         xShift = x - self.origin.x
         yShift = y - self.origin.y
         self.origin.x = x
         self.origin.y = y
         self.baseOrigin.x += xShift
         self.baseOrigin.y += yShift
-        if(self.name =="Hildegard"):
-            print(f"{xShift}, {yShift}")
             
-
         for item in self.polylist:
             item.shift(xShift, yShift)
-
-    
         self.finish()
-
-
-            
+     
 
     def scale_Points(self, xScale, yScale, minx, miny):    
         for item in self.polylist:
@@ -123,7 +124,6 @@ class MFO:
         self.origin.y = (self.origin.y + miny) * yScale
         self.baseOrigin.x = self.origin.x
         self.baseOrigin.y = self.origin.y
-
 
  
 def main():

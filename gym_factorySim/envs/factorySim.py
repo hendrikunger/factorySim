@@ -182,7 +182,14 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None):
 
-        self.machine_list[machineIndex].rotate_translate_Item(xPosition, yPosition, rotation)
+        if (rotation is not None):
+            self.machine_list[machineIndex].rotate_Item(rotation)
+
+        #Max Value should move machine to the rightmost or topmost position without moving out of the image
+        mappedXPos = self.mapRange(xPosition, (0,self.WIDTH), (0,self.WIDTH - self.machine_list[machineIndex].width))
+        mappedYPos = self.mapRange(yPosition, (0,self.HEIGHT), (0,self.HEIGHT - self.machine_list[machineIndex].height))
+
+        self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
         self.findCollisions()
         if(self.verboseOutput >= 2):
             self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
@@ -505,6 +512,11 @@ class FactorySim:
         number = round(number * 1000, 2)
         print(bold(fg256("green", f'{number:6.2f}ms')) , "- " + text)
 
+  #------------------------------------------------------------------------------------------------------------  
+    def mapRange(self,s,  a, b):
+	    (a1, a2), (b1, b2) = a, b
+	    return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
+
 
 
 #------------------------------------------------------------------------------------------------------------
@@ -554,7 +566,7 @@ def main():
 
     #Change machine
     #demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
-    demoFactory.update(0,0,400, math.pi/2)
+    demoFactory.update(0,1000,1000, math.pi/2)
     #demoFactory.update(0,100,300, math.pi/2)
     #demoFactory.update(0,200,200, math.pi/2)
     #demoFactory.update(4,150,100,0)
@@ -582,7 +594,6 @@ def main():
     demoFactory.evaluate()
 
     print("Total runtime: " + bold(fg256("green", bg256("yellow", round((time() - demoFactory.timezero) * 1000, 2)))))
-
 
     
 if __name__ == "__main__":

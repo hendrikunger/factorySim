@@ -1,5 +1,6 @@
 import os
 import random
+import math
 
 import gym
 from gym import error, spaces, utils
@@ -31,7 +32,7 @@ class FactorySimEnv(gym.Env):
     def step(self, action):
 
         #Index, xPos, yPos, Rotation
-        self.factory.update(self.currentMachine, random.randint(0, 1000),random.randint(0, 1000), 0)
+        self.factory.update(self.currentMachine, random.randint(0, 1000),random.randint(0, 1000), random.uniform(0, 2*math.pi))
         reward = self.factory.evaluate()
         self.stepCount += 1
         self.lastMachine = self.currentMachine
