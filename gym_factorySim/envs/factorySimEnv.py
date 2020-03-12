@@ -58,9 +58,14 @@ class FactorySimEnv(gym.Env):
         if mode == 'rgb_array':
             return self._get_np_array()
         elif mode == 'human':
-            #add rendering to window
+            from gym.envs.classic_control import rendering
+            if self.viewer is None:
+                self.viewer = rendering.SimpleImageViewer()
+            self.viewer.imshow(img)
+            return self.viewer.isopen
+        elif mode == 'imageseries':
             return self._get_image()
-            
+
 
 
     def _get_image(self):
@@ -83,7 +88,7 @@ def main():
 
     for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step(None)    
-        env.render(mode='human')
+        env.render(mode='rgb_arrays')
     
 
     
