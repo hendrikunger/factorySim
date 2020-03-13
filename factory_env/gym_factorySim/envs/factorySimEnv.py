@@ -101,7 +101,6 @@ class FactorySimEnv(gym.Env):
 
 #------------------------------------------------------------------------------------------------------------
 def main():
-    from factorySim import FactorySim
     env = FactorySimEnv(inputfile = "/workspace/factorySim/Input/Simple.ifc", obs_type='image', Loglevel=2)    
     output = None
     for _ in tqdm(range(0,100)):
@@ -115,4 +114,5 @@ def main():
         
     
 if __name__ == "__main__":
+    from factorySim import FactorySim
     main()
