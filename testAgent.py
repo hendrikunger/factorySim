@@ -4,7 +4,7 @@ import datetime as dt
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2
-from gym_factorySim import FactorySimEnv
+import gym_factorySim
 import pandas as pd
 
 
