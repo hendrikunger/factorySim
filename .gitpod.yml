@@ -15,7 +15,7 @@ tasks:
       pip3 install -e .
       cd ..
     command: |
-      cd /workspace/factorySim
+      cd /workspace/factorySim/factory_env
       pip3 -V
       pip3 install -e .
 
