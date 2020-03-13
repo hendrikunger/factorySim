@@ -4,7 +4,7 @@ import datetime as dt
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2
-import factory_env.gym_factorySim
+import gym_factorySim
 import pandas as pd
 
 
@@ -23,4 +23,4 @@ model.save("ppo2_testagent")
 for i in range(200):
   action, _states = model.predict(obs)
   obs, rewards, done, info = env.step(action)
-  env.render()
+  env.render(mode = 'imageseries')

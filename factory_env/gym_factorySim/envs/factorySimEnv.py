@@ -38,7 +38,7 @@ class FactorySimEnv(gym.Env):
         self.action_space = spaces.Box(low=np.array([0, 0, 0]), high=np.array([self.factory.WIDTH, self.factory.HEIGHT, np.pi*2]))
 
         if self._obs_type == 'image':
-            self.observation_space = spaces.Box(low=0, high=255, shape=(self.factory.WIDTH, self.factory.HEIGHT, 1), dtype=np.uint32)
+            self.observation_space = spaces.Box(low=0, high=255, shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
  
