@@ -14,6 +14,10 @@ env = DummyVecEnv([lambda: FactorySimEnv("/workspace/factorySim/Input/Simple.ifc
 model = PPO2(MlpPolicy, env, verbose=1)
 model.learn(total_timesteps=200)
 obs = env.reset()
+model.save("ppo2_testagent")
+
+#del model 
+#model = PPO2.load("ppo2_testagent")
 
 for i in range(200):
   action, _states = model.predict(obs)
