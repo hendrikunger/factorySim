@@ -9,8 +9,8 @@ from gym.utils import seeding
 import numpy as np
 import cairo
 from tqdm import tqdm
+from gym_factorySim.envs.factorySim import FactorySim
 
-from factorySim import FactorySim
 
 
  
@@ -18,11 +18,14 @@ class FactorySimEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array', 'imageseries']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, inputfile, obs_type='image', Loglevel=0):
+    def __init__(self, inputfile = 'None', obs_type='image', Loglevel=0):
         super()
         self.stepCount = 0
         self._obs_type = obs_type
-        file_name, _ = os.path.splitext(inputfile)
+        if inputfile is not None:
+            file_name, _ = os.path.splitext(inputfile)
+        else:
+            exit("No inputfile given.")
         materialflowpath = file_name + "_Materialflow.csv"
     
         self.factory = FactorySim(inputfile, path_to_materialflow_file = materialflowpath, verboseOutput = Loglevel)
@@ -98,7 +101,8 @@ class FactorySimEnv(gym.Env):
 
 #------------------------------------------------------------------------------------------------------------
 def main():
-    env = FactorySimEnv("/workspace/factorySim/Input/Simple.ifc", obs_type='image', Loglevel=2)    
+    from factorySim import FactorySim
+    env = FactorySimEnv(inputfile = "/workspace/factorySim/Input/Simple.ifc", obs_type='image', Loglevel=2)    
     output = None
     for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step([random.randint(0, 1000),random.randint(0, 1000), random.uniform(0, 2*math.pi)])    

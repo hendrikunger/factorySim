@@ -11,7 +11,7 @@ import cairo
 import pandas as pd
 from fabulous.color import fg256, bg256, bold
 
-from Helpers.MFO import MFO 
+
 from Polygon import Polygon as Poly
 import Polygon.IO
 import numpy as np
@@ -524,7 +524,6 @@ class FactorySim:
 
 #------------------------------------------------------------------------------------------------------------
 def main():
-           
     outputfile ="Out"
 
     #filename = "Overlapp"
@@ -600,4 +599,8 @@ def main():
 
     
 if __name__ == "__main__":
+    from Helpers.MFO import MFO 
     main()
+else:
+    from gym_factorySim.envs.Helpers.MFO import MFO
+    from gym_factorySim.envs.Helpers.Point3D import Point3D

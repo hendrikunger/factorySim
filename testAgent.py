@@ -10,7 +10,8 @@ import pandas as pd
 
 
 # The algorithms require a vectorized environment to run
-env = DummyVecEnv([lambda: FactorySimEnv("/workspace/factorySim/Input/Simple.ifc", Loglevel=2)])
+env = gym.make('factorySimEnv-v0',inputfile = "/workspace/factorySim/Input/Simple.ifc", Loglevel=2) 
+env = DummyVecEnv([lambda: env])
 model = PPO2(MlpPolicy, env, verbose=1)
 model.learn(total_timesteps=200)
 obs = env.reset()

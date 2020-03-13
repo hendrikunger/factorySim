@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from Helpers.Point3D import Point3D
+
 import random
 import math
 import time
@@ -138,5 +138,8 @@ def main():
  
 
 if __name__ == "__main__":
+    from Helpers.Point3D import Point3D
     main()
+else:
+    from gym_factorySim.envs.Helpers.Point3D import Point3D
 
