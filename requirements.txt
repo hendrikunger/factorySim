@@ -1,6 +1,9 @@
 
 pycairo==1.19.0
-pandas==0.25.3
+pandas==1.0.1
 pandas-datareader==0.8.1
 Polygon3==3.0.8
 fabulous==0.3.0
+tqdm==4.43.0
+stable_baselines==2.10.0
+tensorflow==1.15
