@@ -4,6 +4,10 @@
 *.mp4
 *.gif
 
+#downloads of installscript
+*.deb
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
