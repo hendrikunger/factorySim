@@ -33,6 +33,8 @@ class FactorySimEnv(gym.Env):
         self.currentMachine = 0
         self.lastMachine = None
         self.output = None
+        self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), "..", "Output")
+    
 
         # Actions of the format MoveX, MoveY, Rotate 
         self.action_space = spaces.Box(low=np.array([0, 0, 0]), high=np.array([1,1,1]))
@@ -89,7 +91,7 @@ class FactorySimEnv(gym.Env):
         return img
 
     def _get_image(self):
-        outputPath = "/workspace/factorySim/Output/" + f"state_{self.stepCount:04d}.png" 
+        outputPath = os.path.join(self.output_path, f"state_{self.stepCount:04d}.png")
         return self.output.write_to_png(outputPath)
 
     def _get_np_array(self):
@@ -118,10 +120,10 @@ def main():
     output = None
     for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step([random.uniform(0,1),random.uniform(0,1), random.uniform(0, 1)])    
+        #output = env.render(mode='imageseries')
         output = env.render(mode='rgb_array')
 
-    print(output.ndim)
-    print(output.shape)
+
     #np.savetxt('data.csv', output, delimiter=',')
 
         
