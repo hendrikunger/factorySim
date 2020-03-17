@@ -24,17 +24,17 @@ wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1
 apt install ./nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
 
 # Install NVIDIA driver
-sudo apt-get install --no-install-recommends nvidia-driver-430
+apt-get install -y --no-install-recommends nvidia-driver-430
 # Reboot. Check that GPUs are visible using the command: nvidia-smi
 
 # Install development and runtime libraries (~4GB)
-sudo apt-get install --no-install-recommends \
+apt-get install -y --no-install-recommends \
     cuda-10-1 \
     libcudnn7=7.6.4.38-1+cuda10.1  \
     libcudnn7-dev=7.6.4.38-1+cuda10.1
 
 # Install TensorRT. Requires that libcudnn7 is installed above.
-sudo apt-get install -y --no-install-recommends libnvinfer6=6.0.1-1+cuda10.1 \
+apt-get install -y --no-install-recommends libnvinfer6=6.0.1-1+cuda10.1 \
     libnvinfer-dev=6.0.1-1+cuda10.1 \
     libnvinfer-plugin6=6.0.1-1+cuda10.1
 
@@ -67,6 +67,11 @@ cd `python -m site --user-site`
 curl -sS https://s3.amazonaws.com/ifcopenshell-builds/ifcopenshell-python-37-v0.6.0-e44221c-linux64.zip > file.zip 
 unzip file.zip                                  
 rm file.zip
+
+#configure git
+git config --global credential.helper store
+git pull
+git config --get-all user.email "unger.hendrik@gmail.com"
 
 # Reboot
 reboot
