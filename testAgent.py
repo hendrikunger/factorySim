@@ -13,7 +13,7 @@ import pandas as pd
 env = gym.make('factorySimEnv-v0',inputfile = "/workspace/factorySim/Input/Simple.ifc", Loglevel=2) 
 env = DummyVecEnv([lambda: env])
 model = PPO2(MlpPolicy, env, verbose=1)
-model.learn(total_timesteps=200)
+model.learn(total_timesteps=2000)
 obs = env.reset()
 model.save("ppo2_testagent")
 

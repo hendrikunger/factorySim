@@ -35,7 +35,7 @@ class FactorySimEnv(gym.Env):
         self.output = None
 
         # Actions of the format MoveX, MoveY, Rotate 
-        self.action_space = spaces.Box(low=np.array([0, 0, 0]), high=np.array([self.factory.WIDTH, self.factory.HEIGHT, np.pi*2]))
+        self.action_space = spaces.Box(low=np.array([0, 0, 0]), high=np.array([1,1,1]))
 
         if self._obs_type == 'image':
             self.observation_space = spaces.Box(low=0, high=255, shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32)
@@ -101,10 +101,23 @@ class FactorySimEnv(gym.Env):
 
 #------------------------------------------------------------------------------------------------------------
 def main():
-    env = FactorySimEnv(inputfile = "/workspace/factorySim/Input/Simple.ifc", obs_type='image', Loglevel=2)    
+
+    #filename = "Overlapp"
+    #filename = "EP_v23_S1_clean"
+    filename = "Simple"
+    #filename = "SimpleNoCollisions"
+
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "..",
+        "Input",  
+        filename + ".ifc")
+
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=2)    
     output = None
     for _ in tqdm(range(0,100)):
-        observation, reward, done, info = env.step([random.randint(0, 1000),random.randint(0, 1000), random.uniform(0, 2*math.pi)])    
+        observation, reward, done, info = env.step([random.uniform(0,1),random.uniform(0,1), random.uniform(0, 1)])    
         output = env.render(mode='rgb_array')
 
     print(output.ndim)

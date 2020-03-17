@@ -181,16 +181,17 @@ class FactorySim:
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None):
-
+        
         if(self.verboseOutput >= 2):
             print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
         if (rotation is not None):
-            self.machine_list[machineIndex].rotate_Item(rotation)
+            mappedRot = self.mapRange(rotation, (0,1), (0, 2*math.pi))
+            self.machine_list[machineIndex].rotate_Item(mappedRot)
 
         #Max Value should move machine to the rightmost or topmost position without moving out of the image
-        mappedXPos = self.mapRange(xPosition, (0,self.WIDTH), (0,self.WIDTH - self.machine_list[machineIndex].width))
-        mappedYPos = self.mapRange(yPosition, (0,self.HEIGHT), (0,self.HEIGHT - self.machine_list[machineIndex].height))
+        mappedXPos = self.mapRange(xPosition, (0,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
+        mappedYPos = self.mapRange(yPosition, (0,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
 
         self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
         self.findCollisions()
@@ -534,6 +535,7 @@ def main():
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
+        "..",
         "Input",  
         filename + ".ifc")
 
@@ -547,6 +549,7 @@ def main():
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
     machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "..",
         "..",
         "..",
         "Output", 
@@ -568,7 +571,7 @@ def main():
 
     #Change machine
     #demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
-    demoFactory.update(0,1000,1000, math.pi/2)
+    demoFactory.update(0,1,1, 1)
     #demoFactory.update(0,100,300, math.pi/2)
     #demoFactory.update(0,200,200, math.pi/2)
     #demoFactory.update(4,150,100,0)
@@ -579,6 +582,7 @@ def main():
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
+        "..",
         "Output", 
         F"{outputfile}_machines_update.png")
     machinePositions.write_to_png(path) 
@@ -586,6 +590,7 @@ def main():
     #Machine Collisions Output to PNG
     Collisions = demoFactory.drawCollisions(surfaceIn=machinePositions)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "..",
         "..",
         "..",
         "Output", 
