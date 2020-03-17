@@ -92,11 +92,21 @@ class FactorySimEnv(gym.Env):
 
     def _get_image(self):
         outputPath = os.path.join(self.output_path, f"state_{self.stepCount:04d}.png")
-        return self.output.write_to_png(outputPath)
+        
+        return self._addText(self.output, f"{self.stepCount:04d}").write_to_png(outputPath)
 
     def _get_np_array(self):
         buf = self.output.get_data()
         return np.ndarray(shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32, buffer=buf)
+
+    def _addText(self, surface, text):
+        ctx = cairo.Context(surface)
+        ctx.set_source_rgb(0, 0, 0)
+        #ctx.select_font_face("Purisa", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        ctx.set_font_size(25)
+        ctx.move_to(10, 35)
+        ctx.show_text(text)
+        return surface
 
 
 
@@ -120,8 +130,8 @@ def main():
     output = None
     for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step([random.uniform(0,1),random.uniform(0,1), random.uniform(0, 1)])    
-        #output = env.render(mode='imageseries')
-        output = env.render(mode='rgb_array')
+        output = env.render(mode='imageseries')
+        #output = env.render(mode='rgb_array')
 
 
     #np.savetxt('data.csv', output, delimiter=',')

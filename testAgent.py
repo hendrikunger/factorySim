@@ -25,7 +25,7 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 env = gym.make('factorySimEnv-v0',inputfile = ifcpath, Loglevel=2) 
 env = DummyVecEnv([lambda: env])
 model = PPO2(MlpPolicy, env, verbose=1)
-model.learn(total_timesteps=2000)
+model.learn(total_timesteps=20000)
 obs = env.reset()
 #model.save("ppo2_testagent")
 
