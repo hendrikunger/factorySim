@@ -27,7 +27,7 @@ env = DummyVecEnv([lambda: env])
 model = PPO2(MlpPolicy, env, verbose=1)
 model.learn(total_timesteps=2000)
 obs = env.reset()
-model.save("ppo2_testagent")
+#model.save("ppo2_testagent")
 
 #del model 
 #model = PPO2.load("ppo2_testagent")
