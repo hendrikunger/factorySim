@@ -69,9 +69,10 @@ unzip file.zip
 rm file.zip
 
 #configure git
+git config --get-all user.name "hendrikunger"
 git config --global credential.helper store
 git pull
-git config --get-all user.email "unger.hendrik@gmail.com"
+git config user.email "unger.hendrik@gmail.com"
 
 # Reboot
 reboot
