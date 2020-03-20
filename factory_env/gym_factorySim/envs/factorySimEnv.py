@@ -31,6 +31,7 @@ class FactorySimEnv(gym.Env):
         self.factory = FactorySim(inputfile, path_to_materialflow_file = materialflowpath, verboseOutput = Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
+        self.currentReward = 0
         self.lastMachine = None
         self.output = None
         self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), "..", "Output")
@@ -47,7 +48,7 @@ class FactorySimEnv(gym.Env):
     def step(self, action):
        
         self.factory.update(self.currentMachine, action[0], action[1], action[2])
-        reward = self.factory.evaluate()
+        self.currentReward = self.factory.evaluate()
         self.stepCount += 1
         self.lastMachine = self.currentMachine
         self.currentMachine += 1
@@ -58,12 +59,13 @@ class FactorySimEnv(gym.Env):
         done = False
         info = {}
     
-        return self._get_obs(), reward, done, info
+        return self._get_obs(), self.currentReward, done, info
         
  
     def reset(self):
         self.stepCount = 0
         self.currentMachine = 0
+        self.currentReward = 0
         self.lastMachine = None
         self.output = None
 
@@ -84,7 +86,7 @@ class FactorySimEnv(gym.Env):
 
     def _get_obs(self):
 
-        self.output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, drawMachineBaseOrigin=True, highlight=self.currentMachine)
+        self.output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(surfaceIn = self.output)
         if self._obs_type == 'image':
             img = self._get_np_array()
@@ -93,7 +95,7 @@ class FactorySimEnv(gym.Env):
     def _get_image(self):
         outputPath = os.path.join(self.output_path, f"state_{self.stepCount:04d}.png")
         
-        return self._addText(self.output, f"{self.stepCount:04d}").write_to_png(outputPath)
+        return self._addText(self.output, f"{self.stepCount:04d} | {self.currentReward:1.2f}").write_to_png(outputPath)
 
     def _get_np_array(self):
         buf = self.output.get_data()
@@ -115,9 +117,10 @@ class FactorySimEnv(gym.Env):
 def main():
 
     #filename = "Overlapp"
+    filename = "Basic"
     #filename = "EP_v23_S1_clean"
     #filename = "Simple"
-    filename = "SimpleNoCollisions"
+    #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
@@ -130,8 +133,8 @@ def main():
     output = None
     for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step([random.uniform(0,1),random.uniform(0,1), random.uniform(0, 1)])    
-        #output = env.render(mode='imageseries')
-        output = env.render(mode='rgb_array')
+        output = env.render(mode='imageseries')
+        #output = env.render(mode='rgb_array')
 
 
     #np.savetxt('data.csv', output, delimiter=',')

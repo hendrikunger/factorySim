@@ -291,7 +291,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, surfaceIn=None, drawMaterialflow = True, drawMachineCenter = False, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
+    def drawPositions(self, surfaceIn=None, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
         #Drawing
         if(surfaceIn is None):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
@@ -363,8 +363,8 @@ class FactorySim:
                 ctx.arc(machine.center.x, machine.center.y, 5, 0, 2*math.pi)
                 ctx.fill()
 
-        #Machine Centers
-            if (machine.origin is not None and drawMachineCenter):
+        #Machine Origin 
+            if (machine.origin is not None and drawOrigin):
                 ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
                 ctx.arc(machine.origin.x, machine.origin.y, 5, 0, 2*math.pi)
                 ctx.fill()
@@ -532,7 +532,8 @@ class FactorySim:
 def main():
     outputfile ="Out"
 
-    filename = "Overlapp"
+    #filename = "Overlapp"
+    filename = "Basic"
     #filename = "EP_v23_S1_clean"
     #filename = "Simple"
     #filename = "SimpleNoCollisions"
