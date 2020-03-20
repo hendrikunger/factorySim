@@ -116,8 +116,8 @@ def main():
 
     #filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
-    filename = "Simple"
-    #filename = "SimpleNoCollisions"
+    #filename = "Simple"
+    filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
@@ -130,8 +130,8 @@ def main():
     output = None
     for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step([random.uniform(0,1),random.uniform(0,1), random.uniform(0, 1)])    
-        output = env.render(mode='imageseries')
-        #output = env.render(mode='rgb_array')
+        #output = env.render(mode='imageseries')
+        output = env.render(mode='rgb_array')
 
 
     #np.savetxt('data.csv', output, delimiter=',')

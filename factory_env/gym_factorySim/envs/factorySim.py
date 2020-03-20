@@ -21,14 +21,14 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = "Kekse", path_to_materialflow_file = None, outputfile = "Out", randomMF = False, verboseOutput = 0):
+    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomMF = False, verboseOutput = 0):
         self.WIDTH = width
         self.HEIGHT = heigth
 
         self.verboseOutput = verboseOutput
-
         self.RANDSEED = randseed
         random.seed(randseed)
+            
         self.timezero = time()
         self.lasttime = 0
         
@@ -332,16 +332,8 @@ class FactorySim:
                             
         #draw machine positions
         ctx.set_fill_rule(cairo.FillRule.WINDING)
+        ctx.set_line_width(4)
         for index, machine in enumerate(self.machine_list):
-            #no highlights
-            if(highlight is  None):
-                ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-            #highlighted machine
-            elif(index == highlight):
-                ctx.set_source_rgb(1, 0.4, 0)
-            #other machines
-            else:
-                ctx.set_source_rgb(0.4, 0.4, 0.4)
                 
             for loop in machine.hull:
                 if(len(loop) > 0):
@@ -350,7 +342,20 @@ class FactorySim:
                         ctx.line_to(point[0], point[1])
                         #print(F"{machine.gid}, X:{point.x}, Y:{point.y}")
                     ctx.close_path()
-                    ctx.fill()
+
+                    #no highlights
+                    if(highlight is  None):
+                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                    #highlighted machine
+                    elif(index == highlight):
+                        ctx.set_source_rgb(1, 0.4, 0)
+                    #other machines
+                    else:
+                        ctx.set_source_rgb(0.4, 0.4, 0.4)
+
+                    ctx.fill_preserve()
+                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                    ctx.stroke()
       
         #Machine Centers
             if (machine.center is not None and drawMachineCenter):
@@ -527,9 +532,9 @@ class FactorySim:
 def main():
     outputfile ="Out"
 
-    #filename = "Overlapp"
+    filename = "Overlapp"
     #filename = "EP_v23_S1_clean"
-    filename = "Simple"
+    #filename = "Simple"
     #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
