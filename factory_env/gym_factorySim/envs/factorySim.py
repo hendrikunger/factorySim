@@ -46,6 +46,7 @@ class FactorySim:
         self.wallCollisionList = []
 
         self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
+        self.currentMappedRating    = 0 # Holds the normalized Rating of the current state of the Layout 
         
         allElements = Poly()
         
@@ -186,12 +187,12 @@ class FactorySim:
             print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
         if (rotation is not None):
-            mappedRot = self.mapRange(rotation, (0,1), (0, 2*math.pi))
+            mappedRot = self.mapRange(rotation, (-1,1), (0, 2*math.pi))
             self.machine_list[machineIndex].rotate_Item(mappedRot)
 
         #Max Value should move machine to the rightmost or topmost position without moving out of the image
-        mappedXPos = self.mapRange(xPosition, (0,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
-        mappedYPos = self.mapRange(yPosition, (0,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
+        mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
+        mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
 
         self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
         self.findCollisions()
@@ -211,16 +212,24 @@ class FactorySim:
             self.printTime("Kollisionsbewertung abgeschlossen")
 
         self.currentRating = ratingMF + ratingCollision
+        #Normalize
+        self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+
+        #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
+        if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
+            done = True
+        else:
+            done = False
+
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Layouts abgeschlossen")
         if(self.verboseOutput >= 1):
-            print("Total Rating " + bg256("blue", fg256("red" ,f"{self.currentRating:1.2f}")) + ", ",
+            print("Total Rating " + bg256("blue", fg256("red" ,f"{self.currentMappedRating:1.2f}")) + ", ",
+                "Raw Rating " + bg256("yellow", fg256("black" ,f"{self.currentRating:1.2f}")) + ", ",
                 "MaterialFlow " + bg256("blue", f"{ratingMF:1.2f}") + ", ",
-                "Kollisionen " + bg256("blue", f"{ratingCollision:1.2f}") + ", ",
-                "Test " + bg256("blue", f"{ratingMF:1.2f}")+ ", ",
-                "Test " + bg256("blue", f"{ratingMF:1.2f}"))
-        
-        return self.currentRating
+                "Kollisionen " + bg256("blue", f"{ratingCollision:1.2f}"))
+
+        return self.currentMappedRating, done
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF_Helper(self, source, sink): 
@@ -522,9 +531,11 @@ class FactorySim:
         print(bold(fg256("green", f'{number:6.2f}ms')) , "- " + text)
 
   #------------------------------------------------------------------------------------------------------------  
-    def mapRange(self,s,  a, b):
-	    (a1, a2), (b1, b2) = a, b
-	    return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
+    def mapRange(self,s , a, b):
+        (a1, a2), (b1, b2) = a, b
+        if(s < a1): s = a1
+        if(s > a2): s = a2
+        return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
 
 
 

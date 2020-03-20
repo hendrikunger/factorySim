@@ -22,33 +22,36 @@ class FactorySimEnv(gym.Env):
         super()
         self.stepCount = 0
         self._obs_type = obs_type
+        self.Loglevel = Loglevel
         if inputfile is not None:
             file_name, _ = os.path.splitext(inputfile)
         else:
             exit("No inputfile given.")
-        materialflowpath = file_name + "_Materialflow.csv"
+        self.inputfile = inputfile
+        self.materialflowpath = file_name + "_Materialflow.csv"
     
-        self.factory = FactorySim(inputfile, path_to_materialflow_file = materialflowpath, verboseOutput = Loglevel)
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, verboseOutput = self.Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
         self.currentReward = 0
+        self.lastReward = 0
         self.lastMachine = None
         self.output = None
         self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), "..", "Output")
     
 
         # Actions of the format MoveX, MoveY, Rotate 
-        self.action_space = spaces.Box(low=np.array([0, 0, 0]), high=np.array([1,1,1]))
+        self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]))
 
         if self._obs_type == 'image':
-            self.observation_space = spaces.Box(low=0, high=255, shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32)
+            self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
  
     def step(self, action):
        
         self.factory.update(self.currentMachine, action[0], action[1], action[2])
-        self.currentReward = self.factory.evaluate()
+        self.currentReward, done = self.factory.evaluate()
         self.stepCount += 1
         self.lastMachine = self.currentMachine
         self.currentMachine += 1
@@ -56,22 +59,25 @@ class FactorySimEnv(gym.Env):
         if(self.currentMachine >= self.machineCount):
             self.currentMachine = 0
 
-        done = False
         info = {}
     
         return self._get_obs(), self.currentReward, done, info
         
  
     def reset(self):
+        print("\nReset")
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, verboseOutput = self.Loglevel)
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0
+        self.lastReward = 0
         self.lastMachine = None
         self.output = None
+        
 
         return self._get_obs()
  
-    def render(self, mode='human', close=False):
+    def render(self, mode='human', prefix = ""):
 
         if mode == 'rgb_array':
             return self._get_np_array()
@@ -82,7 +88,7 @@ class FactorySimEnv(gym.Env):
             self.viewer.imshow(img)
             return self.viewer.isopen
         elif mode == 'imageseries':
-            return self._get_image()
+            return self._get_image(prefix)
 
     def _get_obs(self):
 
@@ -92,10 +98,10 @@ class FactorySimEnv(gym.Env):
             img = self._get_np_array()
         return img
 
-    def _get_image(self):
-        outputPath = os.path.join(self.output_path, f"state_{self.stepCount:04d}.png")
+    def _get_image(self, prefix):
+        outputPath = os.path.join(self.output_path, f"state_{prefix}_{self.stepCount:04d}.png")
         
-        return self._addText(self.output, f"{self.stepCount:04d} | {self.currentReward:1.2f}").write_to_png(outputPath)
+        return self._addText(self.output, f"{prefix}.{self.stepCount:04d} | {self.currentReward:1.2f}").write_to_png(outputPath)
 
     def _get_np_array(self):
         buf = self.output.get_data()
@@ -129,11 +135,13 @@ def main():
         "Input",  
         filename + ".ifc")
 
-    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=2)    
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=1)    
     output = None
-    for _ in tqdm(range(0,100)):
-        observation, reward, done, info = env.step([random.uniform(0,1),random.uniform(0,1), random.uniform(0, 1)])    
+    for _ in tqdm(range(0,50)):
+        observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
         output = env.render(mode='imageseries')
+        if done:
+            env.reset()
         #output = env.render(mode='rgb_array')
 
 

@@ -7,6 +7,11 @@
 #downloads of installscript
 *.deb
 
+#Model Saves
+*.zip
+
+ppo2_factorySim_tensorboard/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
