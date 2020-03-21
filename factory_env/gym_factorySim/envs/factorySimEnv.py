@@ -33,7 +33,7 @@ class FactorySimEnv(gym.Env):
         self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, verboseOutput = self.Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
-        self.currentReward = 0
+        self.currentMappedReward = 0
         self.lastReward = 0
         self.lastMachine = None
         self.output = None
@@ -51,7 +51,7 @@ class FactorySimEnv(gym.Env):
     def step(self, action):
        
         self.factory.update(self.currentMachine, action[0], action[1], action[2])
-        self.currentReward, done = self.factory.evaluate()
+        self.currentMappedReward, self.currentReward, done = self.factory.evaluate()
         self.stepCount += 1
         self.lastMachine = self.currentMachine
         self.currentMachine += 1
@@ -61,7 +61,7 @@ class FactorySimEnv(gym.Env):
 
         info = {}
     
-        return self._get_obs(), self.currentReward, done, info
+        return self._get_obs(), self.currentMappedReward, done, info
         
  
     def reset(self):
@@ -69,7 +69,7 @@ class FactorySimEnv(gym.Env):
         self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, verboseOutput = self.Loglevel)
         self.stepCount = 0
         self.currentMachine = 0
-        self.currentReward = 0
+        self.currentMappedReward = 0
         self.lastReward = 0
         self.lastMachine = None
         self.output = None
@@ -101,7 +101,7 @@ class FactorySimEnv(gym.Env):
     def _get_image(self, prefix):
         outputPath = os.path.join(self.output_path, f"state_{prefix}_{self.stepCount:04d}.png")
         
-        return self._addText(self.output, f"{prefix}.{self.stepCount:04d} | {self.currentReward:1.2f}").write_to_png(outputPath)
+        return self._addText(self.output, f"{prefix}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").write_to_png(outputPath)
 
     def _get_np_array(self):
         buf = self.output.get_data()

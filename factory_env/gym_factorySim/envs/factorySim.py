@@ -229,7 +229,7 @@ class FactorySim:
                 "MaterialFlow " + bg256("blue", f"{ratingMF:1.2f}") + ", ",
                 "Kollisionen " + bg256("blue", f"{ratingCollision:1.2f}"))
 
-        return self.currentMappedRating, done
+        return self.currentMappedRating, self.currentRating, done
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF_Helper(self, source, sink): 
@@ -247,7 +247,7 @@ class FactorySim:
         maxDistance = max(self.max_value_x,  self.max_value_y)
         self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
         self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm'] 
-        output = self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum()
+        output = 1 -(self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum())
 
         return output
 

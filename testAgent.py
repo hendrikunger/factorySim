@@ -27,9 +27,9 @@ env = gym.make('factorySimEnv-v0',inputfile = ifcpath, Loglevel=1)
 env = DummyVecEnv([lambda: env])
 #env = VecNormalize(env)
 model = PPO2(MlpPolicy, env, tensorboard_log="./ppo2_factorySim_tensorboard/", verbose=1)
-model.learn(total_timesteps=25000, tb_log_name="first_run")
+model.learn(total_timesteps=100000, tb_log_name="first_run")
 obs = env.reset()
-model.save("ppo2_testagent")
+model.save("ppo2_testagent100k")
 
 #del model 
 #model = PPO2.load("ppo2_testagent")
