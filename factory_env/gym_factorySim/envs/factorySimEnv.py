@@ -99,7 +99,7 @@ class FactorySimEnv(gym.Env):
         return img
 
     def _get_image(self, prefix):
-        outputPath = os.path.join(self.output_path, f"state_{prefix}_{self.stepCount:04d}.png")
+        outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
         
         return self._addText(self.output, f"{prefix}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").write_to_png(outputPath)
 
@@ -137,11 +137,13 @@ def main():
 
     env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=1)    
     output = None
+    prefix=0
     for _ in tqdm(range(0,50)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
-        output = env.render(mode='imageseries')
+        output = env.render(mode='imageseries', prefix=prefix)
         if done:
             env.reset()
+            prefix+=1
         #output = env.render(mode='rgb_array')
 
 
