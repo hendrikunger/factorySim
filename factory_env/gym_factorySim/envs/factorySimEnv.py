@@ -18,11 +18,13 @@ class FactorySimEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array', 'imageseries']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, inputfile = 'None', obs_type='image', Loglevel=0):
+    def __init__(self, inputfile = 'None', obs_type='image', Loglevel=0, width = 1000, heigth = 1000):
         super()
         self.stepCount = 0
         self._obs_type = obs_type
         self.Loglevel = Loglevel
+        self.width = width
+        self.heigth = heigth
         if inputfile is not None:
             file_name, _ = os.path.splitext(inputfile)
         else:
@@ -30,7 +32,7 @@ class FactorySimEnv(gym.Env):
         self.inputfile = inputfile
         self.materialflowpath = file_name + "_Materialflow.csv"
     
-        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, verboseOutput = self.Loglevel)
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, verboseOutput = self.Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
         self.currentMappedReward = 0
@@ -41,10 +43,11 @@ class FactorySimEnv(gym.Env):
     
 
         # Actions of the format MoveX, MoveY, Rotate 
-        self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]))
+        self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]), dtype=np.float32)
 
         if self._obs_type == 'image':
-            self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32)
+            #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
+            self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width, self.heigth, 4), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
  
@@ -65,10 +68,11 @@ class FactorySimEnv(gym.Env):
         
  
     def reset(self):
-        print("\nReset")
-        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, verboseOutput = self.Loglevel)
+        #print("\nReset")
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, verboseOutput = self.Loglevel)
         self.stepCount = 0
         self.currentMachine = 0
+        self.currentReward = 0
         self.currentMappedReward = 0
         self.lastReward = 0
         self.lastMachine = None
@@ -101,11 +105,12 @@ class FactorySimEnv(gym.Env):
     def _get_image(self, prefix):
         outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
         
-        return self._addText(self.output, f"{prefix}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").write_to_png(outputPath)
+        return self._addText(self.output, f"{prefix:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").write_to_png(outputPath)
 
     def _get_np_array(self):
         buf = self.output.get_data()
-        return np.ndarray(shape=(self.factory.WIDTH, self.factory.HEIGHT), dtype=np.uint32, buffer=buf)
+        #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
+        return np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)
 
     def _addText(self, surface, text):
         ctx = cairo.Context(surface)

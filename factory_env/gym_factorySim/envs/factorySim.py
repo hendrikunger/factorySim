@@ -247,23 +247,23 @@ class FactorySim:
         maxDistance = max(self.max_value_x,  self.max_value_y)
         self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
         self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm'] 
-        output = 1 -(self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum())
+        output = 1 - (self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum())
 
         return output
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateCollision(self):
         
-        machineCollisionArea = 0
-        wallCollisionArea = 0
-        totalMachineArea = 0
-
-        for collision in self.machineCollisionList:
-            machineCollisionArea += collision.area()
-        for collision in self.wallCollisionList:
-           wallCollisionArea += collision.area() 
-        for machine in self.machine_list:      
-            totalMachineArea += machine.hull.area()
+        #machineCollisionArea = 0
+        #wallCollisionArea = 0
+        #totalMachineArea = 0
+        # 
+        #for collision in self.machineCollisionList:
+        #    machineCollisionArea += collision.area()
+        #for collision in self.wallCollisionList:
+        #   wallCollisionArea += collision.area() 
+        #for machine in self.machine_list:      
+        #    totalMachineArea += machine.hull.area()
 
         #print(len(list(combinations(self.machine_list, 2))))
         nMachineCollisions = len(self.machineCollisionList)

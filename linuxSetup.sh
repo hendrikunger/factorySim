@@ -30,16 +30,8 @@ apt install ./nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
 apt install -y --no-install-recommends nvidia-driver-430
 # Reboot. Check that GPUs are visible using the command: nvidia-smi
 
-# Install development and runtime libraries (~4GB)
-apt install -y --no-install-recommends \
-    cuda-10-1 \
-    libcudnn7=7.6.4.38-1+cuda10.1  \
-    libcudnn7-dev=7.6.4.38-1+cuda10.1
-
-# Install TensorRT. Requires that libcudnn7 is installed above.
-apt install -y --no-install-recommends libnvinfer6=6.0.1-1+cuda10.1 \
-    libnvinfer-dev=6.0.1-1+cuda10.1 \
-    libnvinfer-plugin6=6.0.1-1+cuda10.1
+apt -y install --no-install-recommends cuda-10-0 libcudnn7=\*+cuda10.0 libcudnn7-dev=\*+cuda10.0
+apt -y install --no-install-recommends libnvinfer5=5.\*+cuda10.0 libnvinfer-dev=5.\*+cuda10.0
 
 #Add executables to Path
 export PATH=/usr/local/cuda-10.2/bin:/usr/local/cuda-10.2/NsightCompute-2019.1${PATH:+:${PATH}}
