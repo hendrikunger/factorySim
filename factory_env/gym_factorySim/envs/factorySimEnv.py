@@ -15,14 +15,15 @@ from gym_factorySim.envs.factorySim import FactorySim
 
  
 class FactorySimEnv(gym.Env):  
-    metadata = {'render.modes': ['human', 'rgb_array', 'imageseries']}
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, inputfile = 'None', obs_type='image', Loglevel=0, width = 1000, heigth = 1000):
+    def __init__(self, inputfile = 'None', obs_type='image', uid=0, Loglevel=0, width = 1000, heigth = 1000):
         super()
         self.stepCount = 0
         self._obs_type = obs_type
         self.Loglevel = Loglevel
+        self.uid = uid
         self.width = width
         self.heigth = heigth
         if inputfile is not None:
@@ -47,7 +48,7 @@ class FactorySimEnv(gym.Env):
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
-            self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width, self.heigth, 4), dtype=np.uint8)
+            self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width, self.heigth, 3), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
  
@@ -84,14 +85,8 @@ class FactorySimEnv(gym.Env):
     def render(self, mode='human', prefix = ""):
 
         if mode == 'rgb_array':
-            return self._get_np_array()
+            return self._get_np_array_render()
         elif mode == 'human':
-            from gym.envs.classic_control import rendering
-            if self.viewer is None:
-                self.viewer = rendering.SimpleImageViewer()
-            self.viewer.imshow(img)
-            return self.viewer.isopen
-        elif mode == 'imageseries':
             return self._get_image(prefix)
 
     def _get_obs(self):
@@ -102,15 +97,25 @@ class FactorySimEnv(gym.Env):
             img = self._get_np_array()
         return img
 
-    def _get_image(self, prefix):
-        outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
+    def _get_image(self, prefix=None):
+        outputPath = os.path.join(self.output_path, f"{self.uid}_{self.stepCount:04d}.png")
         
-        return self._addText(self.output, f"{prefix:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").write_to_png(outputPath)
+        return self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").write_to_png(outputPath)
 
     def _get_np_array(self):
         buf = self.output.get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
-        return np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)
+        #bgra to rgb
+        return np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+
+    def _get_np_array_render(self):
+        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").get_data()
+        #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
+
+        #bgra to rgb
+        #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
+        rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        return rgb
 
     def _addText(self, surface, text):
         ctx = cairo.Context(surface)
@@ -145,7 +150,7 @@ def main():
     prefix=0
     for _ in tqdm(range(0,50)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
-        output = env.render(mode='imageseries', prefix=prefix)
+        output = env.render(mode='human', prefix=prefix)
         if done:
             env.reset()
             prefix+=1

@@ -1,12 +1,9 @@
 import gym
-import json
-import datetime as dt
 from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, VecNormalize
 from stable_baselines.common.env_checker import check_env
 from stable_baselines import PPO2
 import gym_factorySim
-import pandas as pd
 import os
 
 
@@ -45,6 +42,6 @@ prefix = 0
 for i in range(200):
   action, _states = model.predict(obs)
   obs, rewards, done, info = env.step(action)
-  env.render(mode = 'imageseries', prefix = prefix)
+  env.render(mode = 'human', prefix = prefix)
   if done:
     prefix += 1
