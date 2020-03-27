@@ -40,7 +40,9 @@ class FactorySimEnv(gym.Env):
         self.lastReward = 0
         self.lastMachine = None
         self.output = None
-        self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), "..", "Output")
+        self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
+        "..",
+        "Output")
     
 
         # Actions of the format MoveX, MoveY, Rotate 
@@ -98,9 +100,16 @@ class FactorySimEnv(gym.Env):
         return img
 
     def _get_image(self, prefix=None):
-        outputPath = os.path.join(self.output_path, f"{self.uid}_{self.stepCount:04d}.png")
-        
-        return self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").write_to_png(outputPath)
+        outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
+
+        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}")
+        self.output.write_to_png(outputPath)
+        buf = self.output.get_data()
+        #bgra to rgb
+        #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
+        rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        return rgb
+         
 
     def _get_np_array(self):
         buf = self.output.get_data()
@@ -133,9 +142,9 @@ class FactorySimEnv(gym.Env):
 def main():
 
     #filename = "Overlapp"
-    filename = "Basic"
+    #filename = "Basic"
     #filename = "EP_v23_S1_clean"
-    #filename = "Simple"
+    filename = "Simple"
     #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
