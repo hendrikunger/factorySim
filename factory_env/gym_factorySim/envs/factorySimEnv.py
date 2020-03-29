@@ -37,8 +37,7 @@ class FactorySimEnv(gym.Env):
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
         self.currentMappedReward = 0
-        self.lastReward = 0
-        self.lastMachine = None
+        self.sRating = {}
         self.output = None
         self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
         "..",
@@ -57,9 +56,8 @@ class FactorySimEnv(gym.Env):
     def step(self, action):
        
         self.factory.update(self.currentMachine, action[0], action[1], action[2])
-        self.currentMappedReward, self.currentReward, done = self.factory.evaluate()
+        self.currentMappedReward, self.currentReward, self.sRating, done = self.factory.evaluate()
         self.stepCount += 1
-        self.lastMachine = self.currentMachine
         self.currentMachine += 1
         
         if(self.currentMachine >= self.machineCount):
@@ -77,8 +75,7 @@ class FactorySimEnv(gym.Env):
         self.currentMachine = 0
         self.currentReward = 0
         self.currentMappedReward = 0
-        self.lastReward = 0
-        self.lastMachine = None
+        self.sRating = {'ratingMF':0, 'ratingCollision': 0}
         self.output = None
         
 
@@ -102,7 +99,7 @@ class FactorySimEnv(gym.Env):
     def _get_image(self, prefix=None):
         outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
 
-        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}")
+        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.sRating['ratingMF']:1.2f} | {self.sRating['ratingCollision']:1.2f}")
         self.output.write_to_png(outputPath)
         buf = self.output.get_data()
         #bgra to rgb
@@ -118,7 +115,7 @@ class FactorySimEnv(gym.Env):
         return np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
 
     def _get_np_array_render(self):
-        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f}").get_data()
+        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.sRating['ratingMF']:1.2f} | {self.sRating['ratingCollision']:1.2f}").get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
 
         #bgra to rgb

@@ -204,14 +204,15 @@ class FactorySim:
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
-        ratingMF = self.evaluateMF()          
+        output = {}
+        output["ratingMF"] = self.evaluateMF()          
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Materialfluss abgeschlossen")
-        ratingCollision = self.evaluateCollision()          
+        output["ratingCollision"] = self.evaluateCollision()          
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
 
-        self.currentRating = ratingMF + ratingCollision
+        self.currentRating = output["ratingMF"] + output["ratingCollision"]
         #Normalize
         self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
@@ -226,10 +227,10 @@ class FactorySim:
         if(self.verboseOutput >= 1):
             print("Total Rating " + bg256("blue", fg256("red" ,f"{self.currentMappedRating:1.2f}")) + ", ",
                 "Raw Rating " + bg256("yellow", fg256("black" ,f"{self.currentRating:1.2f}")) + ", ",
-                "MaterialFlow " + bg256("blue", f"{ratingMF:1.2f}") + ", ",
-                "Kollisionen " + bg256("blue", f"{ratingCollision:1.2f}"))
+                "MaterialFlow " + bg256("blue", f"{output['ratingMF']:1.2f}") + ", ",
+                "Kollisionen " + bg256("blue", f"{output['ratingCollision']:1.2f}"))
 
-        return self.currentMappedRating, self.currentRating, done
+        return self.currentMappedRating, self.currentRating, output, done
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF_Helper(self, source, sink): 
@@ -269,7 +270,7 @@ class FactorySim:
         nMachineCollisions = len(self.machineCollisionList)
         nWallCollosions = len(self.wallCollisionList)
 
-        output = 1 - (0.25 * nMachineCollisions) - (0.5 * nWallCollosions)
+        output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
   
         return output
 

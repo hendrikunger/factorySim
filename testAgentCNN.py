@@ -15,6 +15,13 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
+
+
+do_train = True
+
+
+
+
 def make_env(env_id, rank, ifcpath, seed=0):
     """
     Utility function for multiprocessed env.
@@ -43,36 +50,43 @@ def prepareEnv(ifc_filename):
 
   return SubprocVecEnv([make_env(env_id, i, ifcpath) for i in range(num_cpu)])
 
+#---------------------------------------------------------------------------------------------------------------------
+#Training
+#---------------------------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-  #filename = "Overlapp"
-  filename = "Basic"
-  #filename = "EP_v23_S1_clean"
-  #filename = "Simple"
-  #filename = "SimpleNoCollisions"
+  if do_train:
+    #filename = "Overlapp"
+    filename = "Basic"
+    #filename = "EP_v23_S1_clean"
+    #filename = "Simple"
+    #filename = "SimpleNoCollisions"
 
-  #check_env(gym.make('factorySimEnv-v0',inputfile = ifcpath, width=500, heigth=500, Loglevel=0))
+    #check_env(gym.make('factorySimEnv-v0',inputfile = ifcpath, width=500, heigth=500, Loglevel=0))
 
-  # Create the vectorized environment
-  env = prepareEnv("Basic")
-  model = PPO2(CnnLstmPolicy, env, tensorboard_log="./ppo2_factorySim_tensorboard/",  nminibatches=5, verbose=1)
-  model.learn(total_timesteps=500000, tb_log_name="Basic_1",reset_num_timesteps=True)
+    # Create the vectorized environment
+    env = prepareEnv("Basic")
+    model = PPO2(CnnLstmPolicy, env, tensorboard_log="./log/",  nminibatches=5, verbose=1)
+    model.learn(total_timesteps=500, tb_log_name="Basic_1",reset_num_timesteps=True)
 
-  #close old env and make new one
-  env.close()
-  env = prepareEnv("Simple")
-  model.set_env(env)
-  model.learn(total_timesteps=300000, tb_log_name="Simple_1",reset_num_timesteps=True)
+    #close old env and make new one
+    env.close()
+    env = prepareEnv("Simple")
+    model.set_env(env)
+    model.learn(total_timesteps=800, tb_log_name="Simple_1",reset_num_timesteps=True)
 
-  env.close()
-  env = prepareEnv("Overlapp")
-  model.set_env(env)
-  model.learn(total_timesteps=300000, tb_log_name="Simple_1",reset_num_timesteps=True)
+    env.close()
+    env = prepareEnv("Overlapp")
+    model.set_env(env)
+    model.learn(total_timesteps=300, tb_log_name="Overlapp_1",reset_num_timesteps=True)
 
-  model.save("ppo2")
-  #del model 
-  #model = PPO2.load("ppo2_testagent100k", env=env, custom_objects={"tensorboard_log":"./ppo2_factorySim_tensorboard/"})
+    model.save("ppo2")
+    
+  else:
+    env = prepareEnv("Basic")
+    model = PPO2.load("ppo2", env=env, custom_objects={"tensorboard_log":"./log/"})
 
+    
 
 #---------------------------------------------------------------------------------------------------------------------
 #Evaluation
@@ -101,8 +115,9 @@ if __name__ == "__main__":
     #Single Images per Environment
     single_img = env.get_images()
 
-  imageio.mimsave('Overlapp.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
-  
+  imageio.mimsave('./Output/Overlapp.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
+
+  os.makedirs("./Output/Overlapp/", exist_ok=True)
   for i, fullimage in enumerate(single_images):
     for envid, sImage in enumerate(fullimage):
       imageio.imsave(f"./Output/Overlapp/{envid }.{i}.png", np.array(sImage))
@@ -134,8 +149,8 @@ if __name__ == "__main__":
     #Single Images per Environment
     single_img = env.get_images()
 
-  imageio.mimsave('simple.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
-  
+  imageio.mimsave('./Output/simple.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
+  os.makedirs("./Output/Simple/", exist_ok=True)
   for i, fullimage in enumerate(single_images):
     for envid, sImage in enumerate(fullimage):
       imageio.imsave(f"./Output/Simple/{envid }.{i}.png", np.array(sImage))
