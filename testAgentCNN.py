@@ -15,6 +15,9 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
+config = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=True)
+config.gpu_options.allow_growth = True
+tf.compat.v1.Session(config=config)
 
 
 do_train = True
@@ -32,7 +35,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=500, heigth=500, Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=256, heigth=256, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
@@ -41,7 +44,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
 
 def prepareEnv(ifc_filename):
 
-  num_cpu =10  # Number of processes to use
+  num_cpu = 8  # Number of processes to use
   env_id = 'factorySimEnv-v0'
 
   ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -76,10 +79,10 @@ if __name__ == "__main__":
         vf_coef=0.5,
         max_grad_norm=0.5,
         lam=0.95,
-        nminibatches=5,
+        nminibatches=4,
         noptepochs=4,
         verbose=1)
-    model.learn(total_timesteps=1500000, tb_log_name="Basic_1",reset_num_timesteps=True)
+    model.learn(total_timesteps=150000, tb_log_name="Basic_1",reset_num_timesteps=True)
 
     #close old env and make new one
     #env.close()

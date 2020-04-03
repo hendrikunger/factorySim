@@ -90,7 +90,7 @@ class FactorySimEnv(gym.Env):
 
     def _get_obs(self):
 
-        self.output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
+        self.output = self.factory.drawPositions(drawMaterialflow = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(surfaceIn = self.output)
         if self._obs_type == 'image':
             img = self._get_np_array()
@@ -128,8 +128,8 @@ class FactorySimEnv(gym.Env):
         ctx = cairo.Context(surface)
         ctx.set_source_rgb(0, 0, 0)
         #ctx.select_font_face("Purisa", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        ctx.set_font_size(25)
-        ctx.move_to(10, 35)
+        ctx.set_font_size(8)
+        ctx.move_to(5, 13)
         ctx.show_text(text)
         return surface
 

@@ -24,6 +24,8 @@ class FactorySim:
     def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomMF = False, verboseOutput = 0):
         self.WIDTH = width
         self.HEIGHT = heigth
+        self.MAX_STROKE_WIDTH = min(width,heigth) / 25
+        self.DOT_RADIUS = self.MAX_STROKE_WIDTH / 4
 
         self.verboseOutput = verboseOutput
         self.RANDSEED = randseed
@@ -366,7 +368,7 @@ class FactorySim:
                             
         #draw machine positions
         ctx.set_fill_rule(cairo.FillRule.WINDING)
-        ctx.set_line_width(4)
+        ctx.set_line_width(self.DOT_RADIUS)
         for index, machine in enumerate(self.machine_list):
                 
             for loop in machine.hull:
@@ -394,19 +396,19 @@ class FactorySim:
         #Machine Centers
             if (machine.center is not None and drawMachineCenter):
                 ctx.set_source_rgb(0, 0, 0)
-                ctx.arc(machine.center.x, machine.center.y, 5, 0, 2*math.pi)
+                ctx.arc(machine.center.x, machine.center.y, self.DOT_RADIUS, 0, 2*math.pi)
                 ctx.fill()
 
         #Machine Origin 
             if (machine.origin is not None and drawOrigin):
                 ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                ctx.arc(machine.origin.x, machine.origin.y, 5, 0, 2*math.pi)
+                ctx.arc(machine.origin.x, machine.origin.y, self.DOT_RADIUS, 0, 2*math.pi)
                 ctx.fill()
 
         #Machine Base Origin
             if (machine.baseOrigin is not None and drawMachineBaseOrigin):
                 ctx.set_source_rgb(1,0,0)
-                ctx.arc(machine.baseOrigin.x, machine.baseOrigin.y, 3, 0, 2*math.pi)
+                ctx.arc(machine.baseOrigin.x, machine.baseOrigin.y, self.DOT_RADIUS, 0, 2*math.pi)
                 ctx.fill()
 
         #Material Flow
@@ -420,7 +422,7 @@ class FactorySim:
                     ctx.set_source_rgb(self.machine_list[int(row['from'])].color[0], self.machine_list[int(row['from'])].color[1], self.machine_list[int(row['from'])].color[2])
                     ctx.move_to(self.machine_list[int(row['from'])].center.x, self.machine_list[int(row['from'])].center.y)
                     ctx.line_to(self.machine_list[int(row['to'])].center.x, self.machine_list[int(row['to'])].center.y)
-                    ctx.set_line_width(row["intensity_sum"]/(mf_max - mf_min) * 20)
+                    ctx.set_line_width(row["intensity_sum"]/(mf_max - mf_min) * self.MAX_STROKE_WIDTH)
                     ctx.stroke()   
                 except KeyError:
                     print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")

@@ -24,7 +24,9 @@ import logging
 tf.get_logger().setLevel(logging.ERROR)
 
 
-
+config = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=True)
+config.gpu_options.allow_growth = True
+tf.compat.v1.Session(config=config)
 
 do_train = True
 
@@ -59,7 +61,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=500, heigth=500, Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
@@ -68,7 +70,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
 
 def prepareEnv(ifc_filename):
 
-  num_cpu =10  # Number of processes to use
+  num_cpu = 16  # Number of processes to use
   env_id = 'factorySimEnv-v0'
 
   ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -103,12 +105,12 @@ if __name__ == "__main__":
         vf_coef=0.5,
         max_grad_norm=0.5,
         lam=0.93,
-        nminibatches=5,
+        nminibatches=4,
         noptepochs=5,
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=1500000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=15000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -149,7 +151,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv("Simple")
     model.set_env(env)
-    model.learn(total_timesteps=1500000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=15000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()

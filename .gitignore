@@ -10,7 +10,8 @@
 #Model Saves
 *.zip
 
-ppo2_factorySim_tensorboard/
+#Tensorboard Log Directory
+log
 
 
 # Byte-compiled / optimized / DLL files
