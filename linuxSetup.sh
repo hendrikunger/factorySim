@@ -40,7 +40,10 @@ export PATH=/usr/local/cuda-10.2/bin:/usr/local/cuda-10.2/NsightCompute-2019.1${
 apt install -y ffmpeg 
 
 # Install cairo for pycairo
-apt install -y libcairo2
+apt install -y libcairo2, libcairo2-dev
+
+# Install ycairo
+apt install -y python-cairo
 
 # Install PyTorch
 #pip3.7 install $(curl https://pytorch.org/assets/quick-start-module.js | grep -A1 "stable,pip,linux,cuda10.0,python3.7" | grep -oP 'https.*?\.whl')
