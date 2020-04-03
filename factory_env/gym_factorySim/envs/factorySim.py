@@ -47,6 +47,11 @@ class FactorySim:
 
         self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
         self.currentMappedRating    = 0 # Holds the normalized Rating of the current state of the Layout 
+
+        self.lastUpdatedMachine = None #Hold uid of last updated machine for collision checking
+        self.collisionAfterLastUpdate = False # True if latest update leads to new collsions
+
+        self.episodeCounter = 0
         
         allElements = Poly()
         
@@ -182,7 +187,9 @@ class FactorySim:
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None):
-        
+        self.lastUpdatedMachine = self.machine_list[machineIndex].gid
+        self.episodeCounter += 1
+
         if(self.verboseOutput >= 2):
             print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
@@ -212,15 +219,23 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
 
-        self.currentRating = output["ratingMF"] + output["ratingCollision"]
+        output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
         #Normalize
         self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
-        if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
+        #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
+        #    done = True
+        #else:
+        #    done = False
+
+
+        if(self.episodeCounter >= 2 * len(self.machine_list)):
             done = True
         else:
-            done = False
+            done = False     
+        #done = False      
+
 
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Layouts abgeschlossen")
@@ -270,8 +285,14 @@ class FactorySim:
         nMachineCollisions = len(self.machineCollisionList)
         nWallCollosions = len(self.wallCollisionList)
 
+        #If latest update leads to collision give worst rating.
+        #if(self.collisionAfterLastUpdate):
+        #    output = -2
+        #else:
+        #    output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
+    
         output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
-  
+        
         return output
 
 
@@ -279,6 +300,7 @@ class FactorySim:
  # Collision Detection
  #------------------------------------------------------------------------------------------------------------
     def findCollisions(self):
+        self.collisionAfterLastUpdate = False
         #Machines with Machines
         self.machineCollisionList = []       
         for a,b in combinations(self.machine_list, 2):
@@ -286,14 +308,16 @@ class FactorySim:
                 if(self.verboseOutput >= 4):
                     print(fg256("red", f"Kollision zwischen {a.name} und {b.name} gefunden."))
                 self.machineCollisionList.append(a.hull & b.hull)
+                if(a.gid == self.lastUpdatedMachine or b.gid == self.lastUpdatedMachine): self.collisionAfterLastUpdate = True
         #Machines with Walls     
         self.wallCollisionList = []
         for a in self.wall_list:
             for b in self.machine_list:
                 if a.poly.overlaps(b.hull):
                     if(self.verboseOutput >= 4):
-                        print(fg256("red", f"Kollision Wand {a.gid} und Maschine {b.name} gefunden."))
+                        print(fg256("red", f"Kollision Wand {a.name} und Maschine {b.name} gefunden."))
                     self.wallCollisionList.append(a.poly & b.hull)
+                    if(b.gid == self.lastUpdatedMachine): self.collisionAfterLastUpdate = True
                     
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionen berechnen abgeschlossen")
@@ -565,7 +589,7 @@ def main():
  
     #Machine Positions Output to PNG
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=0)
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -589,14 +613,13 @@ def main():
 
     #Change machine
     #demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
-    demoFactory.update(0,1,1, 1)
-    #demoFactory.update(0,100,300, math.pi/2)
-    #demoFactory.update(0,200,200, math.pi/2)
-    #demoFactory.update(4,150,100,0)
-    #demoFactory.update(1,-10,200,0)
-    #demoFactory.update(0, 50,150,0)
+    demoFactory.update(0,0.8 ,-0.2 , 1)
+    demoFactory.evaluate()
+    demoFactory.update(1,1 ,-1 , 1)
+    demoFactory.evaluate()
+    demoFactory.update(2,0.1 ,-0.8 , 1)
 
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=0)
+    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",

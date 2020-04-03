@@ -36,8 +36,9 @@ class FactorySimEnv(gym.Env):
         self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, verboseOutput = self.Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
+        self.currentReward = 0
         self.currentMappedReward = 0
-        self.sRating = {}
+        self.info = {}
         self.output = None
         self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
         "..",
@@ -49,23 +50,22 @@ class FactorySimEnv(gym.Env):
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
-            self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width, self.heigth, 3), dtype=np.uint8)
+            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.heigth, 3), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
  
     def step(self, action):
        
         self.factory.update(self.currentMachine, action[0], action[1], action[2])
-        self.currentMappedReward, self.currentReward, self.sRating, done = self.factory.evaluate()
+        self.currentMappedReward, self.currentReward, self.info, done = self.factory.evaluate()
         self.stepCount += 1
         self.currentMachine += 1
         
         if(self.currentMachine >= self.machineCount):
             self.currentMachine = 0
 
-        info = {}
     
-        return self._get_obs(), self.currentMappedReward, done, info
+        return self._get_obs(), self.currentMappedReward, done, self.info
         
  
     def reset(self):
@@ -75,7 +75,7 @@ class FactorySimEnv(gym.Env):
         self.currentMachine = 0
         self.currentReward = 0
         self.currentMappedReward = 0
-        self.sRating = {'ratingMF':0, 'ratingCollision': 0}
+        self.info = {'TotalRating':0, 'ratingMF':0, 'ratingCollision': 0}
         self.output = None
         
 
@@ -99,7 +99,7 @@ class FactorySimEnv(gym.Env):
     def _get_image(self, prefix=None):
         outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
 
-        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.sRating['ratingMF']:1.2f} | {self.sRating['ratingCollision']:1.2f}")
+        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}")
         self.output.write_to_png(outputPath)
         buf = self.output.get_data()
         #bgra to rgb
@@ -112,10 +112,11 @@ class FactorySimEnv(gym.Env):
         buf = self.output.get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
         #bgra to rgb
-        return np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        return rgb
 
     def _get_np_array_render(self):
-        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.sRating['ratingMF']:1.2f} | {self.sRating['ratingCollision']:1.2f}").get_data()
+        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
 
         #bgra to rgb
@@ -159,6 +160,7 @@ def main():
         output = env.render(mode='human', prefix=prefix)
         if done:
             env.reset()
+            output = env.render(mode='human', prefix=prefix)
             prefix+=1
         #output = env.render(mode='rgb_array')
 

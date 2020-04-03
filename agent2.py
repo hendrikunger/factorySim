@@ -3,23 +3,50 @@ from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, VecNormalize, SubprocVecEnv
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import set_global_seeds
+from stable_baselines.common.callbacks import BaseCallback
 from stable_baselines import PPO2
 import gym_factorySim
 import numpy as np
 import os
 import imageio
 
+import os
+# https://stackoverflow.com/questions/40426502/is-there-a-way-to-suppress-the-messages-tensorflow-prints/40426709
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import warnings
+# https://stackoverflow.com/questions/15777951/how-to-suppress-pandas-future-warning
 warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=Warning)
 import tensorflow as tf
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+tf.get_logger().setLevel('INFO')
+tf.autograph.set_verbosity(0)
+import logging
+tf.get_logger().setLevel(logging.ERROR)
 
 
 
 
 do_train = True
 
+class TensorboardCallback(BaseCallback):
+    """
+    Custom callback for plotting additional values in tensorboard.
+    """
+    def __init__(self, verbose=0):
+        super(TensorboardCallback, self).__init__(verbose)
 
+    def _on_step(self) -> bool:
+
+        # Log scalar value (here a random variable)
+        info = self.training_env.get_attr("info")
+        for envinfo in info:
+          summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='TotalRating', simple_value=envinfo['TotalRating'])])
+          self.locals['writer'].add_summary(summary, self.num_timesteps)
+          summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='MF_Rating', simple_value=envinfo['ratingMF'])])
+          self.locals['writer'].add_summary(summary, self.num_timesteps)
+          summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='Collision_Rating', simple_value=envinfo['ratingCollision'])])
+          self.locals['writer'].add_summary(summary, self.num_timesteps)
+        return True
 
 
 def make_env(env_id, rank, ifcpath, seed=0):
@@ -70,22 +97,60 @@ if __name__ == "__main__":
         env,
         tensorboard_log="./log/",
         gamma=0.99,
-        n_steps=1024,
+        n_steps=128,
         ent_coef=0.01,
         learning_rate=0.0003,
         vf_coef=0.5,
         max_grad_norm=0.5,
-        lam=0.95,
+        lam=0.93,
         nminibatches=5,
-        noptepochs=4,
+        noptepochs=5,
         verbose=1)
-    model.learn(total_timesteps=1500000, tb_log_name="Basic_1",reset_num_timesteps=True)
+      
+    #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
+    model.learn(total_timesteps=1500000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
+    #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
+    
+
+    #env = model.get_env()
+    done = [False for _ in range(env.num_envs)]
+    # Passing state=None to the predict function means
+    # it is the initial state
+    state = None
+
+    prefix = 0
+    images = []
+    single_images = []
+    obs = model.env.reset()
+    img = model.env.render(mode='rgb_array')
+    single_img = env.get_images()
+
+    for i in range(50):
+      images.append(img)
+      single_images.append(single_img)
+      action, state = model.predict(obs, state=state, mask=done)
+      obs, rewards, done, info = model.env.step(action)
+      #ALl immages in one
+      img = model.env.render(mode = 'rgb_array', prefix = "")
+      #Single Images per Environment
+      single_img = env.get_images()
+
+    imageio.mimsave('./Output/Basic1.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
+
+    os.makedirs("./Output/Basic1/", exist_ok=True)
+    for i, fullimage in enumerate(single_images):
+      for envid, sImage in enumerate(fullimage):
+        imageio.imsave(f"./Output/Basic1/{envid }.{i}.png", np.array(sImage))
+
+
+
 
     #close old env and make new one
-    #env.close()
-    #env = prepareEnv("Simple")
-    #model.set_env(env)
-    #model.learn(total_timesteps=800000, tb_log_name="Simple_1",reset_num_timesteps=True)
+    env.close()
+    env = prepareEnv("Simple")
+    model.set_env(env)
+    model.learn(total_timesteps=1500000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
+    #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()
     #env = prepareEnv("Basic")
@@ -96,13 +161,16 @@ if __name__ == "__main__":
     
   else:
     env = prepareEnv("Basic")
-    model = PPO2.load("ppo2", env=env, custom_objects={"tensorboard_log":"./log/"})
+    model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
 
     
 
 #---------------------------------------------------------------------------------------------------------------------
 #Evaluation
 #---------------------------------------------------------------------------------------------------------------------
+  env.close()
+  env = prepareEnv("Basic")
+  model.set_env(env)
 
   #env = model.get_env()
   done = [False for _ in range(env.num_envs)]
@@ -127,12 +195,13 @@ if __name__ == "__main__":
     #Single Images per Environment
     single_img = env.get_images()
 
-  imageio.mimsave('./Output/Basic.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
 
-  os.makedirs("./Output/Basic/", exist_ok=True)
+  imageio.mimsave('./Output/Basic2.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
+
+  os.makedirs("./Output/Basic2/", exist_ok=True)
   for i, fullimage in enumerate(single_images):
     for envid, sImage in enumerate(fullimage):
-      imageio.imsave(f"./Output/Basic/{envid }.{i}.png", np.array(sImage))
+      imageio.imsave(f"./Output/Basic2/{envid }.{i}.png", np.array(sImage))
 
   env.close()
   env = prepareEnv("Simple")
@@ -166,3 +235,5 @@ if __name__ == "__main__":
   for i, fullimage in enumerate(single_images):
     for envid, sImage in enumerate(fullimage):
       imageio.imsave(f"./Output/Simple/{envid }.{i}.png", np.array(sImage))
+
+  env.close()
