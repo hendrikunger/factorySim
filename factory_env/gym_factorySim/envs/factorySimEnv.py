@@ -18,7 +18,7 @@ class FactorySimEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, inputfile = 'None', obs_type='image', uid=0, Loglevel=0, width = 1000, heigth = 1000):
+    def __init__(self, inputfile = 'None', obs_type='image', uid=0, Loglevel=0, width = 1000, heigth = 1000, outputScale = 1):
         super()
         self.stepCount = 0
         self._obs_type = obs_type
@@ -26,6 +26,7 @@ class FactorySimEnv(gym.Env):
         self.uid = uid
         self.width = width
         self.heigth = heigth
+        self.scale = outputScale
         if inputfile is not None:
             file_name, _ = os.path.splitext(inputfile)
         else:
@@ -116,17 +117,20 @@ class FactorySimEnv(gym.Env):
         return rgb
 
     def _get_np_array_render(self):
+        self.output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
+        self.output = self.factory.drawCollisions(scale = self.scale, surfaceIn = self.output)
         buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
 
         #bgra to rgb
         #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
-        rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        rgb = np.ndarray(shape=(self.width * self.scale, self.heigth * self.scale, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
         return rgb
 
     def _addText(self, surface, text):
         ctx = cairo.Context(surface)
         ctx.set_source_rgb(0, 0, 0)
+        ctx.scale(self.scale, self.scale)
         #ctx.select_font_face("Purisa", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
         ctx.set_font_size(8)
         ctx.move_to(5, 13)

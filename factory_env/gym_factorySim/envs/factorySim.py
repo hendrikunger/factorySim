@@ -348,11 +348,11 @@ class FactorySim:
     def drawPositions(self, surfaceIn=None, scale = 1, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
         #Drawing
         if(surfaceIn is None):
-            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
         else:
             surface = surfaceIn
         ctx = cairo.Context(surface)
-        ctx.scale(1.0, -1.0)
+        ctx.scale(1.0 * scale, -1.0 * scale)
         ctx.translate(0.0,-self.HEIGHT)
         if(surfaceIn is None):
             ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
@@ -456,11 +456,11 @@ class FactorySim:
         #Drawing
         #Machine Positions
         if(surfaceIn is None):
-            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
         else:
             surface = surfaceIn
         ctx = cairo.Context(surface)
-        ctx.scale(1.0, -1.0)
+        ctx.scale(1.0 * scale, -1.0 * scale)
         ctx.translate(0.0,-self.HEIGHT)
         if(surfaceIn is None):
             ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
@@ -511,11 +511,11 @@ class FactorySim:
 
         #Machine Collisions
         if(surfaceIn is None):
-            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
+            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
         else:
             surface = surfaceIn
         ctx = cairo.Context(surface)
-        ctx.scale(1.0, -1.0)
+        ctx.scale(1.0 * scale, -1.0 * scale)
         ctx.translate(0.0,-self.HEIGHT)
         if(surfaceIn is None):
             ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
@@ -609,7 +609,7 @@ def main():
  
     #Machine Positions Output to PNG
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
-    machinePositions = demoFactory.drawPositions(scale = 3, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
+    machinePositions = demoFactory.drawPositions(scale = 1, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -639,7 +639,7 @@ def main():
     demoFactory.evaluate()
     demoFactory.update(2,0.1 ,-0.8 , 1)
 
-    machinePositions = demoFactory.drawPositions(scale = 3, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
+    machinePositions = demoFactory.drawPositions(scale = 1, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -649,7 +649,7 @@ def main():
     machinePositions.write_to_png(path) 
 
     #Machine Collisions Output to PNG
-    Collisions = demoFactory.drawCollisions(scale = 3, surfaceIn=machinePositions)
+    Collisions = demoFactory.drawCollisions(scale = 1, surfaceIn=machinePositions)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
