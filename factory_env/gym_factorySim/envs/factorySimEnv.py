@@ -33,7 +33,7 @@ class FactorySimEnv(gym.Env):
         self.inputfile = inputfile
         self.materialflowpath = file_name + "_Materialflow.csv"
     
-        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, verboseOutput = self.Loglevel)
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, verboseOutput = self.Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
         self.currentReward = 0
@@ -70,7 +70,7 @@ class FactorySimEnv(gym.Env):
  
     def reset(self):
         #print("\nReset")
-        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, verboseOutput = self.Loglevel)
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, verboseOutput = self.Loglevel)
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0
@@ -82,7 +82,7 @@ class FactorySimEnv(gym.Env):
         return self._get_obs()
  
     def render(self, mode='human', prefix = ""):
-
+        #print(f"Render ----{prefix}_{self.stepCount:04d}-------------------------")
         if mode == 'rgb_array':
             return self._get_np_array_render()
         elif mode == 'human':
@@ -152,16 +152,18 @@ def main():
         "Input",  
         filename + ".ifc")
 
-    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=1)    
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=3)
+    env.reset()
     output = None
     prefix=0
+    output = env.render(mode='human', prefix=prefix)
     for _ in tqdm(range(0,50)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
         output = env.render(mode='human', prefix=prefix)
         if done:
             env.reset()
-            output = env.render(mode='human', prefix=prefix)
             prefix+=1
+            output = env.render(mode='human', prefix=prefix)
         #output = env.render(mode='rgb_array')
 
 

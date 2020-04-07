@@ -21,7 +21,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomMF = False, verboseOutput = 0):
+    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomPos = False, randomMF = False, verboseOutput = 0):
         self.WIDTH = width
         self.HEIGHT = heigth
         self.MAX_STROKE_WIDTH = min(width,heigth) / 25
@@ -102,29 +102,46 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Mitten gefunden und finalisiert")
         
+        #Creating random positions
+        if randomPos:
+            for index, _ in enumerate(self.machine_list):
+                self.update(index,
+                    xPosition = random.uniform(-1,1),
+                    yPosition = random.uniform(-1,1),
+                    rotation = random.uniform(-1,1),
+                    massUpdate = True)
+
         #Find Collisions
         self.findCollisions()
         
         #Import Materialflow from Excel
-        if path_to_materialflow_file is None and randomMF is True:
-            path_to_materialflow_file = self.random_Material_Flow()
-        if path_to_materialflow_file is not None:
+        if randomMF is True:
+            #path_to_materialflow_file = self.random_Material_Flow_File()
+            names = []
+            for _ in range(0,len(self.machine_list) * 2):
+                samples = random.sample(self.machine_list, k=2)
+                names.append([samples[0].name, samples[1].name]) # random.randint(1,100)
+            self.materialflow_file = pd.DataFrame(data=names, columns=["from", "to"])
+            self.materialflow_file['intensity'] = np.random.randint(1,100, size=len(self.materialflow_file))
+
+        elif path_to_materialflow_file is not None:
 
             self.materialflow_file = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
             #Rename Colums
             indexes = self.materialflow_file.columns.tolist()
             self.materialflow_file.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
-            #Group by from and two, add up intensity of all duplicates in intensity_sum
-            self.materialflow_file['intensity_sum'] = self.materialflow_file.groupby(by=['from', 'to'])['intensity'].transform('sum')
-            #drop the duplicates and refresh index
-            self.materialflow_file = self.materialflow_file.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
-            #normalise intensity sum 
-            self.materialflow_file['intensity_sum_norm'] = self.materialflow_file['intensity_sum'] / self.materialflow_file.max()["intensity_sum"]
-            #use machine index as sink and source for materialflow
-            machine_dict = {machine.name: index for index, machine in enumerate(self.machine_list)}
-            self.materialflow_file[['from','to']] = self.materialflow_file[['from','to']].replace(machine_dict)
-            #set initial values for costs
-            self.materialflow_file['costs'] = 0
+
+        #Group by from and two, add up intensity of all duplicates in intensity_sum
+        self.materialflow_file['intensity_sum'] = self.materialflow_file.groupby(by=['from', 'to'])['intensity'].transform('sum')
+        #drop the duplicates and refresh index
+        self.materialflow_file = self.materialflow_file.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
+        #normalise intensity sum 
+        self.materialflow_file['intensity_sum_norm'] = self.materialflow_file['intensity_sum'] / self.materialflow_file.max()["intensity_sum"]
+        #use machine index as sink and source for materialflow
+        machine_dict = {machine.name: index for index, machine in enumerate(self.machine_list)}
+        self.materialflow_file[['from','to']] = self.materialflow_file[['from','to']].replace(machine_dict)
+        #set initial values for costs
+        self.materialflow_file['costs'] = 0
     
         if(self.verboseOutput >= 3):
             self.printTime("Materialfluss geladen")
@@ -188,9 +205,9 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
-    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None):
+    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, massUpdate = False):
         self.lastUpdatedMachine = self.machine_list[machineIndex].gid
-        self.episodeCounter += 1
+        if not massUpdate: self.episodeCounter += 1
 
         if(self.verboseOutput >= 2):
             print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
@@ -204,7 +221,8 @@ class FactorySim:
         mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
 
         self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
-        self.findCollisions()
+        if not massUpdate:
+            self.findCollisions()
         if(self.verboseOutput >= 3):
             self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
 
@@ -327,7 +345,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, surfaceIn=None, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
+    def drawPositions(self, surfaceIn=None, scale = 1, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
         #Drawing
         if(surfaceIn is None):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH, self.HEIGHT)
@@ -434,7 +452,7 @@ class FactorySim:
     
     
 #------------------------------------------------------------------------------------------------------------  
-    def drawDetailedMachines(self, surfaceIn=None, randomcolors = False):   
+    def drawDetailedMachines(self, surfaceIn=None, scale = 1, randomcolors = False):   
         #Drawing
         #Machine Positions
         if(surfaceIn is None):
@@ -489,7 +507,7 @@ class FactorySim:
         return surface
 
  #------------------------------------------------------------------------------------------------------------
-    def drawCollisions(self, surfaceIn=None, drawWalls=True):
+    def drawCollisions(self, surfaceIn=None, scale = 1, drawWalls=True):
 
         #Machine Collisions
         if(surfaceIn is None):
@@ -520,7 +538,7 @@ class FactorySim:
         if(drawWalls):
             for polygon in self.wallCollisionList:
                 for loop in polygon:
-                    ctx.set_source_rgb(0, 0 , 1)
+                    ctx.set_source_rgb(1, 0 , 0)
                     if(len(loop) > 0):
                         ctx.move_to(loop[0][0], loop[0][1])
                         for point in loop:
@@ -535,13 +553,13 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Helpers  
  #------------------------------------------------------------------------------------------------------------
-    def random_Material_Flow(self):
+    def random_Material_Flow_File(self):
         random.seed()
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"Input","Random_Materialflow.csv")
 
         with open(path, 'w') as file:
             file.write(f"From, To, Intensity\n")
-            for _ in range(0,30):
+            for _ in range(0,len(self.machine_list) * 2):
                 samples = random.sample(self.machine_list, k=2)
                 file.write(f"{samples[0].name}, {samples[1].name},{random.randint(1,100)}\n")
         random.seed(self.RANDSEED)
@@ -587,11 +605,11 @@ def main():
     materialflowpath = file_name + "_Materialflow.csv"
     #materialflowpath = None
     
-    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True, verboseOutput=3)
+    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True, randomPos = True, verboseOutput=3)
  
     #Machine Positions Output to PNG
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
+    machinePositions = demoFactory.drawPositions(scale = 3, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -621,7 +639,7 @@ def main():
     demoFactory.evaluate()
     demoFactory.update(2,0.1 ,-0.8 , 1)
 
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
+    machinePositions = demoFactory.drawPositions(scale = 3, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -631,7 +649,7 @@ def main():
     machinePositions.write_to_png(path) 
 
     #Machine Collisions Output to PNG
-    Collisions = demoFactory.drawCollisions(surfaceIn=machinePositions)
+    Collisions = demoFactory.drawCollisions(scale = 3, surfaceIn=machinePositions)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
