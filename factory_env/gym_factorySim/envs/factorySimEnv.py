@@ -129,7 +129,7 @@ class FactorySimEnv(gym.Env):
 
     def _addText(self, surface, text):
         ctx = cairo.Context(surface)
-        ctx.set_source_rgb(0, 0, 0)
+        ctx.set_source_rgb(1, 0, 0)
         ctx.scale(self.scale, self.scale)
         #ctx.select_font_face("Purisa", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
         ctx.set_font_size(8)
