@@ -61,7 +61,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128,  Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         gamma=0.99,
         n_steps=128,
         ent_coef=0.01,
-        learning_rate=0.0003,
+        learning_rate=0.0015,
         vf_coef=0.5,
         max_grad_norm=0.5,
         lam=0.93,
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=15000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=2000000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv("Simple")
     model.set_env(env)
-    model.learn(total_timesteps=15000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=2000000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()
