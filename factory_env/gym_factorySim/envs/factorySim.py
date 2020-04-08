@@ -306,10 +306,10 @@ class FactorySim:
         nWallCollosions = len(self.wallCollisionList)
 
         #If latest update leads to collision give worst rating.
-        #if(self.collisionAfterLastUpdate):
-        #    output = -2
-        #else:
-        #    output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
+        if(self.collisionAfterLastUpdate):
+            output = -3
+        else:
+            output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
     
         output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
         

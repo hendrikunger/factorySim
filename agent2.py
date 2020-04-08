@@ -102,7 +102,7 @@ if __name__ == "__main__":
         gamma=0.99,
         n_steps=128,
         ent_coef=0.01,
-        learning_rate=0.0015,
+        learning_rate=0.0025,
         vf_coef=0.5,
         max_grad_norm=0.5,
         lam=0.93,
