@@ -219,6 +219,8 @@ class FactorySim:
         #Max Value should move machine to the rightmost or topmost position without moving out of the image
         mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
         mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
+        #mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH))
+        #mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT))
 
         self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
         if not massUpdate:
@@ -250,7 +252,7 @@ class FactorySim:
         #    done = False
 
 
-        if(self.episodeCounter >= 2 * len(self.machine_list)):
+        if(self.episodeCounter >= 3 * len(self.machine_list)):
             done = True
         else:
             done = False     

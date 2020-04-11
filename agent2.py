@@ -70,7 +70,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
 
 def prepareEnv(ifc_filename):
 
-  num_cpu = 16  # Number of processes to use
+  num_cpu = 12  # Number of processes to use
   env_id = 'factorySimEnv-v0'
 
   ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -99,19 +99,19 @@ if __name__ == "__main__":
     model = PPO2(CnnLstmPolicy,
         env,
         tensorboard_log="./log/",
-        gamma=0.99,
-        n_steps=128,
-        ent_coef=0.01,
-        learning_rate=0.0015,
-        vf_coef=0.5,
-        max_grad_norm=0.5,
-        lam=0.93,
-        nminibatches=4,
-        noptepochs=5,
+        gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
+        n_steps=128, # | 128 
+        ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
+        learning_rate=0.000025, # | 0.00025 *
+        vf_coef=0.5, # | 0.5
+        max_grad_norm=0.5, # | 0.5
+        lam=0.9,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
+        nminibatches=4, # | 4
+        noptepochs=4, # | 4
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=2000000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -146,13 +146,11 @@ if __name__ == "__main__":
         imageio.imsave(f"./Output/Basic1/{envid }.{i}.png", np.array(sImage))
 
 
-
-
     #close old env and make new one
     env.close()
     env = prepareEnv("Simple")
     model.set_env(env)
-    model.learn(total_timesteps=2000000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=3000000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()

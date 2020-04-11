@@ -1,0 +1,17 @@
+1   Collision Formel: output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
+    Lernrate: 0.00026
+    Episodenlänge: if(self.episodeCounter >= 3 * len(self.machine_list)):
+    Update gemappt
+
+2   Collision Formel: output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
+    Episodenlänge: if(self.episodeCounter >= 3 * len(self.machine_list)):
+    Update gemappt
+        gamma=0.99,
+        n_steps=128,
+        ent_coef=0.0025,  #Speed of Entropy drop if it drops to fast, decrease
+        learning_rate=0.00026,
+        vf_coef=0.5,
+        max_grad_norm=0.5,
+        lam=0.85,   #Tradeoff between current value estimate and acually received reward
+        nminibatches=4,
+        noptepochs=5,
