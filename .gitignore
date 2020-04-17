@@ -11,8 +11,10 @@
 *.zip
 
 #Tensorboard Log Directory
-log
+log/
 
+#Gym Folder
+gym/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
