@@ -70,7 +70,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
 
 def prepareEnv(ifc_filename):
 
-  num_cpu = 12  # Number of processes to use
+  num_cpu = 16  # Number of processes to use
   env_id = 'factorySimEnv-v0'
 
   ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=5000000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=15000000, tb_log_name="Basic1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv("Simple")
     model.set_env(env)
-    model.learn(total_timesteps=3000000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name="Simple1",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()

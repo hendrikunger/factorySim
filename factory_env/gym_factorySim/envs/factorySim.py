@@ -47,6 +47,7 @@ class FactorySim:
         self.machineCollisionList = []
         self.wallCollisionList = []
 
+        self.lastRating = 0
         self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
         self.currentMappedRating    = 0 # Holds the normalized Rating of the current state of the Layout 
 
@@ -243,7 +244,14 @@ class FactorySim:
 
         output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
         #Normalize
-        self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+
+        if(self.currentRating > self.lastRating):
+            self.currentMappedRating = 1
+        else:
+            self.currentMappedRating = -1
+
+        self.lastRating = self.currentRating
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):

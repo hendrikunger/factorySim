@@ -100,7 +100,7 @@ class FactorySimEnv(gym.Env):
     def _get_image(self, prefix=None):
         outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
 
-        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}")
+        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.0f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}")
         self.output.write_to_png(outputPath)
         buf = self.output.get_data()
         #bgra to rgb
@@ -119,7 +119,7 @@ class FactorySimEnv(gym.Env):
     def _get_np_array_render(self):
         self.output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(scale = self.scale, surfaceIn = self.output)
-        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
+        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.0f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
 
         #bgra to rgb
