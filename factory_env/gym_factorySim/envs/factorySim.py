@@ -244,12 +244,13 @@ class FactorySim:
 
         output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
         #Normalize
-        #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        if(self.episodeCounter % len(self.machine_list) == 0 ):
+            self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
-        if(self.currentRating > self.lastRating):
-            self.currentMappedRating = 1
+        elif(self.currentRating > self.lastRating):
+            self.currentMappedRating = 0.1
         else:
-            self.currentMappedRating = -1
+            self.currentMappedRating = -0.1
 
         self.lastRating = self.currentRating
 
