@@ -150,8 +150,9 @@ def main():
     #filename = "Overlapp"
     #filename = "Basic"
     #filename = "EP_v23_S1_clean"
-    filename = "Simple"
+    #filename = "Simple"
     #filename = "SimpleNoCollisions"
+    filename = "LShape"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
