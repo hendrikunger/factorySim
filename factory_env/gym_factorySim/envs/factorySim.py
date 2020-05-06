@@ -36,8 +36,17 @@ class FactorySim:
         
         self.outputfile = outputfile
 
-        #ifc_file = ifcopenshell.open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"Input","EP_v23_S1_clean.ifc"))
-        self.ifc_file = ifcopenshell.open(path_to_ifc_file)
+        if(os.path.isdir(path_to_ifc_file)):
+            
+            chosen_ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x])
+            chosen_ifc_file = os.path.join(path_to_ifc_file, chosen_ifc_file)
+        else:
+            chosen_ifc_file = path_to_ifc_file
+            
+        if(self.verboseOutput >= 2):
+            print("Lade: ", chosen_ifc_file)
+
+        self.ifc_file = ifcopenshell.open(chosen_ifc_file)
 
         if(self.verboseOutput >= 3):
             self.printTime("Datei geladen")
@@ -611,6 +620,7 @@ def main():
         "..",
         "Input",  
         filename + ".ifc")
+
 
     file_name, _ = os.path.splitext(ifcpath)
     materialflowpath = file_name + "_Materialflow.csv"

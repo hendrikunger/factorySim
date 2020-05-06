@@ -41,9 +41,13 @@ class FactorySimEnv(gym.Env):
         self.currentMappedReward = 0
         self.info = {}
         self.output = None
-        self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
-        "..",
-        "Output")
+        if(os.path.isdir(inputfile)):
+            self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
+            "Output")
+        else:
+            self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
+            "..",
+            "Output")
     
 
         # Actions of the format MoveX, MoveY, Rotate 
@@ -156,7 +160,8 @@ def main():
         "Input",  
         filename + ".ifc")
 
-    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=3)
+        
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=2)
     env.reset()
     output = None
     prefix=0
