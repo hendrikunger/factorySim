@@ -76,6 +76,7 @@ class FactorySimEnv(gym.Env):
     def reset(self):
         #print("\nReset")
         self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, verboseOutput = self.Loglevel)
+        self.machineCount = len(self.factory.machine_list)
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0
@@ -161,13 +162,19 @@ def main():
         "Input",  
         filename + ".ifc")
 
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "..",
+        "Input")
+
         
     env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=2)
     env.reset()
     output = None
     prefix=0
     output = env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,50)):
+    for _ in tqdm(range(0,1000)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
         output = env.render(mode='human', prefix=prefix)
         if done:

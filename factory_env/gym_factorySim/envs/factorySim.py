@@ -208,7 +208,7 @@ class FactorySim:
             mfo_object.updatePosition() 
             elementlist.append(mfo_object)
             
-        if(self.verboseOutput >= 3):
+        if(self.verboseOutput >= 1):
             self.printTime(f"{elementName} geparsed")
         return elementlist
 
