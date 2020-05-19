@@ -15,3 +15,18 @@
         lam=0.85,   #Tradeoff between current value estimate and acually received reward
         nminibatches=4,
         noptepochs=5,
+
+3   wie 2 aber
+        model = PPO2(CnnLstmPolicy,
+        env,
+        tensorboard_log="./log/",
+        gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
+        n_steps=128, # | 128 
+        ent_coef=0.015,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
+        learning_rate=0.00005, # | 0.00025 *
+        vf_coef=0.5, # | 0.5
+        max_grad_norm=0.5, # | 0.5
+        lam=0.9,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
+        nminibatches=4, # | 4
+        noptepochs=4, # | 4
+        verbose=1)
