@@ -41,9 +41,13 @@ class FactorySimEnv(gym.Env):
         self.currentMappedReward = 0
         self.info = {}
         self.output = None
-        self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
-        "..",
-        "Output")
+        if(os.path.isdir(inputfile)):
+            self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
+            "Output")
+        else:
+            self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
+            "..",
+            "Output")
     
 
         # Actions of the format MoveX, MoveY, Rotate 
@@ -72,6 +76,7 @@ class FactorySimEnv(gym.Env):
     def reset(self):
         #print("\nReset")
         self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, verboseOutput = self.Loglevel)
+        self.machineCount = len(self.factory.machine_list)
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0
@@ -100,7 +105,7 @@ class FactorySimEnv(gym.Env):
     def _get_image(self, prefix=None):
         outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
 
-        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.0f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}")
+        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}")
         self.output.write_to_png(outputPath)
         buf = self.output.get_data()
         #bgra to rgb
@@ -119,7 +124,7 @@ class FactorySimEnv(gym.Env):
     def _get_np_array_render(self):
         self.output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(scale = self.scale, surfaceIn = self.output)
-        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:04d} | {self.currentMappedReward:1.0f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
+        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
 
         #bgra to rgb
@@ -146,8 +151,9 @@ def main():
     #filename = "Overlapp"
     #filename = "Basic"
     #filename = "EP_v23_S1_clean"
-    filename = "Simple"
+    #filename = "Simple"
     #filename = "SimpleNoCollisions"
+    filename = "LShape"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
@@ -156,12 +162,19 @@ def main():
         "Input",  
         filename + ".ifc")
 
-    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=3)
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "..",
+        "Input")
+
+        
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=2)
     env.reset()
     output = None
     prefix=0
     output = env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,50)):
+    for _ in tqdm(range(0,1000)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
         output = env.render(mode='human', prefix=prefix)
         if done:

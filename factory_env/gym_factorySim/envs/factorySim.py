@@ -36,8 +36,17 @@ class FactorySim:
         
         self.outputfile = outputfile
 
-        #ifc_file = ifcopenshell.open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"Input","EP_v23_S1_clean.ifc"))
-        self.ifc_file = ifcopenshell.open(path_to_ifc_file)
+        if(os.path.isdir(path_to_ifc_file)):
+            
+            chosen_ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x])
+            chosen_ifc_file = os.path.join(path_to_ifc_file, chosen_ifc_file)
+        else:
+            chosen_ifc_file = path_to_ifc_file
+            
+        if(self.verboseOutput >= 2):
+            print("Lade: ", chosen_ifc_file)
+
+        self.ifc_file = ifcopenshell.open(chosen_ifc_file)
 
         if(self.verboseOutput >= 3):
             self.printTime("Datei geladen")
@@ -199,7 +208,7 @@ class FactorySim:
             mfo_object.updatePosition() 
             elementlist.append(mfo_object)
             
-        if(self.verboseOutput >= 3):
+        if(self.verboseOutput >= 1):
             self.printTime(f"{elementName} geparsed")
         return elementlist
 
@@ -246,13 +255,15 @@ class FactorySim:
         #Normalize
         if(self.episodeCounter % len(self.machine_list) == 0 ):
             self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-
+        
         elif(self.currentRating > self.lastRating):
             self.currentMappedRating = 0.1
         else:
             self.currentMappedRating = -0.1
-
+        
         self.lastRating = self.currentRating
+
+        #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
@@ -261,7 +272,8 @@ class FactorySim:
         #    done = False
 
 
-        if(self.episodeCounter >= 3 * len(self.machine_list)):
+        #if(self.episodeCounter >= 3 * len(self.machine_list)):
+        if(self.episodeCounter >= 50):
             done = True
         else:
             done = False     
@@ -611,6 +623,7 @@ def main():
         "..",
         "Input",  
         filename + ".ifc")
+
 
     file_name, _ = os.path.splitext(ifcpath)
     materialflowpath = file_name + "_Materialflow.csv"
