@@ -70,7 +70,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
 
 def prepareEnv(ifc_filename = ""):
 
-  num_cpu = 12  # Number of processes to use
+  num_cpu = 16  # Number of processes to use
   env_id = 'factorySimEnv-v0'
   if(ifc_filename == ""):
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input")
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
         n_steps=128, # | 128 
         ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
-        learning_rate=0.00025, # | 0.00025 *
+        learning_rate=0.00020, # | 0.00025 *
         vf_coef=0.5, # | 0.5
         max_grad_norm=0.5, # | 0.5
         lam=0.95,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv()
     model.set_env(env)
-    model.learn(total_timesteps=5000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()

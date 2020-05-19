@@ -255,13 +255,15 @@ class FactorySim:
         #Normalize
         if(self.episodeCounter % len(self.machine_list) == 0 ):
             self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-
+        
         elif(self.currentRating > self.lastRating):
             self.currentMappedRating = 0.1
         else:
             self.currentMappedRating = -0.1
-
+        
         self.lastRating = self.currentRating
+
+        #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
