@@ -51,7 +51,7 @@ class TensorboardCallback(BaseCallback):
         return True
 
 
-def make_env(env_id, rank, ifcpath, seed=0):
+def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
     """
     Utility function for multiprocessed env.
 
@@ -61,14 +61,14 @@ def make_env(env_id, rank, ifcpath, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, objectScaling=0.5, Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, objectScaling=scaling, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
     return _init
 
 
-def prepareEnv(ifc_filename = ""):
+def prepareEnv(ifc_filename = "", objectScaling = 1.0):
 
   num_cpu = 16  # Number of processes to use
   env_id = 'factorySimEnv-v0'
@@ -79,7 +79,7 @@ def prepareEnv(ifc_filename = ""):
       "Input",  
       ifc_filename + ".ifc")
 
-  return SubprocVecEnv([make_env(env_id, i, ifcpath) for i in range(num_cpu)])
+  return SubprocVecEnv([make_env(env_id, i, ifcpath, scaling=objectScaling) for i in range(num_cpu)])
 
 #---------------------------------------------------------------------------------------------------------------------
 #Training
@@ -98,14 +98,14 @@ if __name__ == "__main__":
 
     # Create the vectorized environment
     #env = prepareEnv("Basic")
-    env = prepareEnv()
+    env = prepareEnv(objectScaling=0.5)
     model = PPO2(CnnLstmPolicy,
         env,
         tensorboard_log="./log/",
         gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
         n_steps=128, # | 128 
         ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
-        learning_rate=0.00025, # | 0.00025 *
+        learning_rate=0.00020, # | 0.00025 *
         vf_coef=0.5, # | 0.5
         max_grad_norm=0.5, # | 0.5
         lam=0.95,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=5000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=10000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -151,9 +151,9 @@ if __name__ == "__main__":
 
     #close old env and make new one
     env.close()
-    env = prepareEnv()
+    env = prepareEnv(objectScaling = 1.0)
     model.set_env(env)
-    model.learn(total_timesteps=5000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=10000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()
