@@ -18,7 +18,7 @@ class FactorySimEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, inputfile = 'None', obs_type='image', uid=0, Loglevel=0, width = 1000, heigth = 1000, outputScale = 1):
+    def __init__(self, inputfile = 'None', obs_type='image', uid=0, Loglevel=0, width = 1000, heigth = 1000, outputScale = 1, objectScaling = 1.0):
         super()
         self.stepCount = 0
         self._obs_type = obs_type
@@ -27,6 +27,7 @@ class FactorySimEnv(gym.Env):
         self.width = width
         self.heigth = heigth
         self.scale = outputScale
+        self.objectScaling = objectScaling 
         if inputfile is not None:
             file_name, _ = os.path.splitext(inputfile)
         else:
@@ -34,7 +35,7 @@ class FactorySimEnv(gym.Env):
         self.inputfile = inputfile
         self.materialflowpath = file_name + "_Materialflow.csv"
     
-        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, verboseOutput = self.Loglevel)
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, objectScaling = self.objectScaling, verboseOutput = self.Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.currentMachine = 0
         self.currentReward = 0
@@ -75,7 +76,7 @@ class FactorySimEnv(gym.Env):
  
     def reset(self):
         #print("\nReset")
-        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, verboseOutput = self.Loglevel)
+        self.factory = FactorySim(self.inputfile, path_to_materialflow_file = self.materialflowpath, width=self.width, heigth=self.heigth, randomMF = True, randomPos = True, objectScaling = self.objectScaling, verboseOutput = self.Loglevel)
         self.machineCount = len(self.factory.machine_list)
         self.stepCount = 0
         self.currentMachine = 0
@@ -169,12 +170,12 @@ def main():
         "Input")
 
         
-    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', Loglevel=2)
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', objectScaling=0.5, Loglevel=2)
     env.reset()
     output = None
     prefix=0
     output = env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,1000)):
+    for _ in tqdm(range(0,200)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
         output = env.render(mode='human', prefix=prefix)
         if done:

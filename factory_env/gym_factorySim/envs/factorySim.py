@@ -21,10 +21,10 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomPos = False, randomMF = False, verboseOutput = 0):
+    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomPos = False, randomMF = False, verboseOutput = 0, objectScaling = 1.0):
         self.WIDTH = width
         self.HEIGHT = heigth
-        self.MAX_STROKE_WIDTH = min(width,heigth) / 25
+        self.MAX_STROKE_WIDTH = min(width,heigth) / 30
         self.DOT_RADIUS = self.MAX_STROKE_WIDTH / 4
 
         self.verboseOutput = verboseOutput
@@ -94,7 +94,7 @@ class FactorySim:
             scale = min(scale_x, scale_y)
 
             for machine in self.machine_list:
-                machine.scale_Points(scale, scale, -self.min_value_x, -self.min_value_y)
+                machine.scale_Points(scale * objectScaling, scale * objectScaling, -self.min_value_x, -self.min_value_y)
             for wall in self.wall_list:
                 wall.scale_Points(scale, scale, -self.min_value_x, -self.min_value_y)
             self.min_value_x = (self.min_value_x - self.min_value_x) * scale   
@@ -252,18 +252,18 @@ class FactorySim:
             self.printTime("Kollisionsbewertung abgeschlossen")
 
         output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
-        #Normalize
-        if(self.episodeCounter % len(self.machine_list) == 0 ):
-            self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-        
-        elif(self.currentRating > self.lastRating):
-            self.currentMappedRating = 0.1
-        else:
-            self.currentMappedRating = -0.1
-        
-        self.lastRating = self.currentRating
+        ##Normalize
+        #if(self.episodeCounter % len(self.machine_list) == 0 ):
+        #    self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        #
+        #elif(self.currentRating > self.lastRating):
+        #    self.currentMappedRating = 0.1
+        #else:
+        #    self.currentMappedRating = -0.1
+        #
+        #self.lastRating = self.currentRating
 
-        #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
@@ -629,7 +629,7 @@ def main():
     materialflowpath = file_name + "_Materialflow.csv"
     #materialflowpath = None
     
-    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True, randomPos = True, verboseOutput=3)
+    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True, randomPos = True, verboseOutput=3, objectScaling=1.0)
  
     #Machine Positions Output to PNG
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)

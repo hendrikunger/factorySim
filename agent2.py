@@ -61,7 +61,7 @@ def make_env(env_id, rank, ifcpath, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, objectScaling=0.5, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
         n_steps=128, # | 128 
         ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
-        learning_rate=0.00020, # | 0.00025 *
+        learning_rate=0.00025, # | 0.00025 *
         vf_coef=0.5, # | 0.5
         max_grad_norm=0.5, # | 0.5
         lam=0.95,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     
 
     #env = model.get_env()
-    done = [False for _ in range(env.num_envs)]
+    done = [False for _ in range(env.num_envs)] 
     # Passing state=None to the predict function means
     # it is the initial state
     state = None
