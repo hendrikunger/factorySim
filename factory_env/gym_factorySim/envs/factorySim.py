@@ -368,7 +368,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, surfaceIn=None, scale = 1, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
+    def drawPositions(self, surfaceIn=None, scale = 1, drawColors = True, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
         #Drawing
         if(surfaceIn is None):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
@@ -431,7 +431,10 @@ class FactorySim:
                         ctx.set_source_rgb(0.4, 0.4, 0.4)
 
                     ctx.fill_preserve()
-                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                    if(drawColors):
+                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                    else:
+                        ctx.set_source_rgb(0.4, 0.4, 0.4)
                     ctx.stroke()
       
         #Machine Centers
@@ -460,7 +463,11 @@ class FactorySim:
 
             for index, row in self.materialflow_file.iterrows():
                 try:
-                    ctx.set_source_rgb(self.machine_list[int(row['from'])].color[0], self.machine_list[int(row['from'])].color[1], self.machine_list[int(row['from'])].color[2])
+                    if(drawColors):
+                        ctx.set_source_rgb(self.machine_list[int(row['from'])].color[0], self.machine_list[int(row['from'])].color[1], self.machine_list[int(row['from'])].color[2])
+                    else:
+                        ctx.set_source_rgb(0.6, 0.6, 0.6)
+
                     ctx.move_to(self.machine_list[int(row['from'])].center.x, self.machine_list[int(row['from'])].center.y)
                     ctx.line_to(self.machine_list[int(row['to'])].center.x, self.machine_list[int(row['to'])].center.y)
                     ctx.set_line_width(row["intensity_sum"]/(mf_max - mf_min) * self.MAX_STROKE_WIDTH)
@@ -663,7 +670,7 @@ def main():
     demoFactory.evaluate()
     demoFactory.update(2,0.1 ,-0.8 , 1)
 
-    machinePositions = demoFactory.drawPositions(scale = 1, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
+    machinePositions = demoFactory.drawPositions(scale = 1, drawColors = False, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
