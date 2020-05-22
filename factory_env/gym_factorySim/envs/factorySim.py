@@ -24,7 +24,7 @@ class FactorySim:
     def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomPos = False, randomMF = False, verboseOutput = 0, objectScaling = 1.0):
         self.WIDTH = width
         self.HEIGHT = heigth
-        self.MAX_STROKE_WIDTH = min(width,heigth) / 30
+        self.MAX_STROKE_WIDTH = min(width,heigth) / 30 * objectScaling
         self.DOT_RADIUS = self.MAX_STROKE_WIDTH / 4
 
         self.verboseOutput = verboseOutput
@@ -252,18 +252,18 @@ class FactorySim:
             self.printTime("Kollisionsbewertung abgeschlossen")
 
         output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
-        ##Normalize
-        #if(self.episodeCounter % len(self.machine_list) == 0 ):
-        #    self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-        #
-        #elif(self.currentRating > self.lastRating):
-        #    self.currentMappedRating = 0.1
-        #else:
-        #    self.currentMappedRating = -0.1
-        #
-        #self.lastRating = self.currentRating
+        #Normalize
+        if(self.episodeCounter % len(self.machine_list) == 0 ):
+            self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        
+        elif(self.currentRating > self.lastRating):
+            self.currentMappedRating = 0.1
+        else:
+            self.currentMappedRating = -0.1
+        
+        self.lastRating = self.currentRating
 
-        self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
@@ -425,7 +425,7 @@ class FactorySim:
                         ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
                     #highlighted machine
                     elif(index == highlight):
-                        ctx.set_source_rgb(1, 0.4, 0)
+                        ctx.set_source_rgb(0.9, 0.9, 0.9)
                     #other machines
                     else:
                         ctx.set_source_rgb(0.4, 0.4, 0.4)
@@ -537,7 +537,7 @@ class FactorySim:
         return surface
 
  #------------------------------------------------------------------------------------------------------------
-    def drawCollisions(self, surfaceIn=None, scale = 1, drawWalls=True):
+    def drawCollisions(self, surfaceIn=None, drawColors = True, scale = 1, drawWalls=True):
 
         #Machine Collisions
         if(surfaceIn is None):
@@ -555,7 +555,10 @@ class FactorySim:
         #Drawing collisions between machines
         for polygon in self.machineCollisionList:
             for loop in polygon:
-                ctx.set_source_rgb(1, 0 , 0)
+                if(drawColors):
+                    ctx.set_source_rgb(1.0, 0.3, 0.0)
+                else:
+                    ctx.set_source_rgb(0.7, 0.7, 0.7)
                 if(len(loop) > 0):
                     ctx.move_to(loop[0][0], loop[0][1])
                     for point in loop:
@@ -568,7 +571,10 @@ class FactorySim:
         if(drawWalls):
             for polygon in self.wallCollisionList:
                 for loop in polygon:
-                    ctx.set_source_rgb(1, 0 , 0)
+                    if(drawColors):
+                        ctx.set_source_rgb(1.0, 0.3, 0.0)
+                    else:
+                        ctx.set_source_rgb(0.7, 0.7, 0.7)
                     if(len(loop) > 0):
                         ctx.move_to(loop[0][0], loop[0][1])
                         for point in loop:
@@ -680,7 +686,7 @@ def main():
     machinePositions.write_to_png(path) 
 
     #Machine Collisions Output to PNG
-    Collisions = demoFactory.drawCollisions(scale = 1, surfaceIn=machinePositions)
+    Collisions = demoFactory.drawCollisions(scale = 1, drawColors = False, surfaceIn=machinePositions)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",

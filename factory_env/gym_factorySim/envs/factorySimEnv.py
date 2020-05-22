@@ -56,7 +56,7 @@ class FactorySimEnv(gym.Env):
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
-            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.heigth, 3), dtype=np.uint8)
+            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.heigth, 1), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
  
@@ -98,7 +98,7 @@ class FactorySimEnv(gym.Env):
     def _get_obs(self):
 
         self.output = self.factory.drawPositions(drawMaterialflow = True, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
-        self.output = self.factory.drawCollisions(surfaceIn = self.output)
+        self.output = self.factory.drawCollisions(surfaceIn = self.output, drawColors = False)
         if self._obs_type == 'image':
             img = self._get_np_array()
         return img
@@ -119,14 +119,14 @@ class FactorySimEnv(gym.Env):
         buf = self.output.get_data()
         #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
         #bgra to rgb
-        rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
-        return rgb
+        #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        r = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        return r
 
     def _get_np_array_render(self):
         self.output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(scale = self.scale, surfaceIn = self.output)
         buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
-        #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
 
         #bgra to rgb
         #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
@@ -183,6 +183,7 @@ def main():
             prefix+=1
             output = env.render(mode='human', prefix=prefix)
         #output = env.render(mode='rgb_array')
+
 
 
     #np.savetxt('data.csv', output, delimiter=',')
