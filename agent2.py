@@ -114,7 +114,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=10000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=1000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv(objectScaling = 1.0)
     model.set_env(env)
-    model.learn(total_timesteps=10000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=1000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()
