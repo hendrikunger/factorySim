@@ -259,9 +259,12 @@ class FactorySim:
         elif(self.currentRating > self.lastRating):
             self.currentMappedRating = 0.1
         else:
-            self.currentMappedRating = -0.1
+            self.currentMappedRating = -0.2
         
         self.lastRating = self.currentRating
+
+        if(self.collisionAfterLastUpdate):
+            self.currentMappedRating = -0.5
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
