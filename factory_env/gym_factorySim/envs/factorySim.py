@@ -257,14 +257,14 @@ class FactorySim:
             self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
         
         elif(self.currentRating > self.lastRating):
-            self.currentMappedRating = 0.1
+            self.currentMappedRating = 0.2
         else:
-            self.currentMappedRating = -0.2
+            self.currentMappedRating = -0.5
         
         self.lastRating = self.currentRating
 
         if(self.collisionAfterLastUpdate):
-            self.currentMappedRating = -0.5
+            self.currentMappedRating = -0.7
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
 
@@ -628,7 +628,8 @@ def main():
     outputfile ="Out"
 
     #filename = "Overlapp"
-    filename = "Basic"
+    #filename = "Basic"
+    filename = "Round_Walls"
     #filename = "EP_v23_S1_clean"
     #filename = "Simple"
     #filename = "SimpleNoCollisions"

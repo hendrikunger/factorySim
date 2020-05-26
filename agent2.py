@@ -105,7 +105,7 @@ if __name__ == "__main__":
         gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
         n_steps=128, # | 128 
         ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
-        learning_rate=0.00010, # | 0.00025 *
+        learning_rate=0.00005, # | 0.00025 *
         vf_coef=0.5, # | 0.5
         max_grad_norm=0.5, # | 0.5
         lam=0.95,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=10000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=20000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
     #close old env and make new one
     env.close()
-    env = prepareEnv(objectScaling = 0.7)
+    env = prepareEnv(objectScaling=0.7)
     model.set_env(env)
     model.learn(total_timesteps=10000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 #Evaluation
 #---------------------------------------------------------------------------------------------------------------------
   env.close()
-  env = prepareEnv()
+  env = prepareEnv(objectScaling=0.7)
   model.set_env(env)
 
   #env = model.get_env()
