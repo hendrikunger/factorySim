@@ -215,28 +215,34 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
-    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, massUpdate = False):
-        self.lastUpdatedMachine = self.machine_list[machineIndex].gid
-        if not massUpdate: self.episodeCounter += 1
+    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0, massUpdate = False):
 
-        if(self.verboseOutput >= 2):
-            print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
+        if(skip <= 0.7):
+            self.lastUpdatedMachine = self.machine_list[machineIndex].gid
+            if not massUpdate: self.episodeCounter += 1
 
-        if (rotation is not None):
-            mappedRot = self.mapRange(rotation, (-1,1), (0, 2*math.pi))
-            self.machine_list[machineIndex].rotate_Item(mappedRot)
+            if(self.verboseOutput >= 2):
+                print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
-        #Max Value should move machine to the rightmost or topmost position without moving out of the image
-        mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
-        mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
-        #mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH))
-        #mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT))
+            if (rotation is not None):
+                mappedRot = self.mapRange(rotation, (-1,1), (0, 2*math.pi))
+                self.machine_list[machineIndex].rotate_Item(mappedRot)
 
-        self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
-        if not massUpdate:
-            self.findCollisions()
-        if(self.verboseOutput >= 3):
-            self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
+            #Max Value should move machine to the rightmost or topmost position without moving out of the image
+            mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
+            mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
+            #mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH))
+            #mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT))
+
+            self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
+            if not massUpdate:
+                self.findCollisions()
+            if(self.verboseOutput >= 3):
+                self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
+        else:
+             if(self.verboseOutput >= 2):
+                print(f"Update: {self.machine_list[machineIndex].name} - Skipped Update")
+
 
     
  #------------------------------------------------------------------------------------------------------------
@@ -251,22 +257,34 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
 
+
         output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
-        #Normalize
-        if(self.episodeCounter % len(self.machine_list) == 0 ):
-            self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-        
-        elif(self.currentRating > self.lastRating):
-            self.currentMappedRating = 0.2
-        else:
-            self.currentMappedRating = -0.5
-        
-        self.lastRating = self.currentRating
 
         if(self.collisionAfterLastUpdate):
-            self.currentMappedRating = -0.7
+            self.currentRating = -0.8
+        elif(output["ratingCollision"] < 1):
+            self.currentRating = -0.5
+        else:
+            self.currentRating = output["ratingMF"]
+
+
+
+        ##Normalize
+        #if(self.episodeCounter % len(self.machine_list) == 0 ):
+        #    self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        #
+        #elif(self.currentRating > self.lastRating):
+        #    self.currentMappedRating = 0.1
+        #else:
+        #    self.currentMappedRating = -0.2
+        #
+        #self.lastRating = self.currentRating
+
+
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+        self.currentMappedRating = self.currentRating
+
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
@@ -628,8 +646,8 @@ def main():
     outputfile ="Out"
 
     #filename = "Overlapp"
-    #filename = "Basic"
-    filename = "Round_Walls"
+    filename = "Basic"
+    #filename = "Round_Walls"
     #filename = "EP_v23_S1_clean"
     #filename = "Simple"
     #filename = "SimpleNoCollisions"
@@ -678,7 +696,7 @@ def main():
     demoFactory.evaluate()
     demoFactory.update(1,1 ,-1 , 1)
     demoFactory.evaluate()
-    demoFactory.update(2,0.1 ,-0.8 , 1)
+    demoFactory.update(2,0.1 ,-0.8 , 1, 0.8)
 
     machinePositions = demoFactory.drawPositions(scale = 1, drawColors = False, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
