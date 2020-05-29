@@ -52,7 +52,7 @@ class FactorySimEnv(gym.Env):
     
 
         # Actions of the format MoveX, MoveY, Rotate 
-        self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]), dtype=np.float32)
+        self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
@@ -62,7 +62,7 @@ class FactorySimEnv(gym.Env):
  
     def step(self, action):
        
-        self.factory.update(self.currentMachine, action[0], action[1], action[2])
+        self.factory.update(self.currentMachine, action[0], action[1], action[2], action[3])
         self.currentMappedReward, self.currentReward, self.info, done = self.factory.evaluate()
         self.stepCount += 1
         self.currentMachine += 1
