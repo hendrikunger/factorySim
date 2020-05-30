@@ -217,7 +217,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0, massUpdate = False):
 
-        if(skip <= 0.7):
+        if(skip <= 0.5):
             self.lastUpdatedMachine = self.machine_list[machineIndex].gid
             if not massUpdate: self.episodeCounter += 1
 
@@ -327,7 +327,7 @@ class FactorySim:
         maxDistance = max(self.max_value_x,  self.max_value_y)
         self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
         self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm'] 
-        output = 1 - (self.materialflow_file['costs'].sum() / self.materialflow_file['intensity_sum_norm'].sum())
+        output = 1 - (math.pow(self.materialflow_file['costs'].sum(),2) / self.materialflow_file['intensity_sum_norm'].sum())
 
         return output
 
