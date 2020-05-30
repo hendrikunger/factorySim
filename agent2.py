@@ -61,7 +61,7 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, objectScaling=scaling, Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=100, heigth=100, outputScale=4, objectScaling=scaling, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
