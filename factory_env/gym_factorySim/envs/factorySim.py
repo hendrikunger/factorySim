@@ -260,12 +260,19 @@ class FactorySim:
 
         output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
 
-        if(self.collisionAfterLastUpdate):
-            self.currentRating = -0.8
-        elif(output["ratingCollision"] < 1):
-            self.currentRating = -0.5
-        else:
+        if(output["ratingCollision"] == 1):
             self.currentRating = output["ratingMF"]
+        else: 
+            self.currentRating = -5
+
+
+        #if(self.collisionAfterLastUpdate):
+        #    self.currentRating = -0.8
+        #elif(output["ratingCollision"] < 1):
+        #    self.currentRating = -0.5
+        #else:
+        #    self.currentRating = self.mapRange(output["ratingMF"],(-2,1),(-1,1))
+
 
 
 
@@ -283,7 +290,7 @@ class FactorySim:
 
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-        self.currentMappedRating = self.currentRating
+
 
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")

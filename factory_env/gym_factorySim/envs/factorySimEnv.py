@@ -138,7 +138,7 @@ class FactorySimEnv(gym.Env):
         ctx.set_source_rgb(1, 0, 0)
         ctx.scale(self.scale, self.scale)
         #ctx.select_font_face("Purisa", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        ctx.set_font_size(7)
+        ctx.set_font_size(6)
         ctx.move_to(5, 13)
         ctx.show_text(text)
         return surface
@@ -176,7 +176,7 @@ def main():
     prefix=0
     output = env.render(mode='human', prefix=prefix)
     for _ in tqdm(range(0,200)):
-        observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1)])    
+        observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         output = env.render(mode='human', prefix=prefix)
         if done:
             env.reset()
