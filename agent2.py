@@ -41,14 +41,14 @@ class TensorboardCallback(BaseCallback):
 
         info = self.training_env.get_attr("info")
         for envinfo in info:
-          summary = tf.Summary(value=[tf.Summary.Value(tag='Data/TotalRating', simple_value=envinfo['TotalRating']),
-            tf.Summary.Value(tag='Data/Collision_Rating', simple_value=envinfo['ratingCollision']),
-            tf.Summary.Value(tag='Data/MF_Rating', simple_value=envinfo['ratingMF'])
+          summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/TotalRating', simple_value=envinfo['TotalRating']),
+            tf.Summary.Value(tag='episode_reward/Collision_Rating', simple_value=envinfo['ratingCollision']),
+            tf.Summary.Value(tag='episode_reward/MF_Rating', simple_value=envinfo['ratingMF'])
             ])
           self.locals['writer'].add_summary(summary, self.num_timesteps)
 
           if(envinfo['ratingCollision'] == 1):
-            summary = tf.Summary(value=[tf.Summary.Value(tag='Data/MF_Rating_without_Colision', simple_value=envinfo['ratingMF'])])
+            summary = tf.Summary(value=[tf.Summary.Value(tag='Clean/MF_Rating_without_Colision', simple_value=envinfo['ratingMF'])])
             self.locals['writer'].add_summary(summary, self.num_timesteps)
 
         return True
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=50000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv(ifc_filename = "2", objectScaling=0.7)
     model.set_env(env)
-    model.learn(total_timesteps=50000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()

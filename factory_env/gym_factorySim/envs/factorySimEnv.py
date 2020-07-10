@@ -43,7 +43,8 @@ class FactorySimEnv(gym.Env):
         self.info = {}
         self.output = None
         if(os.path.isdir(inputfile)):
-            self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
+            self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)),
+            "..", 
             "Output")
         else:
             self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)), 
@@ -138,7 +139,7 @@ class FactorySimEnv(gym.Env):
         ctx.set_source_rgb(1, 0, 0)
         ctx.scale(self.scale, self.scale)
         #ctx.select_font_face("Purisa", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        ctx.set_font_size(6)
+        ctx.set_font_size(10)
         ctx.move_to(5, 13)
         ctx.show_text(text)
         return surface
@@ -167,7 +168,8 @@ def main():
         "..",
         "..",
         "..",
-        "Input")
+        "Input",
+        "1")
 
         
     env = FactorySimEnv(inputfile = ifcpath, obs_type='image', objectScaling=0.5, Loglevel=2)

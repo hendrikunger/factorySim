@@ -216,10 +216,9 @@ class FactorySim:
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0, massUpdate = False):
-
+        if not massUpdate: self.episodeCounter += 1
         if(skip <= 0.5):
             self.lastUpdatedMachine = self.machine_list[machineIndex].gid
-            if not massUpdate: self.episodeCounter += 1
 
             if(self.verboseOutput >= 2):
                 print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
@@ -258,12 +257,18 @@ class FactorySim:
             self.printTime("Kollisionsbewertung abgeschlossen")
 
 
-        output["TotalRating"] = self.currentRating = output["ratingMF"] + output["ratingCollision"]
+       
 
-        if(output["ratingCollision"] == 1):
+
+        if(self.episodeCounter < len(self.machine_list)):
+            self.currentRating = 0
+        elif(output["ratingCollision"] == 1):
             self.currentRating = output["ratingMF"]
         else: 
-            self.currentRating = -5
+            if(output["ratingCollision"] >= 0.5):
+                self.currentRating = 0.1
+            else:
+                self.currentRating = -1
 
 
         #if(self.collisionAfterLastUpdate):
@@ -290,8 +295,7 @@ class FactorySim:
 
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-
-
+        self.currentMappedRating = output["TotalRating"]= self.currentRating
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
@@ -335,6 +339,7 @@ class FactorySim:
         self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
         self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm'] 
         output = 1 - (math.pow(self.materialflow_file['costs'].sum(),2) / self.materialflow_file['intensity_sum_norm'].sum())
+        if(output < 0): output = 0
 
         return output
 
@@ -663,7 +668,8 @@ def main():
         "..",
         "..",
         "..",
-        "Input",  
+        "Input",
+        "1",  
         filename + ".ifc")
 
 
