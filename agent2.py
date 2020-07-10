@@ -39,15 +39,19 @@ class TensorboardCallback(BaseCallback):
 
     def _on_step(self) -> bool:
 
-        # Log scalar value (here a random variable)
         info = self.training_env.get_attr("info")
-        for envinfo in info:
-          summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='TotalRating', simple_value=envinfo['TotalRating'])])
-          self.locals['writer'].add_summary(summary, self.num_timesteps)
-          summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='MF_Rating', simple_value=envinfo['ratingMF'])])
-          self.locals['writer'].add_summary(summary, self.num_timesteps)
-          summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='Collision_Rating', simple_value=envinfo['ratingCollision'])])
-          self.locals['writer'].add_summary(summary, self.num_timesteps)
+        with tf.name_scope('train_metrics'):
+          for envinfo in info:
+            summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='TotalRating', simple_value=envinfo['TotalRating'])])
+            self.locals['writer'].add_summary(summary, self.num_timesteps)
+            summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='Collision_Rating', simple_value=envinfo['ratingCollision'])])
+            self.locals['writer'].add_summary(summary, self.num_timesteps)
+            summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='MF_Rating', simple_value=envinfo['ratingMF'])])
+            self.locals['writer'].add_summary(summary, self.num_timesteps)
+            if(envinfo['ratingCollision'] == 1):
+              summary = tf.Summary(value=[tf.Summary.Value(node_name='factorySim', tag='MF_Rating_without_Colision', simple_value=envinfo['ratingMF'])])
+              self.locals['writer'].add_summary(summary, self.num_timesteps)
+
         return True
 
 
@@ -61,7 +65,7 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=100, heigth=100, outputScale=4, objectScaling=scaling, Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, objectScaling=scaling, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
@@ -70,10 +74,10 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
 
 def prepareEnv(ifc_filename = "", objectScaling = 1.0):
 
-  num_cpu = 16  # Number of processes to use
+  num_cpu = 20  # Number of processes to use
   env_id = 'factorySimEnv-v0'
-  if(ifc_filename == ""):
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input")
+  if(True):
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", ifc_filename)
   else:
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
       "Input",  
@@ -98,14 +102,14 @@ if __name__ == "__main__":
 
     # Create the vectorized environment
     #env = prepareEnv("Basic")
-    env = prepareEnv(objectScaling=0.5)
+    env = prepareEnv(ifc_filename = "1", objectScaling=0.5)
     model = PPO2(CnnLstmPolicy,
         env,
         tensorboard_log="./log/",
         gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
-        n_steps=128, # | 128 
+        n_steps=500, # | 128 
         ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
-        learning_rate=0.00005, # | 0.00025 *
+        learning_rate=0.00003, # | 0.00025 *
         vf_coef=0.5, # | 0.5
         max_grad_norm=0.5, # | 0.5
         lam=0.95,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
@@ -114,7 +118,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=20000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -151,9 +155,9 @@ if __name__ == "__main__":
 
     #close old env and make new one
     env.close()
-    env = prepareEnv(objectScaling=0.7)
+    env = prepareEnv(ifc_filename = "2", objectScaling=0.7)
     model.set_env(env)
-    model.learn(total_timesteps=10000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=500000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()
@@ -173,7 +177,7 @@ if __name__ == "__main__":
 #Evaluation
 #---------------------------------------------------------------------------------------------------------------------
   env.close()
-  env = prepareEnv(objectScaling=0.7)
+  env = prepareEnv(ifc_filename = "2", objectScaling=0.7)
   model.set_env(env)
 
   #env = model.get_env()
