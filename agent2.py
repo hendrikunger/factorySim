@@ -73,7 +73,7 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
 
 def prepareEnv(ifc_filename = "", objectScaling = 1.0):
 
-  num_cpu = 16  # Number of processes to use
+  num_cpu = 20  # Number of processes to use
   env_id = 'factorySimEnv-v0'
   if(True):
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", ifc_filename)
@@ -106,9 +106,9 @@ if __name__ == "__main__":
         env,
         tensorboard_log="./log/",
         gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
-        n_steps=50, # | 128 
+        n_steps=100, # | 128 
         ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
-        learning_rate=0.00003, # | 0.00025 *
+        learning_rate=0.00025, # | 0.00025 *
         vf_coef=0.5, # | 0.5
         max_grad_norm=0.5, # | 0.5
         lam=0.95,   #Tradeoff between current value estimate (maybe high bias) and acually received reward (maybe high variance) | 0.95
