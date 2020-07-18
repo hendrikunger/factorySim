@@ -96,7 +96,7 @@ if __name__ == "__main__":
     #filename = "Simple"
     #filename = "SimpleNoCollisions"
 
-    #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input")
+    #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
     #check_env(gym.make('factorySimEnv-v0', inputfile = ifcpath, width=128, heigth=128, objectScaling=0.5, Loglevel=0))
 
     # Create the vectorized environment
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=5000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5500000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv(ifc_filename = "2", objectScaling=0.7)
     model.set_env(env)
-    model.learn(total_timesteps=5000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=1000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()

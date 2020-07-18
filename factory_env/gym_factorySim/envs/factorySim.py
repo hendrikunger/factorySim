@@ -217,7 +217,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0, massUpdate = False):
         if not massUpdate: self.episodeCounter += 1
-        if(skip <= 0.5):
+        if(skip > 2.8):
             self.lastUpdatedMachine = self.machine_list[machineIndex].gid
 
             if(self.verboseOutput >= 2):
@@ -263,7 +263,7 @@ class FactorySim:
         #el
 
         if(output["ratingCollision"] == 1):
-            self.currentRating = output["ratingMF"]
+            self.currentRating = output["ratingMF"] * 10
         else: 
             if(output["ratingCollision"] >= 0.5):
                 self.currentRating = 0.1
@@ -401,7 +401,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, surfaceIn=None, scale = 1, drawColors = True, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
+    def drawPositions(self, surfaceIn=None, scale = 1, drawColors = True, drawMachines = True, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawMachineBaseOrigin = False, drawWalls = True, highlight = None):   
         #Drawing
         if(surfaceIn is None):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
@@ -441,52 +441,53 @@ class FactorySim:
                             ctx.fill()
                             
         #draw machine positions
-        ctx.set_fill_rule(cairo.FillRule.WINDING)
-        ctx.set_line_width(self.DOT_RADIUS)
-        for index, machine in enumerate(self.machine_list):
-                
-            for loop in machine.hull:
-                if(len(loop) > 0):
-                    ctx.move_to(loop[0][0], loop[0][1])
-                    for point in loop:
-                        ctx.line_to(point[0], point[1])
-                        #print(F"{machine.gid}, X:{point.x}, Y:{point.y}")
-                    ctx.close_path()
+        if drawMachines:
+            ctx.set_fill_rule(cairo.FillRule.WINDING)
+            ctx.set_line_width(self.DOT_RADIUS)
+            for index, machine in enumerate(self.machine_list):
 
-                    #no highlights
-                    if(highlight is  None):
-                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                    #highlighted machine
-                    elif(index == highlight):
-                        ctx.set_source_rgb(0.9, 0.9, 0.9)
-                    #other machines
-                    else:
-                        ctx.set_source_rgb(0.4, 0.4, 0.4)
+                for loop in machine.hull:
+                    if(len(loop) > 0):
+                        ctx.move_to(loop[0][0], loop[0][1])
+                        for point in loop:
+                            ctx.line_to(point[0], point[1])
+                            #print(F"{machine.gid}, X:{point.x}, Y:{point.y}")
+                        ctx.close_path()
 
-                    ctx.fill_preserve()
-                    if(drawColors):
-                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                    else:
-                        ctx.set_source_rgb(0.4, 0.4, 0.4)
-                    ctx.stroke()
-      
-        #Machine Centers
-            if (machine.center is not None and drawMachineCenter):
-                ctx.set_source_rgb(0, 0, 0)
-                ctx.arc(machine.center.x, machine.center.y, self.DOT_RADIUS, 0, 2*math.pi)
-                ctx.fill()
+                        #no highlights
+                        if(highlight is  None):
+                            ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                        #highlighted machine
+                        elif(index == highlight):
+                            ctx.set_source_rgb(0.9, 0.9, 0.9)
+                        #other machines
+                        else:
+                            ctx.set_source_rgb(0.4, 0.4, 0.4)
 
-        #Machine Origin 
-            if (machine.origin is not None and drawOrigin):
-                ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                ctx.arc(machine.origin.x, machine.origin.y, self.DOT_RADIUS, 0, 2*math.pi)
-                ctx.fill()
+                        ctx.fill_preserve()
+                        if(drawColors):
+                            ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                        else:
+                            ctx.set_source_rgb(0.4, 0.4, 0.4)
+                        ctx.stroke()
 
-        #Machine Base Origin
-            if (machine.baseOrigin is not None and drawMachineBaseOrigin):
-                ctx.set_source_rgb(1,0,0)
-                ctx.arc(machine.baseOrigin.x, machine.baseOrigin.y, self.DOT_RADIUS, 0, 2*math.pi)
-                ctx.fill()
+            #Machine Centers
+                if (machine.center is not None and drawMachineCenter):
+                    ctx.set_source_rgb(0, 0, 0)
+                    ctx.arc(machine.center.x, machine.center.y, self.DOT_RADIUS, 0, 2*math.pi)
+                    ctx.fill()
+
+            #Machine Origin 
+                if (machine.origin is not None and drawOrigin):
+                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                    ctx.arc(machine.origin.x, machine.origin.y, self.DOT_RADIUS, 0, 2*math.pi)
+                    ctx.fill()
+
+            #Machine Base Origin
+                if (machine.baseOrigin is not None and drawMachineBaseOrigin):
+                    ctx.set_source_rgb(1,0,0)
+                    ctx.arc(machine.baseOrigin.x, machine.baseOrigin.y, self.DOT_RADIUS, 0, 2*math.pi)
+                    ctx.fill()
 
         #Material Flow
         if drawMaterialflow:
@@ -711,7 +712,7 @@ def main():
     demoFactory.evaluate()
     demoFactory.update(2,0.1 ,-0.8 , 1, 0.8)
 
-    machinePositions = demoFactory.drawPositions(scale = 1, drawColors = False, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
+    machinePositions = demoFactory.drawPositions(scale = 1, drawColors = False, drawMachines=True, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -729,6 +730,17 @@ def main():
         "Output", 
         F"{outputfile}_machine_collsions.png")
     Collisions.write_to_png(path) 
+
+    toutput = demoFactory.drawPositions(drawMaterialflow = True, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=1)
+    toutput = demoFactory.drawCollisions(surfaceIn = toutput, drawColors = False)
+    toutput = demoFactory.drawPositions(drawMaterialflow = True, drawMachines = False, drawColors = False, drawMachineCenter = True, drawOrigin = False, drawMachineBaseOrigin=False)
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+        "..",
+        "..",
+        "..",
+        "Output", 
+        F"{outputfile}test.png")
+    toutput.write_to_png(path) 
 
     ##Rate current Layout
     demoFactory.evaluate()

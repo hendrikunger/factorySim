@@ -53,17 +53,22 @@ class FactorySimEnv(gym.Env):
     
 
         # Actions of the format MoveX, MoveY, Rotate 
-        self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
+        #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
+        #Skipping disabled
+        self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]), dtype=np.float32)
+
+
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
-            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.heigth, 1), dtype=np.uint8)
+            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.heigth, 2), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
  
     def step(self, action):
        
-        self.factory.update(self.currentMachine, action[0], action[1], action[2], action[3])
+        #self.factory.update(self.currentMachine, action[0], action[1], action[2], action[3])
+        self.factory.update(self.currentMachine, action[0], action[1], action[2], 0)
         self.currentMappedReward, self.currentReward, self.info, done = self.factory.evaluate()
         self.stepCount += 1
         self.currentMachine += 1
@@ -97,16 +102,38 @@ class FactorySimEnv(gym.Env):
             return self._get_image(prefix)
 
     def _get_obs(self):
-
-        self.output = self.factory.drawPositions(drawMaterialflow = True, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
-        self.output = self.factory.drawCollisions(surfaceIn = self.output, drawColors = False)
         if self._obs_type == 'image':
             img = self._get_np_array()
         return img
+         
+    #Rendering for AI
+    def _get_np_array(self):
+        #old colorimage
+        #bgra to rgb
+        #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
 
+
+        #new Version greyscale
+
+        self.output = self.factory.drawPositions(drawMaterialflow = False, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
+        self.output = self.factory.drawCollisions(surfaceIn = self.output, drawColors = False)
+        buf = self.output.get_data()
+        machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+
+        #separate Image for Materialflow
+        materialflow = self.factory.drawPositions(drawMaterialflow = True, drawMachines = False, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
+        buf = materialflow.get_data()
+        materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+
+        out = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
+        return out
+
+    #Rendering for human as png
     def _get_image(self, prefix=None):
         outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
 
+        #Add Materialflow
+        self.output = self.factory.drawPositions(surfaceIn = self.output, drawMaterialflow = True, drawMachines = False, drawWalls = False, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
         self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}")
         self.output.write_to_png(outputPath)
         buf = self.output.get_data()
@@ -114,16 +141,9 @@ class FactorySimEnv(gym.Env):
         #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
         rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
         return rgb
-         
 
-    def _get_np_array(self):
-        buf = self.output.get_data()
-        #return np.ndarray(shape=(self.width, self.heigth), dtype=np.uint32, buffer=buf).flatten()
-        #bgra to rgb
-        #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
-        r = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
-        return r
 
+    #Rendering for human with parallel environments
     def _get_np_array_render(self):
         self.output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(scale = self.scale, surfaceIn = self.output)
