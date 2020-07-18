@@ -1,5 +1,5 @@
 import gym
-from stable_baselines.common.policies import MlpPolicy, CnnLstmPolicy
+from stable_baselines.common.policies import CnnLnLstmPolicy, CnnLstmPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, VecNormalize, SubprocVecEnv
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import set_global_seeds

@@ -265,10 +265,11 @@ class FactorySim:
         if(output["ratingCollision"] == 1):
             self.currentRating = output["ratingMF"] * 10
         else: 
-            if(output["ratingCollision"] >= 0.5):
-                self.currentRating = 0.1
-            else:
-                self.currentRating = -1
+            self.currentRating = -1
+            #if(output["ratingCollision"] >= 0.5):
+            #    self.currentRating = 0.1
+            #else:
+            #    self.currentRating = -1
 
 
         #if(self.collisionAfterLastUpdate):
