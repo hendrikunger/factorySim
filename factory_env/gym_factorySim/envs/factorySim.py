@@ -217,7 +217,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0, massUpdate = False):
         if not massUpdate: self.episodeCounter += 1
-        if(skip > 2.8):
+        if(skip < 0.8):
             self.lastUpdatedMachine = self.machine_list[machineIndex].gid
 
             if(self.verboseOutput >= 2):

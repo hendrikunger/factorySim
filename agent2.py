@@ -102,7 +102,7 @@ if __name__ == "__main__":
     # Create the vectorized environment
     #env = prepareEnv("Basic")
     env = prepareEnv(ifc_filename = "1", objectScaling=0.5)
-    model = PPO2(CnnLstmPolicy,
+    model = PPO2(CnnLnLstmPolicy,
         env,
         tensorboard_log="./log/",
         gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=5500000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=15000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     env.close()
     env = prepareEnv(ifc_filename = "2", objectScaling=0.7)
     model.set_env(env)
-    model.learn(total_timesteps=1000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=2000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()

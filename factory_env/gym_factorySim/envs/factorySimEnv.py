@@ -52,7 +52,7 @@ class FactorySimEnv(gym.Env):
             "Output")
     
 
-        # Actions of the format MoveX, MoveY, Rotate 
+        # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
         self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]), dtype=np.float32)
