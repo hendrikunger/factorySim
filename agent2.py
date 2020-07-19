@@ -73,7 +73,7 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
 
 def prepareEnv(ifc_filename = "", objectScaling = 1.0):
 
-  num_cpu = 20  # Number of processes to use
+  num_cpu = 40  #52  # Number of processes to use
   env_id = 'factorySimEnv-v0'
   if(True):
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", ifc_filename)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         verbose=1)
       
     #model = PPO2.load("ppo2", env=env, tensorboard_log="./log/")
-    model.learn(total_timesteps=15000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name="Batch_A",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1500, tb_000log_name="Basic1",reset_num_timesteps=True)
     
 
@@ -140,11 +140,11 @@ if __name__ == "__main__":
       action, state = model.predict(obs, state=state, mask=done)
       obs, rewards, done, info = model.env.step(action)
       #ALl immages in one
-      img = model.env.render(mode = 'rgb_array', prefix = "")
+      #img = model.env.render(mode = 'rgb_array', prefix = "")
       #Single Images per Environment
       single_img = env.get_images()
 
-    imageio.mimsave('./Output/1.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
+    #imageio.mimsave('./Output/1.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
 
     os.makedirs("./Output/1/", exist_ok=True)
     for i, fullimage in enumerate(single_images):
@@ -154,9 +154,9 @@ if __name__ == "__main__":
 
     #close old env and make new one
     env.close()
-    env = prepareEnv(ifc_filename = "2", objectScaling=0.7)
+    env = prepareEnv(ifc_filename = "1", objectScaling=0.7)
     model.set_env(env)
-    model.learn(total_timesteps=2000000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=200000, tb_log_name="Batch_B",reset_num_timesteps=True, callback=TensorboardCallback())
     #model.learn(total_timesteps=1200000, tb_log_name="Simple1",reset_num_timesteps=True)
 
     #env.close()
@@ -198,12 +198,12 @@ if __name__ == "__main__":
     action, state = model.predict(obs, state=state, mask=done)
     obs, rewards, done, info = model.env.step(action)
     #ALl immages in one
-    img = model.env.render(mode = 'rgb_array', prefix = "")
+    #img = model.env.render(mode = 'rgb_array', prefix = "")
     #Single Images per Environment
     single_img = env.get_images()
 
 
-  imageio.mimsave('./Output/2.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
+  #imageio.mimsave('./Output/2.gif', [np.array(img) for i, img in enumerate(images)], fps=4)
 
   os.makedirs("./Output/2/", exist_ok=True)
   for i, fullimage in enumerate(single_images):

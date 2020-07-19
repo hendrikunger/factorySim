@@ -263,7 +263,7 @@ class FactorySim:
         #el
 
         if(output["ratingCollision"] == 1):
-            self.currentRating = output["ratingMF"] * 10
+            self.currentRating = math.pow(output["ratingMF"],3) * 10
         else: 
             self.currentRating = -1
             #if(output["ratingCollision"] >= 0.5):
@@ -306,7 +306,7 @@ class FactorySim:
 
 
         #if(self.episodeCounter >= 3 * len(self.machine_list)):
-        if(self.episodeCounter >= 20):
+        if(self.episodeCounter > len(self.machine_list)):
             done = True
         else:
             done = False     
