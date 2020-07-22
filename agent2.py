@@ -151,7 +151,7 @@ if __name__ == "__main__":
     for i in range(1,6):
       env = prepareEnv(ifc_filename = str(2 - i%2), objectScaling=0.5 + i/10)
       model.set_env(env)
-      model.learn(total_timesteps=4000000, tb_log_name=f"Batch_{i+1}",reset_num_timesteps=True, callback=TensorboardCallback())
+      model.learn(total_timesteps=4000000, tb_log_name=f"Batch_{i+1}",reset_num_timesteps=False, callback=TensorboardCallback())
       takePictures(model,i+1)
       model.save(f"./models/ppo2_{i+1}")
       env.close()
