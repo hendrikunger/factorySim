@@ -41,15 +41,26 @@ class TensorboardCallback(BaseCallback):
 
         info = self.training_env.get_attr("info")
         for envinfo in info:
-          summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/TotalRating', simple_value=envinfo['TotalRating']),
-            tf.Summary.Value(tag='episode_reward/Collision_Rating', simple_value=envinfo['ratingCollision']),
-            tf.Summary.Value(tag='episode_reward/MF_Rating', simple_value=envinfo['ratingMF'])
+          summary = tf.Summary(value=[tf.Summary.Value(tag='episode_reward/TotalRating', simple_value=envinfo.get('TotalRating')),
+            tf.Summary.Value(tag='episode_reward/Collision_Rating', simple_value=envinfo.get('ratingCollision')),
+            tf.Summary.Value(tag='episode_reward/MF_Rating', simple_value=envinfo.get('ratingMF'))
             ])
           self.locals['writer'].add_summary(summary, self.num_timesteps)
 
-          if(envinfo['ratingCollision'] == 1):
-            summary = tf.Summary(value=[tf.Summary.Value(tag='Clean/MF_Rating_without_Colision', simple_value=envinfo['ratingMF'])])
+          if 'done' in envinfo:
+            summary = tf.Summary(value=[tf.Summary.Value(tag='Clean/FinalMF', simple_value=envinfo.get('ratingMF')),
+            tf.Summary.Value(tag='Clean/FinalCollision', simple_value=envinfo.get('ratingCollision'))
+            ])
             self.locals['writer'].add_summary(summary, self.num_timesteps)
+
+          if(envinfo.get('ratingCollision') == 1):
+            summary = tf.Summary(value=[tf.Summary.Value(tag='Clean/_MF_Rating_without_Collision', simple_value=envinfo.get('ratingMF'))
+            ])
+            self.locals['writer'].add_summary(summary, self.num_timesteps)
+
+            if 'done' in envinfo:
+              summary = tf.Summary(value=[tf.Summary.Value(tag='Clean/FinalMF_Rating_without_Collision', simple_value=envinfo.get('ratingMF'))])
+              self.locals['writer'].add_summary(summary, self.num_timesteps)
 
         return True
 
@@ -73,7 +84,7 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
 
 def prepareEnv(ifc_filename = "", objectScaling = 1.0):
 
-  num_cpu = 44  #52  # Number of processes to use
+  num_cpu = 48  #52  # Number of processes to use
   env_id = 'factorySimEnv-v0'
   if(True):
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", ifc_filename)

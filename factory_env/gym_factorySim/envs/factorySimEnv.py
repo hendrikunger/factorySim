@@ -88,7 +88,6 @@ class FactorySimEnv(gym.Env):
         self.currentMachine = 0
         self.currentReward = 0
         self.currentMappedReward = 0
-        self.info = {'TotalRating':0, 'ratingMF':0, 'ratingCollision': 0}
         self.output = None
         
 
@@ -134,7 +133,7 @@ class FactorySimEnv(gym.Env):
 
         #Add Materialflow
         self.output = self.factory.drawPositions(surfaceIn = self.output, drawMaterialflow = True, drawMachines = False, drawWalls = False, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
-        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}")
+        self.output =  self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}")
         self.output.write_to_png(outputPath)
         buf = self.output.get_data()
         #bgra to rgb
@@ -147,7 +146,7 @@ class FactorySimEnv(gym.Env):
     def _get_np_array_render(self):
         self.output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         self.output = self.factory.drawCollisions(scale = self.scale, surfaceIn = self.output)
-        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info['ratingMF']:1.2f} | {self.info['ratingCollision']:1.2f}").get_data()
+        buf = self._addText(self.output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}").get_data()
 
         #bgra to rgb
         #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]

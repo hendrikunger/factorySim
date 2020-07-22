@@ -308,6 +308,7 @@ class FactorySim:
         #if(self.episodeCounter >= 3 * len(self.machine_list)):
         if(self.episodeCounter > len(self.machine_list)+1):
             done = True
+            output["done"] = True
         else:
             done = False     
         #done = False      
