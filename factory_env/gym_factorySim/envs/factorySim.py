@@ -15,16 +15,18 @@ from fabulous.color import fg256, bg256, bold
 from Polygon import Polygon as Poly
 import Polygon.IO
 import numpy as np
+import copy
 
 
 class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomPos = False, randomMF = False, verboseOutput = 0, objectScaling = 1.0):
+    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomPos = False, randomMF = False, verboseOutput = 0, maxMF_Elements = None, objectScaling = 1.0):
         self.WIDTH = width
         self.HEIGHT = heigth
-        self.MAX_STROKE_WIDTH = min(width,heigth) / 30 * objectScaling
+        self.MAXMF_ELEMENTS = maxMF_Elements
+        self.MAX_STROKE_WIDTH = min(width,heigth) * 0.04 * objectScaling
         self.DOT_RADIUS = self.MAX_STROKE_WIDTH / 4
 
         self.verboseOutput = verboseOutput
@@ -51,7 +53,26 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Datei geladen")
         #Importing Machines
-        self.machine_list = self.importIFC_Data(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
+
+        self.machine_list = []
+        if(self.MAXMF_ELEMENTS):
+
+            path = os.path.join(os.path.dirname(chosen_ifc_file), "MFO_LIB.ifc")
+            if(os.path.exists(path)):
+                mfo_ifc_file_path = path
+            else:
+                mfo_ifc_file_path = chosen_ifc_file
+
+            if(self.verboseOutput >= 2):
+                print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {mfo_ifc_file_path} geladen.")
+            #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
+            self.machine_list = self.importIFC_Data(ifcopenshell.open(mfo_ifc_file_path), "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
+        else:
+            if(self.verboseOutput >= 2):
+                print("Nutze alle MF Objekte in der IFC Datei")
+            self.machine_list = self.importIFC_Data(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
+
+        #Importing Walls
         self.wall_list = self.importIFC_Data(self.ifc_file, "IFCWALL") 
         self.machineCollisionList = []
         self.wallCollisionList = []
@@ -71,10 +92,10 @@ class FactorySim:
             for polygon in wall.polylist:
                 for loop in polygon:
                     allElements.addContour(loop)
-        for machine in self.machine_list:
-            for polygon in machine.polylist:
-                for loop in polygon:
-                    allElements.addContour(loop)
+        #for machine in self.machine_list:
+        #    for polygon in machine.polylist:
+        #        for loop in polygon:
+        #            allElements.addContour(loop)
 
         #Polygon.IO.writeSVG('test.svg', allElements, width=1000, height=1000)
 
@@ -126,11 +147,10 @@ class FactorySim:
         
         #Import Materialflow from Excel
         if randomMF is True:
-            #path_to_materialflow_file = self.random_Material_Flow_File()
             names = []
             for _ in range(0,len(self.machine_list) * 2):
                 samples = random.sample(self.machine_list, k=2)
-                names.append([samples[0].name, samples[1].name]) # random.randint(1,100)
+                names.append([samples[0].name, samples[1].name]) 
             self.materialflow_file = pd.DataFrame(data=names, columns=["from", "to"])
             self.materialflow_file['intensity'] = np.random.randint(1,100, size=len(self.materialflow_file))
 
@@ -159,10 +179,14 @@ class FactorySim:
         
       
   #------------------------------------------------------------------------------------------------------------
-    def importIFC_Data(self, ifc_file, elementName):
+    def importIFC_Data(self, ifc_file, elementName, randomMF=None):
         elementlist = []
-        elements = ifc_file.by_type(elementName)
-        for element in elements:
+        elements = []
+        if(randomMF):
+            elements = random.choices(ifc_file.by_type(elementName), k=random.randint(2, randomMF))
+        else:
+            elements = ifc_file.by_type(elementName)
+        for index, element in enumerate(elements):
             #get origin
             origin = element.ObjectPlacement.RelativePlacement.Location.Coordinates
             #element.ObjectPlacement.RelativePlacement.Axis.DirectionRatios[0]
@@ -172,10 +196,13 @@ class FactorySim:
             x = element.ObjectPlacement.RelativePlacement.RefDirection.DirectionRatios[0]
             y = element.ObjectPlacement.RelativePlacement.RefDirection.DirectionRatios[1]
             rotation = math.atan2(y,x)
+            my_uuid = ""
+            if(randomMF):
+                my_uuid= "_" + str(index)
 
             #create MFO Object
             mfo_object = MFO(gid=element.GlobalId, 
-                name=element.Name, 
+                name=element.Name + my_uuid,
                 origin_x=origin[0],
                 origin_y=origin[1],
                 origin_z=origin[2],
@@ -470,7 +497,7 @@ class FactorySim:
                         if(drawColors):
                             ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
                         else:
-                            ctx.set_source_rgb(0.4, 0.4, 0.4)
+                            ctx.set_source_rgb(0.5, 0.5, 0.5)
                         ctx.stroke()
 
             #Machine Centers
@@ -494,9 +521,6 @@ class FactorySim:
         #Material Flow
         if drawMaterialflow:
 
-            mf_max = self.materialflow_file.max()["intensity_sum"]
-            mf_min = self.materialflow_file.min()["intensity_sum"]
-
             for index, row in self.materialflow_file.iterrows():
                 try:
                     if(drawColors):
@@ -506,7 +530,7 @@ class FactorySim:
 
                     ctx.move_to(self.machine_list[int(row['from'])].center.x, self.machine_list[int(row['from'])].center.y)
                     ctx.line_to(self.machine_list[int(row['to'])].center.x, self.machine_list[int(row['to'])].center.y)
-                    ctx.set_line_width(row["intensity_sum"]/(mf_max - mf_min) * self.MAX_STROKE_WIDTH)
+                    ctx.set_line_width(row["intensity_sum_norm"] * self.MAX_STROKE_WIDTH)
                     ctx.stroke()   
                 except KeyError:
                     print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
@@ -680,7 +704,13 @@ def main():
     materialflowpath = file_name + "_Materialflow.csv"
     #materialflowpath = None
     
-    demoFactory = FactorySim(ifcpath, path_to_materialflow_file = materialflowpath, randomMF = True, randomPos = True, verboseOutput=3, objectScaling=1.0)
+    demoFactory = FactorySim(ifcpath,
+    path_to_materialflow_file = materialflowpath,
+    randomMF = True,
+    randomPos = True,
+    verboseOutput=3,
+    maxMF_Elements = 5,
+    objectScaling=1.0)
  
     #Machine Positions Output to PNG
     #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
@@ -712,7 +742,7 @@ def main():
     demoFactory.evaluate()
     demoFactory.update(1,1 ,-1 , 1)
     demoFactory.evaluate()
-    demoFactory.update(2,0.1 ,-0.8 , 1, 0.8)
+    demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
 
     machinePositions = demoFactory.drawPositions(scale = 1, drawColors = False, drawMachines=True, drawMaterialflow = True, drawMachineCenter = True, drawMachineBaseOrigin=True, highlight=1)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),

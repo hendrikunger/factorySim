@@ -65,7 +65,7 @@ class TensorboardCallback(BaseCallback):
         return True
 
 
-def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
+def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0, maxElements=None):
     """
     Utility function for multiprocessed env.
 
@@ -75,16 +75,16 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0):
     :param rank: (int) index of the subprocess
     """
     def _init():
-        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, outputScale=4, objectScaling=scaling, Loglevel=0)
+        env = gym.make('factorySimEnv-v0',inputfile = ifcpath, uid=rank, width=128, heigth=128, maxMF_Elements=maxElements, outputScale=4, objectScaling=scaling, Loglevel=0)
         env.seed(seed + rank)
         return env
     set_global_seeds(seed)
     return _init
 
 
-def prepareEnv(ifc_filename = "", objectScaling = 1.0):
+def prepareEnv(ifc_filename = "", objectScaling = 1.0, maxElements = None):
 
-  num_cpu = 48  #52  # Number of processes to use
+  num_cpu = 32  #52  # Number of processes to use
   env_id = 'factorySimEnv-v0'
   if(True):
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", ifc_filename)
@@ -93,7 +93,7 @@ def prepareEnv(ifc_filename = "", objectScaling = 1.0):
       "Input",  
       ifc_filename + ".ifc")
 
-  return SubprocVecEnv([make_env(env_id, i, ifcpath, scaling=objectScaling) for i in range(num_cpu)])
+  return SubprocVecEnv([make_env(env_id, i, ifcpath, scaling=objectScaling, maxElements=maxElements) for i in range(num_cpu)])
 
 
 def takePictures(model, prefix):
@@ -153,7 +153,7 @@ if __name__ == "__main__":
       verbose=1)
     
 
-    model.learn(total_timesteps=6000000, tb_log_name="Batch_1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=600000, tb_log_name="Batch_1",reset_num_timesteps=True, callback=TensorboardCallback())
     takePictures(model,1)
     model.save(f"./models/ppo2_1")
     #close old env and make new one
