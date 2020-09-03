@@ -147,7 +147,7 @@ class FactorySimEnv(gym.Env):
 
     #Rendering for human as png
     def _get_image(self, prefix=None):
-        outputPath = os.path.join(self.output_path, f"{prefix}_{self.stepCount:04d}.png")
+        outputPath = os.path.join(self.output_path, f"{prefix:02d}_{self.stepCount:04d}.png")
 
         #Add Materialflow
         self.output = self.factory.drawPositions(surfaceIn = self.output, drawMaterialflow = True, drawMachines = False, drawWalls = False, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
@@ -206,15 +206,15 @@ def main():
         "..",
         "..",
         "Input",
-        "1")
+        "2")
 
         
-    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', objectScaling=0.5, maxMF_Elements = 5, Loglevel=2)
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', objectScaling=0.5, maxMF_Elements = 5, Loglevel=1)
     env.reset()
-    output = Nonee
+    output = None
     prefix=0
     output = env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,200)):
+    for _ in tqdm(range(0,500)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         output = env.render(mode='human', prefix=prefix)
         if done:

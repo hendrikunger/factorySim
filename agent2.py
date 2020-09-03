@@ -84,7 +84,7 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0, maxElements=None):
 
 def prepareEnv(ifc_filename = "", objectScaling = 1.0, maxElements = None):
 
-  num_cpu = 32  #52  # Number of processes to use
+  num_cpu = 44  #52  # Number of processes to use
   env_id = 'factorySimEnv-v0'
   if(True):
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", ifc_filename)
@@ -153,16 +153,16 @@ if __name__ == "__main__":
       verbose=1)
     
 
-    model.learn(total_timesteps=6000, tb_log_name="Batch_1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=6000000, tb_log_name="Batch_1",reset_num_timesteps=True, callback=TensorboardCallback())
     takePictures(model,1)
     model.save(f"./models/ppo2_1")
     #close old env and make new one
     env.close()
 
-    for i in range(1,6):
+    for i in range(1,7):
       env = prepareEnv(ifc_filename = str(2 - i%2), objectScaling=0.5 + i/10)
       model.set_env(env)
-      model.learn(total_timesteps=40000, tb_log_name=f"Batch_{i+1}",reset_num_timesteps=False, callback=TensorboardCallback())
+      model.learn(total_timesteps=5000000, tb_log_name=f"Batch_{i+1}",reset_num_timesteps=False, callback=TensorboardCallback())
       takePictures(model,i+1)
       model.save(f"./models/ppo2_{i+1}")
       env.close()

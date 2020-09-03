@@ -40,7 +40,7 @@ class FactorySim:
 
         if(os.path.isdir(path_to_ifc_file)):
             
-            chosen_ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x])
+            chosen_ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x and "LIB" not in x])
             chosen_ifc_file = os.path.join(path_to_ifc_file, chosen_ifc_file)
         else:
             chosen_ifc_file = path_to_ifc_file
