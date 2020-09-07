@@ -12,6 +12,10 @@ import imageio
 
 import math
 import os
+
+from configparser import ConfigParser
+
+
 # https://stackoverflow.com/questions/40426502/is-there-a-way-to-suppress-the-messages-tensorflow-prints/40426709
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 import warnings
@@ -29,7 +33,7 @@ config = tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placemen
 config.gpu_options.allow_growth = True
 tf.compat.v1.Session(config=config)
 
-do_train = True
+do_train = False
 
 class TensorboardCallback(BaseCallback):
     """
@@ -133,6 +137,15 @@ def takePictures(model, prefix):
 #---------------------------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
+
+  configuration = ConfigParser()
+  configuration.read('config.ini')
+  current_experiment_id = int(configuration.get('main', 'experiment_id'))
+  configuration.set('main', 'experiment_id', str(current_experiment_id+1))
+  with open('config.ini', 'w') as f:
+    configuration.write(f)
+  print(f"Experiment ID - {current_experiment_id}")
+
   if do_train:
 
     #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
@@ -154,16 +167,16 @@ if __name__ == "__main__":
       verbose=1)
     
 
-    model.learn(total_timesteps=5000000, tb_log_name="Batch_1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name=f"Batch_{current_experiment_id}_1",reset_num_timesteps=True, callback=TensorboardCallback())
     takePictures(model,1)
     model.save(f"./models/ppo2_1")
     #close old env and make new one
     env.close()
 
     for i in range(1,9):
-      env = prepareEnv(ifc_filename = str(2 - i%2), objectScaling=min(0.5 + i/10, 1), maxElements=4+ math.ceil(i/3))
+      env = prepareEnv(ifc_filename = str(2 - i%2), objectScaling=min(0.5 + i/20, 1), maxElements=3 + math.ceil(i/3))
       model.set_env(env)
-      model.learn(total_timesteps=4000000, tb_log_name=f"Batch_{i+1}",reset_num_timesteps=False, callback=TensorboardCallback())
+      model.learn(total_timesteps=4000000, tb_log_name=f"Batch_{current_experiment_id}_{i+1}",reset_num_timesteps=False, callback=TensorboardCallback())
       takePictures(model,i+1)
       model.save(f"./models/ppo2_{i+1}")
       env.close()

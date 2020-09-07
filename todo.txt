@@ -3,4 +3,3 @@ Maximum auf 6 Elemente begrenzen bei Scale =1
 Reward wieder auf 1 normieren
 große Objekte erfordern kleineren Scale
 Dynamisierung der Länge einer Runde
-Experimente Eindeutig benennen

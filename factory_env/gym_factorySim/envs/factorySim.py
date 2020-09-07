@@ -290,7 +290,7 @@ class FactorySim:
         #el
 
         if(output["ratingCollision"] == 1):
-            self.currentRating = math.pow(output["ratingMF"],3) * 10
+            self.currentRating = math.pow(output["ratingMF"],3)
         else: 
             self.currentRating = -1
             #if(output["ratingCollision"] >= 0.5):
@@ -353,20 +353,17 @@ class FactorySim:
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF_Helper(self, source, sink): 
-        x1 = self.machine_list[int(source)].center.x
-        y1 = self.machine_list[int(source)].center.y
-        x2 = self.machine_list[int(sink)].center.x
-        y2 = self.machine_list[int(sink)].center.y
-        return math.sqrt(math.pow(x1-x2,2) + math.pow(y1-y2,2))
+        source_center = self.machine_list[int(source)].center
+        sink_center = self.machine_list[int(sink)].center
+        return math.sqrt(math.pow(source_center.x-sink_center.x,2) + math.pow(source_center.y-sink_center.y,2))
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF(self):
         self.materialflow_file['distance'] = self.materialflow_file.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
-
         #sum of all costs /  maximum intensity (intensity sum norm * 1) 
         maxDistance = max(self.max_value_x,  self.max_value_y)
         self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
-        self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm'] 
+        self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm']
         output = 1 - (math.pow(self.materialflow_file['costs'].sum(),2) / self.materialflow_file['intensity_sum_norm'].sum())
         if(output < 0): output = 0
 
@@ -536,7 +533,7 @@ class FactorySim:
                     print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
                     continue
         if(self.verboseOutput >= 3):
-            self.printTime("Machinenpositionen gezeichnet")
+            self.printTime("Maschinenpositionen gezeichnet")
     
         return surface
     
@@ -722,7 +719,7 @@ def main():
         "Output", 
         F"{outputfile}_machines.png")
     machinePositions.write_to_png(path) 
- 
+    demoFactory.printTime("PNG schreiben")
  #------------------------------------------------------------------------------------------------------------------------------------------
     ##detailed Machines Output to PNG
     #detailedMachines = demoFactory.drawDetailedMachines(randomcolors = True)
@@ -752,6 +749,7 @@ def main():
         "Output", 
         F"{outputfile}_machines_update.png")
     machinePositions.write_to_png(path) 
+    demoFactory.printTime("PNG schreiben")
 
     #Machine Collisions Output to PNG
     Collisions = demoFactory.drawCollisions(scale = 1, drawColors = False, surfaceIn=machinePositions)
@@ -762,6 +760,7 @@ def main():
         "Output", 
         F"{outputfile}_machine_collsions.png")
     Collisions.write_to_png(path) 
+    demoFactory.printTime("PNG schreiben")
 
     toutput = demoFactory.drawPositions(drawMaterialflow = True, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=1)
     toutput = demoFactory.drawCollisions(surfaceIn = toutput, drawColors = False)
@@ -773,6 +772,7 @@ def main():
         "Output", 
         F"{outputfile}test.png")
     toutput.write_to_png(path) 
+    demoFactory.printTime("PNG schreiben")
 
     ##Rate current Layout
     demoFactory.evaluate()
