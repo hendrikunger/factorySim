@@ -209,7 +209,7 @@ def main():
         "2")
 
         
-    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', objectScaling=0.5, maxMF_Elements = 5, Loglevel=1)
+    env = FactorySimEnv(inputfile = ifcpath, obs_type='image', width=128, heigth=128, objectScaling=0.5, maxMF_Elements = 5, Loglevel=1)
     env.reset()
     output = None
     prefix=0

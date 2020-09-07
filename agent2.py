@@ -10,6 +10,7 @@ import numpy as np
 import os
 import imageio
 
+import math
 import os
 # https://stackoverflow.com/questions/40426502/is-there-a-way-to-suppress-the-messages-tensorflow-prints/40426709
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
@@ -84,7 +85,7 @@ def make_env(env_id, rank, ifcpath, scaling=1.0, seed=0, maxElements=None):
 
 def prepareEnv(ifc_filename = "", objectScaling = 1.0, maxElements = None):
 
-  num_cpu = 44  #52  # Number of processes to use
+  num_cpu = 32  #52  # Number of processes to use
   env_id = 'factorySimEnv-v0'
   if(True):
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", ifc_filename)
@@ -137,12 +138,12 @@ if __name__ == "__main__":
     #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
     #check_env(gym.make('factorySimEnv-v0', inputfile = ifcpath, width=128, heigth=128, objectScaling=0.5, Loglevel=0))
 
-    env = prepareEnv(ifc_filename = "1", objectScaling=0.5)
+    env = prepareEnv(ifc_filename = "1", objectScaling=0.5, maxElements=4)
     model = PPO2(CnnLnLstmPolicy,
       env,
       tensorboard_log="./log/",
-      gamma=0.99, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
-      n_steps=100, # | 128 
+      gamma=0.95, # Tradeoff between short term (=0) and longer term (=1) rewards. If to big, we are factoring in to much unnecessary info |0.99
+      n_steps=512, # | 128 
       ent_coef=0.01,  #Speed of Entropy drop if it drops to fast, increase | 0.01 *
       learning_rate=0.00025, # | 0.00025 *
       vf_coef=0.5, # | 0.5
@@ -153,16 +154,16 @@ if __name__ == "__main__":
       verbose=1)
     
 
-    model.learn(total_timesteps=6000000, tb_log_name="Batch_1",reset_num_timesteps=True, callback=TensorboardCallback())
+    model.learn(total_timesteps=5000000, tb_log_name="Batch_1",reset_num_timesteps=True, callback=TensorboardCallback())
     takePictures(model,1)
     model.save(f"./models/ppo2_1")
     #close old env and make new one
     env.close()
 
-    for i in range(1,7):
-      env = prepareEnv(ifc_filename = str(2 - i%2), objectScaling=0.5 + i/10)
+    for i in range(1,9):
+      env = prepareEnv(ifc_filename = str(2 - i%2), objectScaling=min(0.5 + i/10, 1), maxElements=4+ math.ceil(i/3))
       model.set_env(env)
-      model.learn(total_timesteps=5000000, tb_log_name=f"Batch_{i+1}",reset_num_timesteps=False, callback=TensorboardCallback())
+      model.learn(total_timesteps=4000000, tb_log_name=f"Batch_{i+1}",reset_num_timesteps=False, callback=TensorboardCallback())
       takePictures(model,i+1)
       model.save(f"./models/ppo2_{i+1}")
       env.close()
