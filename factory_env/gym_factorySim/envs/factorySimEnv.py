@@ -36,21 +36,9 @@ class FactorySimEnv(gym.Env):
         self.inputfile = inputfile
         self.materialflowpath = file_name + "_Materialflow.csv"
     
-        self.factory = FactorySim(self.inputfile, 
-                        path_to_materialflow_file = self.materialflowpath, 
-                        width=self.width, heigth=self.heigth,
-                        randomMF = True,
-                        randomPos = True,
-                        maxMF_Elements = self.maxMF_Elements,
-                        objectScaling = self.objectScaling,
-                        verboseOutput = self.Loglevel)
+        self.reset()
 
-        self.machineCount = len(self.factory.machine_list)
-        self.currentMachine = 0
-        self.currentReward = 0
-        self.currentMappedReward = 0
         self.info = {}
-        self.output = None
         if(os.path.isdir(inputfile)):
             self.output_path = os.path.join(os.path.dirname(os.path.realpath(inputfile)),
             "..", 

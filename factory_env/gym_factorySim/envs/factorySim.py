@@ -15,7 +15,7 @@ from fabulous.color import fg256, bg256, bold
 from Polygon import Polygon as Poly
 import Polygon.IO
 import numpy as np
-import copy
+
 
 
 class FactorySim:
