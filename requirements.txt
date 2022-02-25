@@ -3,11 +3,5 @@ pandas-datareader
 Polygon3
 fabulous
 tqdm
+imageio
 pycairo
-
-
-
-#stable_baselines
-#tensorflow
-#tensorflow-gpu
-#imageio
