@@ -10,7 +10,7 @@ cd factorySim
 ```
 Build the Docker image using
 ```sh
-docker build -t factorysim
+docker build -t factorysim .
 ```
 Run image with appropriate command e.g.
 ```sh
