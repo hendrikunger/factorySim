@@ -21,4 +21,5 @@ RUN  apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
  
 WORKDIR $HOME/factorySim
+EXPOSE 8265
 COPY . .
