@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import os
 
@@ -39,9 +40,42 @@ config = {
         "outputScale" : 1,
         "objectScaling" : 1.0,
     },
-    "log_level": "DEBUG",
+    "model": {
+        "dim" : 256,
+
+        # Change individual keys in that dict by overriding them, e.g.
+        "conv_filters": None,
+        "conv_activation": "relu",
+        # == Attention Nets (experimental: torch-version is untested) ==
+        # Whether to use a GTrXL ("Gru transformer XL"; attention net) as the
+        # wrapper Model around the default Model.
+        "use_attention": False,
+        # The number of transformer units within GTrXL.
+        # A transformer unit in GTrXL consists of a) MultiHeadAttention module and
+        # b) a position-wise MLP.
+        "attention_num_transformer_units": 1,
+        # The input and output size of each transformer unit.
+        "attention_dim": 64,
+        # The number of attention heads within the MultiHeadAttention units.
+        "attention_num_heads": 1,
+        # The dim of a single head (within the MultiHeadAttention units).
+        "attention_head_dim": 32,
+        # The memory sizes for inference and training.
+        "attention_memory_inference": 50,
+        "attention_memory_training": 50,
+        # The output dim of the position-wise MLP.
+        "attention_position_wise_mlp_dim": 32,
+        # The initial bias values for the 2 GRU gates within a transformer unit.
+        "attention_init_gru_gate_bias": 2.0,
+        # Whether to feed a_{t-n:t-1} to GTrXL (one-hot encoded if discrete).
+        "attention_use_n_prev_actions": 0,
+        # Whether to feed r_{t-n:t-1} to GTrXL.
+        "attention_use_n_prev_rewards": 0,
+    },
+    # Should be one of DEBUG, INFO, WARN, or ERROR
+    "log_level": "WARN",
     # Evaluate once per training iteration.
-    "evaluation_interval": 1,
+    "evaluation_interval": 0,
     # Run evaluation on (at least) ten episodes
     "evaluation_duration": 10,
     # ... using one evaluation worker (setting this to 0 will cause
@@ -63,10 +97,12 @@ config = {
         "render_env": False,
     },
     #"tf", "tf2", "tfe", "torch"
-    "framework": "torch",
+    "framework": "tf2",
     # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
     "num_gpus": 1, #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
-    "num_workers": 1,  # parallelism
+    "num_workers": 12,  # parallelism
+    "num_envs_per_worker": 10,
+    "rollout_fragment_length" : 200,
 }
 
 # stop = {
@@ -93,8 +129,8 @@ if __name__ == "__main__":
         print(pretty_print(result))
         # stop training of the target train steps or reward are reached
         if (
-            result["timesteps_total"] >= args.stop_timesteps
-            or result["episode_reward_mean"] >= args.stop_reward
+            result["timesteps_total"] >= 100000#args.stop_timesteps
+            or result["episode_reward_mean"] >= 5000 #args.stop_reward
         ):
             break
 

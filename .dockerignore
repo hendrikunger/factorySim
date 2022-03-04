@@ -1,9 +1,5 @@
 .vscode/
 FileFormatNotebook/
-Input/
-Output/
-factory_env/
-gym/
 #Model Saves
 *.zip
 
@@ -116,7 +112,6 @@ celerybeat.pid
 # Environments
 .env
 .venv
-env/
 venv/
 ENV/
 env.bak/
