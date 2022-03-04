@@ -1,9 +1,9 @@
 #!/bin/bash
 
-rm -R models
+#rm -R models
 rm -R Output
 
-mkdir models
+#mkdir models
 mkdir Output
 
 touch ./Output/.gitkeep
