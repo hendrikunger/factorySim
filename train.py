@@ -2,7 +2,7 @@
 import argparse
 import os
 
-from factorySim.factorySimEnv import FactorySimEnv
+from factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
 
 import ray
 from ray import tune
@@ -12,6 +12,8 @@ from ray.rllib.policy.sample_batch import SampleBatch
 
 from ray.tune.logger import pretty_print
 from ray.rllib.agents import ppo
+
+
 
 # parser = argparse.ArgumentParser()
 # parser.add_argument("--stop-iters", type=int, default=200)
@@ -27,22 +29,26 @@ filename = "Basic"
 #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
 ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
 
+
+
+
+
+
 config = {
-    "env": FactorySimEnv,  # or "corridor" if registered above
+    "env": MultiFactorySimEnv,  
     "env_config": {
-        "inputfile" : ifcpath,
-        "obs_type" : 'image',
-        "uid" : 0,
-        "Loglevel" : 0,
-        "width" : 84,
-        "heigth" : 84,
-        "maxMF_Elements" : 5,
-        "outputScale" : 1,
-        "objectScaling" : 1.0,
-    },
+            "inputfile" : ifcpath,
+            "obs_type" : 'image',
+            "Loglevel" : 0,
+            "width" : 84,
+            "heigth" : 84,
+            "maxMF_Elements" : 5,
+            "outputScale" : 4,
+            "objectScaling" : 0.5,
+            "rendermode" : None,
+        },
     "model": {
         "dim" : 256,
-
         # Change individual keys in that dict by overriding them, e.g.
         "conv_filters": None,
         "conv_activation": "relu",
@@ -75,7 +81,7 @@ config = {
     # Should be one of DEBUG, INFO, WARN, or ERROR
     "log_level": "WARN",
     # Evaluate once per training iteration.
-    "evaluation_interval": 0,
+    "evaluation_interval": 10,
     # Run evaluation on (at least) ten episodes
     "evaluation_duration": 10,
     # ... using one evaluation worker (setting this to 0 will cause
@@ -90,19 +96,37 @@ config = {
         # Alternatively, you can specify an absolute path.
         # Set to True for using the default output dir (~/ray_results/...).
         # Set to False for not recording anything.
-        "record_env": os.path.join(os.path.dirname(os.path.realpath(__file__)), "Output"),
+        #"record_env": os.path.join(os.path.dirname(os.path.realpath(__file__)), "Output"),
         # Render the env while evaluating.
         # Note that this will always only render the 1st RolloutWorker's
         # env and only the 1st sub-env in a vectorized env.
-        "render_env": False,
+        "render_env": True,
+        "env_config": {
+            "rendermode" : "human",
+
+        },
     },
     #"tf", "tf2", "tfe", "torch"
+    "render_env": False,
     "framework": "tf2",
+    "eager_tracing": False,
     # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
     "num_gpus": 1, #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
-    "num_workers": 12,  # parallelism
-    "num_envs_per_worker": 10,
-    "rollout_fragment_length" : 200,
+    "num_workers": 10,  # parallelism
+    "num_envs_per_worker": 4,
+    "rollout_fragment_length" : 20,
+    "train_batch_size": 800,
+    "sgd_minibatch_size": 100,
+    "num_sgd_iter": 4,
+    "gamma": 0.99,
+    # The default learning rate.
+    "lr": 0.00002,
+    "lambda": 0.95,
+    "vf_loss_coeff": 0.5,
+    "entropy_coeff": 0.01,
+    "clip_param": 0.2,
+    "vf_clip_param": 10.0,
+    "kl_target": 0.01,
 }
 
 # stop = {
@@ -115,13 +139,15 @@ config = {
 
 if __name__ == "__main__":
     #args = parser.parse_args()
-    ray.init(num_gpus=1) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+    ray.init(num_gpus=1, local_mode=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
     ppo_config = ppo.DEFAULT_CONFIG.copy()
     ppo_config.update(config)
 
+
+
     # use fixed learning rate instead of grid search (needs tune)
-    ppo_config["lr"] = 1e-3
-    trainer = ppo.PPOTrainer(config=ppo_config, env=FactorySimEnv)
+    #ppo_config["lr"] = 1e-3
+    trainer = ppo.PPOTrainer(config=ppo_config)
     # run manual training loop and print results after each iteration
 
     for _ in range(5000): #args.stop_iters,
@@ -129,11 +155,11 @@ if __name__ == "__main__":
         print(pretty_print(result))
         # stop training of the target train steps or reward are reached
         if (
-            result["timesteps_total"] >= 100000#args.stop_timesteps
+            result["timesteps_total"] >= 12000#args.stop_timesteps
             or result["episode_reward_mean"] >= 5000 #args.stop_reward
         ):
             break
 
-
+    ray.shutdown()
 
 
