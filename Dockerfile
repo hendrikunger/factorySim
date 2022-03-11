@@ -3,6 +3,10 @@
 #FROM nvcr.io/nvidia/pytorch:22.01-py3
 FROM rayproject/ray-ml:latest-gpu
 
+EXPOSE 8265
+#Tensorboard  run tensorboard --bind_all --logdir .
+EXPOSE 6006 
+
 COPY requirements_factorySim.txt .
 USER root
 RUN  apt-get update && apt-get install -y --no-install-recommends \
@@ -25,9 +29,10 @@ WORKDIR $HOME/factorySim
 
 COPY . .
 
+
 WORKDIR $HOME/factorySim/env
 RUN $HOME/anaconda3/bin/pip install -e .
+USER ray
 WORKDIR $HOME/factorySim
 
-EXPOSE 8265
-EXPOSE 6006
+

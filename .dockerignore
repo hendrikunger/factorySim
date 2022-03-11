@@ -6,6 +6,9 @@ FileFormatNotebook/
 #Tensorboard Log Directory
 log/
 
+# Output images
+.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

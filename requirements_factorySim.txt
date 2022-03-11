@@ -5,3 +5,4 @@ fabulous
 tqdm
 imageio
 pycairo
+gputil
