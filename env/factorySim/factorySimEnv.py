@@ -14,6 +14,8 @@ from tqdm import tqdm
 from factorySim.factorySimClass import FactorySim
 from ray.rllib.env.env_context import EnvContext
 from ray.rllib.env.multi_agent_env import make_multi_agent
+
+from PIL import Image
  
 class FactorySimEnv(gym.Env):  
     metadata = {'render.modes': ['human', 'rgb']}
@@ -38,7 +40,7 @@ class FactorySimEnv(gym.Env):
         self.inputfile = env_config["inputfile"]
         self.materialflowpath = file_name + "_Materialflow.csv"
         self.rendermode= env_config["rendermode"]
-        self.reset()
+        
 
         self.info = {}
         if(os.path.isdir(env_config["inputfile"])):
@@ -49,21 +51,20 @@ class FactorySimEnv(gym.Env):
             self.output_path = os.path.join(os.path.dirname(os.path.realpath(env_config["inputfile"])), 
             "..",
             "Output")
-    
 
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
         self.action_space = spaces.Box(low=np.array([-1, -1, -1], dtype=np.float32), high=np.array([1,1,1], dtype=np.float32))
 
-
-
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
             self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(255), shape=(self.width, self.heigth, 2))
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
- 
+
+        self.reset()
+
     def step(self, action):
        
         #self.factory.update(self.currentMachine, action[0], action[1], action[2], action[3])
@@ -135,17 +136,20 @@ class FactorySimEnv(gym.Env):
 
         #new Version greyscale
 
-        output = self.factory.drawPositions(drawMaterialflow = False, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
-        output = self.factory.drawCollisions(surfaceIn = output, drawColors = False)
+        output = self.factory.drawPositions(drawMaterialflow = False, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
+        output = self.factory.drawCollisions(surfaceIn = output, drawColors = True)
         buf = output.get_data()
         machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         
         #separate Image for Materialflow
-        materialflow = self.factory.drawPositions(drawMaterialflow = True, drawMachines = False, drawColors = False, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
+        materialflow = self.factory.drawPositions(drawMaterialflow = True, drawMachines = False, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
         buf = materialflow.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
-        
+
         out = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
+        #Normalize to Range 0-1
+        out = out / 255
+
         return out
          
 

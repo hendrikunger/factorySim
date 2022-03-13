@@ -81,9 +81,9 @@ config = {
     # Should be one of DEBUG, INFO, WARN, or ERROR
     "log_level": "WARN",
     # Evaluate once per training iteration.
-    "evaluation_interval": 10,
+    "evaluation_interval": 20,
     # Run evaluation on (at least) ten episodes
-    "evaluation_duration": 10,
+    "evaluation_duration": 3,
     # ... using one evaluation worker (setting this to 0 will cause
     # evaluation to run on the local evaluation worker, blocking
     # training until evaluation is done).
@@ -109,18 +109,18 @@ config = {
     #"tf", "tf2", "tfe", "torch"
     "render_env": False,
     "framework": "tf2",
-    "eager_tracing": False,
+    "eager_tracing": True,
     # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
     "num_gpus": 1, #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
-    "num_workers": 10,  # parallelism
+    "num_workers": 12,  # parallelism
     "num_envs_per_worker": 4,
     "rollout_fragment_length" : 20,
-    "train_batch_size": 800,
+    "train_batch_size": 4800,
     "sgd_minibatch_size": 100,
     "num_sgd_iter": 4,
     "gamma": 0.99,
     # The default learning rate.
-    "lr": 0.00002,
+    "lr": 0.00025, #0.00002,
     "lambda": 0.95,
     "vf_loss_coeff": 0.5,
     "entropy_coeff": 0.01,
@@ -150,13 +150,13 @@ if __name__ == "__main__":
     trainer = ppo.PPOTrainer(config=ppo_config)
     # run manual training loop and print results after each iteration
 
-    for _ in range(5000): #args.stop_iters,
+    for _ in range(5000000): #args.stop_iters,
         result = trainer.train()
         print(pretty_print(result))
         # stop training of the target train steps or reward are reached
         if (
-            result["timesteps_total"] >= 12000#args.stop_timesteps
-            or result["episode_reward_mean"] >= 5000 #args.stop_reward
+            result["timesteps_total"] >= 15000000#args.stop_timesteps
+            or result["episode_reward_mean"] >= 50000 #args.stop_reward
         ):
             break
 
