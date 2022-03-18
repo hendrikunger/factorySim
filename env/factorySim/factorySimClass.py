@@ -105,6 +105,7 @@ class FactorySim:
         self.max_value_x = boundingBox[1]     
         self.min_value_y = boundingBox[2]     
         self.max_value_y = boundingBox[3]     
+        del(allElements)
         if(self.verboseOutput >= 3):
             self.printTime("Boundingbox erstellt")
  
@@ -534,7 +535,7 @@ class FactorySim:
                     continue
         if(self.verboseOutput >= 3):
             self.printTime("Maschinenpositionen gezeichnet")
-    
+        del(ctx)
         return surface
     
     
@@ -642,26 +643,12 @@ class FactorySim:
                     
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionen gezeichnet")
+        del(ctx)
         return surface
  #------------------------------------------------------------------------------------------------------------
  # Helpers  
  #------------------------------------------------------------------------------------------------------------
-    def random_Material_Flow_File(self):
-        random.seed()
-        path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"Input","Random_Materialflow.csv")
-
-        with open(path, 'w') as file:
-            file.write(f"From, To, Intensity\n")
-            for _ in range(0,len(self.machine_list) * 2):
-                samples = random.sample(self.machine_list, k=2)
-                file.write(f"{samples[0].name}, {samples[1].name},{random.randint(1,100)}\n")
-        random.seed(self.RANDSEED)
-        if(self.verboseOutput >= 3):
-            self.printTime("Zufälligen Materialfluss erstellt")
-        return path
     
-    
-#------------------------------------------------------------------------------------------------------------
     def printTime(self, text):
         number = (time() - self.timezero - self.lasttime)
         self.lasttime += number
@@ -674,8 +661,16 @@ class FactorySim:
         if(s < a1): s = a1
         if(s > a2): s = a2
         return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
-
-
+ #------------------------------------------------------------------------------------------------------------
+ # Destructor  
+ #------------------------------------------------------------------------------------------------------------
+    def __del__(self):
+        del(self.machine_list)
+        del(self.wall_list)
+        del(self.machineCollisionList)
+        del(self.wallCollisionList)
+        del(self.ifc_file)
+        del(self.materialflow_file)
 
 #------------------------------------------------------------------------------------------------------------
 def main():

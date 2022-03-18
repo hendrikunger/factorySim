@@ -155,7 +155,7 @@ if __name__ == "__main__":
         print(pretty_print(result))
         # stop training of the target train steps or reward are reached
         if (
-            result["timesteps_total"] >= 15000000#args.stop_timesteps
+            result["timesteps_total"] >= 2000000#args.stop_timesteps
             or result["episode_reward_mean"] >= 50000 #args.stop_reward
         ):
             break

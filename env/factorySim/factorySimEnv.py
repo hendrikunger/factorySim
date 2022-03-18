@@ -16,6 +16,8 @@ from ray.rllib.env.env_context import EnvContext
 from ray.rllib.env.multi_agent_env import make_multi_agent
 
 from PIL import Image
+
+
  
 class FactorySimEnv(gym.Env):  
     metadata = {'render.modes': ['human', 'rgb']}
@@ -24,6 +26,7 @@ class FactorySimEnv(gym.Env):
     def __init__(self, env_config: EnvContext):
         super()
         print(env_config)
+        self.factory = None
         self.stepCount = 0
         self._obs_type = env_config["obs_type"]
         self.Loglevel = env_config["Loglevel"]
@@ -81,9 +84,9 @@ class FactorySimEnv(gym.Env):
     
         return (self._get_obs(), self.currentMappedReward, done, self.info)
         
- 
     def reset(self):
         #print("\nReset")
+        del(self.factory)
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
         width=self.width,
@@ -103,7 +106,7 @@ class FactorySimEnv(gym.Env):
         
 
         return self._get_obs()
- 
+
     def render(self, mode='rgb', prefix = ""):
 
         output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = False, drawMachines = True, drawWalls = True, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
@@ -114,9 +117,13 @@ class FactorySimEnv(gym.Env):
         if mode == 'human' or self.rendermode == 'human':
             outputPath = os.path.join(self.output_path, f"{self.uid}_{self.stepCount:04d}.png")
             output.write_to_png(outputPath)
+            output.finish()
+            del(output)
             return True
         elif mode == 'rgb':
             buf = output.get_data()
+            output.finish()
+            del(output)
             #bgra to rgb
             #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
             rgb = np.ndarray(shape=(self.width * self.scale, self.heigth * self.scale, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
@@ -139,19 +146,20 @@ class FactorySimEnv(gym.Env):
         output = self.factory.drawPositions(drawMaterialflow = False, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
         output = self.factory.drawCollisions(surfaceIn = output, drawColors = True)
         buf = output.get_data()
+        output.finish()
+        del(output)
         machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
-        
+
         #separate Image for Materialflow
         materialflow = self.factory.drawPositions(drawMaterialflow = True, drawMachines = False, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
         buf = materialflow.get_data()
+        materialflow.finish()
+        del(materialflow)
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
 
-        out = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
-        #Normalize to Range 0-1
-        out = out / 255
+ 
+        return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) / 255 
 
-        return out
-         
 
 
     def _addText(self, surface, text):
@@ -168,6 +176,7 @@ class FactorySimEnv(gym.Env):
 MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 
 #------------------------------------------------------------------------------------------------------------
+
 def main():
 
     #filename = "Overlapp"
@@ -206,7 +215,7 @@ def main():
     output = None
     prefix=0
     output = env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,10)):
+    for _ in tqdm(range(0,100)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         output = env.render(mode='human', prefix=prefix)
         if done:

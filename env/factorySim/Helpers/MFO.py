@@ -123,6 +123,11 @@ class MFO:
         self.baseOrigin.x = self.origin.x
         self.baseOrigin.y = self.origin.y
 
+    def __del__(self):
+        del(self.poly)
+        del(self.hull)
+        del(self.polylist)
+
  
 def main():
     testmachine = MFO("AABBAA")
