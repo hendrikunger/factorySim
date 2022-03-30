@@ -33,7 +33,7 @@ apt-get update
 apt-get install build-essential ibcairo2-dev pkg-config python3-dev
 pip install -r requirements_factorySim.txt
 ```
-IFC Open Shell is no in the index and needs to be installed manually.
+IFC Open Shell is not in the index and needs to be installed manually.
 Download appropriate Version from http://ifcopenshell.org/python and unpack into site packages directory of your Python installation.
 e.g.
 ```sh
