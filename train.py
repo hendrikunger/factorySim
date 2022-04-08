@@ -12,6 +12,57 @@ from ray.rllib.policy.sample_batch import SampleBatch
 
 from ray.tune.logger import pretty_print
 from ray.rllib.agents import ppo
+from ray.rllib.agents.callbacks import DefaultCallbacks
+import wandb
+
+import tracemalloc
+from typing import Optional, Dict
+from ray.rllib.evaluation import MultiAgentEpisode
+from ray.rllib import BaseEnv
+from ray.rllib.utils.typing import PolicyID
+from email.policy import Policy
+import psutil
+
+class TraceMallocCallback(DefaultCallbacks):
+
+    def __init__(self):
+        super().__init__()
+
+        tracemalloc.start(10)
+
+    def on_episode_end(self, *, worker: "RolloutWorker", base_env: BaseEnv, policies: Dict[PolicyID, Policy],
+                       episode: MultiAgentEpisode, env_index: Optional[int] = None, **kwargs) -> None:
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics('lineno')
+
+        for stat in top_stats[:5]:
+            count = stat.count
+            size = stat.size
+
+            trace = str(stat.traceback)
+
+            episode.custom_metrics[f'tracemalloc/{trace}/size'] = size
+            episode.custom_metrics[f'tracemalloc/{trace}/count'] = count
+
+        process = psutil.Process(os.getpid())
+        worker_rss = process.memory_info().rss
+        worker_data = process.memory_info().data
+        worker_vms = process.memory_info().vms
+        episode.custom_metrics[f'tracemalloc/worker/rss'] = worker_rss
+        episode.custom_metrics[f'tracemalloc/worker/data'] = worker_data
+        episode.custom_metrics[f'tracemalloc/worker/vms'] = worker_vms
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -35,7 +86,8 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 
 
 config = {
-    "env": MultiFactorySimEnv,  
+    "env": MultiFactorySimEnv, 
+    "callbacks": TraceMallocCallback,
     "env_config": {
             "inputfile" : ifcpath,
             "obs_type" : 'image',
@@ -81,7 +133,7 @@ config = {
     # Should be one of DEBUG, INFO, WARN, or ERROR
     "log_level": "WARN",
     # Evaluate once per training iteration.
-    "evaluation_interval": 20,
+    "evaluation_interval": 1,  #20
     # Run evaluation on (at least) ten episodes
     "evaluation_duration": 3,
     # ... using one evaluation worker (setting this to 0 will cause
@@ -109,13 +161,13 @@ config = {
     #"tf", "tf2", "tfe", "torch"
     "render_env": False,
     "framework": "tf2",
-    "eager_tracing": True,
+    "eager_tracing": False,
     # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
     "num_gpus": 1, #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
-    "num_workers": 12,  # parallelism
-    "num_envs_per_worker": 4,
+    "num_workers": 5,  # parallelism  #12
+    "num_envs_per_worker": 1,  #4
     "rollout_fragment_length" : 20,
-    "train_batch_size": 4800,
+    "train_batch_size": 300, #4800
     "sgd_minibatch_size": 100,
     "num_sgd_iter": 4,
     "gamma": 0.99,
@@ -139,7 +191,7 @@ config = {
 
 if __name__ == "__main__":
     #args = parser.parse_args()
-    ray.init(num_gpus=1, local_mode=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+    ray.init(num_gpus=1, local_mode=False, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
     ppo_config = ppo.DEFAULT_CONFIG.copy()
     ppo_config.update(config)
 

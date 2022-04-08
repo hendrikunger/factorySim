@@ -1,0 +1,42 @@
+# syntax=docker/dockerfile:1
+
+FROM nvcr.io/nvidia/tensorflow:22.03-tf2-py3
+#FROM rayproject/ray-ml:latest-gpu
+
+EXPOSE 8265
+#Tensorboard  run tensorboard --bind_all --logdir .
+EXPOSE 6006 
+WORKDIR /workspace
+COPY requirements_factorySim.txt .
+USER root
+RUN useradd -m ray 
+ENV PATH="/home/ray/.local/bin:$PATH"
+RUN echo ${PATH}
+RUN  apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libcairo2-dev \
+        pkg-config \
+        python3-dev \
+        ffmpeg \
+        wget \
+    && wget -nv https://s3.amazonaws.com/ifcopenshell-builds/ifcopenshell-python-38-v0.6.0-517b819-linux64.zip \
+    && unzip -q ifcopenshell-python-38-v0.6.0-517b819-linux64.zip -d /usr/local/lib/python3.8/dist-packages \
+    && runuser -l  ray -c '/usr/local/bin/pip3.8 --no-cache-dir install -U -r /workspace/requirements_factorySim.txt' \
+    && apt-get clean \
+    && rm ifcopenshell-python-38-v0.6.0-517b819-linux64.zip \
+    && rm -rf /tmp/* \
+    && apt-get remove wget -y\
+    && rm -rf /var/lib/apt/lists/*
+ 
+USER ray
+WORKDIR /home/ray/factorySim
+
+COPY . .
+
+
+WORKDIR /home/ray/factorySim/env
+USER root
+RUN /usr/local/bin/pip3.8 install -e .
+USER ray
+WORKDIR  /home/ray/factorySim
+
