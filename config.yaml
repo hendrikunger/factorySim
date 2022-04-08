@@ -11,6 +11,7 @@ env_config:
   objectScaling: 0.5
   rendermode: null
 model:
+  custom_model: MyResNet
   dim: 256
   # Change individual keys in that dict by overriding them, e.g.
   conv_filters: null

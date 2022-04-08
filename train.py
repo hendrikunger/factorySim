@@ -13,6 +13,10 @@ from ray.rllib.policy.sample_batch import SampleBatch
 from ray.tune.logger import pretty_print
 from ray.rllib.agents import ppo
 from ray.rllib.agents.callbacks import DefaultCallbacks
+
+from ray.rllib.models import ModelCatalog
+from factorySim.customModels import MyResNet
+
 import wandb
 import yaml
 
@@ -31,7 +35,7 @@ class TraceMallocCallback(DefaultCallbacks):
 
         tracemalloc.start(10)
 
-    def on_episode_end(self, *, worker: "RolloutWorker", base_env: BaseEnv, policies: Dict[PolicyID, Policy],
+    def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv, policies: Dict[PolicyID, Policy],
                        episode: MultiAgentEpisode, env_index: Optional[int] = None, **kwargs) -> None:
         snapshot = tracemalloc.take_snapshot()
         top_stats = snapshot.statistics('lineno')
@@ -72,7 +76,8 @@ filename = "Basic"
 #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
 ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
 
-
+#Import Custom Models
+ModelCatalog.register_custom_model("my_model", MyResNet)
 
 with open('config.yaml', 'r') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -89,7 +94,6 @@ if __name__ == "__main__":
     ray.init(num_gpus=1, local_mode=False, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
     ppo_config = ppo.DEFAULT_CONFIG.copy()
     ppo_config.update(config)
-
 
 
     # use fixed learning rate instead of grid search (needs tune)

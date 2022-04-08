@@ -1,1 +1,1 @@
-__all__ = ["factorySimClass", "factorySimEnv"]
+__all__ = ["factorySimClass", "factorySimEnv", "customModels"]
