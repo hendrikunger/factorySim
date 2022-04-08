@@ -252,12 +252,12 @@ class FactorySim:
                 print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
             if (rotation is not None):
-                mappedRot = self.mapRange(rotation, (-1,1), (0, 2*math.pi))
+                mappedRot = self.mapRange(np.clip(rotation,-1.0, 1.0), (-1,1), (0, 2*math.pi))
                 self.machine_list[machineIndex].rotate_Item(mappedRot)
 
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
-            mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
-            mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
+            mappedXPos = self.mapRange(np.clip(xPosition,-1.0, 1.0), (-1,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
+            mappedYPos = self.mapRange(np.clip(yPosition,-1.0, 1.0), (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
             #mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH))
             #mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT))
 

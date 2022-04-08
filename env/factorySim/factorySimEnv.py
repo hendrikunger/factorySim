@@ -1,7 +1,6 @@
 import os
 import random
-import math
-import uuid
+
 
 import gym
 from gym import error, spaces, utils
@@ -158,7 +157,7 @@ class FactorySimEnv(gym.Env):
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
 
  
-        return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) / 255 
+        return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) 
 
 
 

@@ -5,28 +5,25 @@ import os
 from factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
 
 import ray
-from ray import tune
-from ray.rllib.agents.trainer_template import build_trainer
-from ray.rllib.policy.policy_template import build_policy_class
-from ray.rllib.policy.sample_batch import SampleBatch
+
 
 from ray.tune.logger import pretty_print
 from ray.rllib.agents import ppo
 from ray.rllib.agents.callbacks import DefaultCallbacks
 
 from ray.rllib.models import ModelCatalog
-from factorySim.customModels import MyResNet
+from factorySim.customModels import MyXceptionModel
 
 import wandb
 import yaml
 
-import tracemalloc
-from typing import Optional, Dict
-from ray.rllib.evaluation import MultiAgentEpisode
-from ray.rllib import BaseEnv
-from ray.rllib.utils.typing import PolicyID
-from email.policy import Policy
-import psutil
+# import tracemalloc
+# from typing import Optional, Dict
+# from ray.rllib.evaluation import MultiAgentEpisode
+# from ray.rllib import BaseEnv
+# from ray.rllib.utils.typing import PolicyID
+# from email.policy import Policy
+# import psutil
 
 class TraceMallocCallback(DefaultCallbacks):
 
@@ -35,7 +32,7 @@ class TraceMallocCallback(DefaultCallbacks):
 
         tracemalloc.start(10)
 
-    def on_episode_end(self, *, worker: RolloutWorker, base_env: BaseEnv, policies: Dict[PolicyID, Policy],
+    def on_episode_end(self, *, worker: "RolloutWorker", base_env: BaseEnv, policies: Dict[PolicyID, Policy],
                        episode: MultiAgentEpisode, env_index: Optional[int] = None, **kwargs) -> None:
         snapshot = tracemalloc.take_snapshot()
         top_stats = snapshot.statistics('lineno')
@@ -60,8 +57,6 @@ class TraceMallocCallback(DefaultCallbacks):
 
 
 
-
-
 # parser = argparse.ArgumentParser()
 # parser.add_argument("--stop-iters", type=int, default=200)
 # parser.add_argument("--num-cpus", type=int, default=10)
@@ -77,13 +72,14 @@ filename = "Basic"
 ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
 
 #Import Custom Models
-ModelCatalog.register_custom_model("my_model", MyResNet)
+ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 with open('config.yaml', 'r') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 config['env'] = MultiFactorySimEnv
-config['callbacks'] = TraceMallocCallback
+#config['callbacks'] = TraceMallocCallback
+config['callbacks'] = None
 config['env_config']['inputfile'] = ifcpath
 
 
