@@ -1,9 +1,8 @@
 ray[rllib]
 pandas
 pandas-datareader
-Polygon3
-fabulous
-tqdm
+networkx
+shapely
 imageio
 pycairo
 gputil
