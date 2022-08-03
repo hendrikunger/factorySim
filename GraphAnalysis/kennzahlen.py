@@ -1,7 +1,7 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
-from shapely.geometry import MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box, shape
+from shapely.geometry import Point, MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box, shape
 from shapely.affinity import translate, rotate
 from shapely.strtree import STRtree
 from shapely.ops import split,  voronoi_diagram,  unary_union
@@ -15,10 +15,10 @@ from ezdxf.addons import geo
 import time
 # %%
 SAVEPLOT = False
-DETAILPLOT = True
+DETAILPLOT = False
 TIMING = True
-LOADDATA = False
-LOADDXF = True
+LOADDATA = True
+LOADDXF = False
 ITERATIONS = 1
 
 # savedata = { "bounding_box": bb, "machines": multi }
@@ -414,34 +414,114 @@ for i in range(ITERATIONS):
     nextTime = time.perf_counter()
     if TIMING: print(f"Plotting {nextTime - starttime}")
 
-# Graph Reduzieren
+
+#%% Graph reduzieren
+
+H = F.copy()
+
+# Select all nodes with only 2 neighbors
+nodes_to_remove = [n for n in H.nodes if len(list(H.neighbors(n))) == 2]
+
+# For each of those nodes
+for node in nodes_to_remove:
+    
+    # Get the two neighbors
+    neighbors = list(H.neighbors(node))
+
+    total_weight = H[neighbors[0]][node]["weight"] + H[node][neighbors[1]]["weight"]
+    total_pathwidth = min(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
+
+    H.add_edge(*neighbors, weight=total_weight, pathwidth=total_pathwidth)
+    # And delete the node
+    H.remove_node(node)
+
+
+fig, ax = plt.subplots(1,figsize=(16, 16))
+plt.xlim(0,WIDTH)
+plt.ylim(0,HEIGHT)
+plt.autoscale(False)
+
+
+if multi.geom_type ==  'Polygon':
+    ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
+else:
+    for j, poly in enumerate(multi.geoms):
+        ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
+
+
+new_pathwidth = np.array(list((nx.get_edge_attributes(H,'pathwidth').values())))
+
+nx.draw_networkx_nodes(F, pos=pos, ax=ax, node_size=20, node_color='black')
+nx.draw_networkx_nodes(H, pos=pos, ax=ax, node_size=120, node_color='red')
+nx.draw_networkx_edges(H, pos=pos, ax=ax, width=new_pathwidth * 9, edge_color="black", alpha=0.8)
+nx.draw_networkx_edges(F, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
+
+if SAVEPLOT: plt.savefig("5_Simplification.svg", format="svg")
+plt.show()
+
+
+
+
 # Sackgassen in den Ecken über Berührungspunkte mit Außenwand filtern
 
 
-"""
-
-1 - Materialflusslänge	            Entfernung (direkt)
-	                                Entfernung (wegorientiert)
-2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
-3 - Stetigkeit	                    Richtungswechsel im Materialfluss
-4 - Intensität	                    Anzahl der Transporte
-5 - Wegekonzept	                    Auslegung Wegbreite
-	                                Sackgassen
-	                                Verwinkelung
-	                                Vorhandensein eindeutiger Wegachsen
-	                                Wegeeffizienz
-6 - Zugänglichkeit	                Abdeckung Wegenetz
-	                                Kontaktflächen Wegenetz
-7 - Flächennutzungsgrad	            genutzte Fabrikfläche (ohne zusammenhängende Freifläche)
-1 - Skalierbarkeit 	                Ausdehnung der größten verfügbaren Freifläche
-2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
-1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
-2 - Ruhe	                        Erfüllung der Arbeitsplatzanforderungen
-3 - Erschütterungsfreiheit	        Erfüllung der Arbeitsplatzanforderungen
-4 - Sauberkeit	                    Erfüllung der Arbeitsplatzanforderungen
-5 - Temperatur	                    Erfüllung der Arbeitsplatzanforderungen
 
 
 
+# 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
+# 3 - Stetigkeit	                    Richtungswechsel im Materialfluss
 
-"""
+
+
+# 	                                    Verwinkelung
+# 	                                    Vorhandensein eindeutiger Wegachsen
+# 	                                    Wegeeffizienz
+# 6 - Zugänglichkeit	                Abdeckung Wegenetz
+# 	                                    Kontaktflächen Wegenetz
+# 7 - Flächennutzungsgrad	            genutzte Fabrikfläche (ohne zusammenhängende Freifläche)
+# 1 - Skalierbarkeit 	                Ausdehnung der größten verfügbaren Freifläche
+# 2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
+# 1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
+# 2 - Ruhe	                            Erfüllung der Arbeitsplatzanforderungen
+# 3 - Erschütterungsfreiheit	        Erfüllung der Arbeitsplatzanforderungen
+# 4 - Sauberkeit	                    Erfüllung der Arbeitsplatzanforderungen
+# 5 - Temperatur	                    Erfüllung der Arbeitsplatzanforderungen
+
+
+
+# Erledigt =================================================================
+
+# 1 - Materialflusslänge	            Entfernung (direkt)
+# 	                                    Entfernung (wegorientiert)
+# 4 - Intensität	                    Anzahl der Transporte
+# 5 - Wegekonzept	                    Auslegung Wegbreite
+# 	                                    Sackgassen
+
+
+
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+from shapely.ops import nearest_points
+fig, ax = plt.subplots(1,figsize=(16, 16))
+plt.xlim(0,WIDTH)
+plt.ylim(0,HEIGHT)
+plt.autoscale(False)
+
+
+
+ax.add_patch(descartes.PolygonPatch(walkableArea, alpha=0.5))
+
+for i, line in enumerate(multi.boundary.geoms):
+
+    color = rng.random(size=3)
+    ax.plot(line.coords.xy[0], line.coords.xy[1], color=color, linewidth=10)
+    for s in line.coords:
+        start_point = Point(s)
+        end_point = nearest_points(start_point, MultiLineString([x for j,x in enumerate(multi.boundary.geoms) if j!=i]  )) 
+        ax.plot([start_point.x, end_point[1].x], [start_point.y, end_point[1].y], color=color, linewidth=3)
+
+
+
+plt.show()
+# %%
+for i, line in enumerate(walkableArea.boundary.geoms):
+    print(line)
