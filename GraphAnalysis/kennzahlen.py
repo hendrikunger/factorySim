@@ -1,22 +1,25 @@
 # %%
-
 import numpy as np
 import matplotlib.pyplot as plt
-from shapely.geometry import MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box
+from shapely.geometry import MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box, shape
 from shapely.affinity import translate, rotate
 from shapely.strtree import STRtree
 from shapely.ops import split,  voronoi_diagram,  unary_union
 import descartes
 import networkx as nx
 import pickle
+import ezdxf
+from ezdxf.addons import geo
+
 
 import time
 # %%
-SAVEPLOT = True
-DETAILPLOT = False
-TIMING = False
+SAVEPLOT = False
+DETAILPLOT = True
+TIMING = True
 LOADDATA = False
-ITERATIONS = 50
+LOADDXF = True
+ITERATIONS = 1
 
 # savedata = { "bounding_box": bb, "machines": multi }
 # pickle.dump( savedata, open( "FigureFactory.p", "wb" ) )
@@ -44,7 +47,7 @@ MAXCORNERS = 3
 #%%
 MINDEADEND_LENGTH = 2.0 # If Deadends are shorter than this, they are deleted
 MINPATHWIDTH = 1.0  # Minimum Width of a Road to keep
-BOUNDARYSPACING = 0.5  # Spacing of Points used as Voronoi Kernels
+BOUNDARYSPACING = 1.5  # Spacing of Points used as Voronoi Kernels
 #%% Create Layout -----------------------------------------------------------------------------------------------------------------
 for i in range(ITERATIONS):
 
@@ -84,6 +87,11 @@ for i in range(ITERATIONS):
         loaddata = pickle.load( open( "FigureFactory.p", "rb" ) )
         bb = loaddata["bounding_box"]
         multi = loaddata["machines"]
+
+    if LOADDXF:
+        doc = ezdxf.readfile("Test.dxf")
+        geo_proxy = geo.proxy(doc.modelspace())
+        multi = shape(geo_proxy)
 
 
     walkableArea = bb.difference(multi)
@@ -134,8 +142,12 @@ for i in range(ITERATIONS):
     starttime = nextTime
 
 
-    #Split lines with machine objects
-    sresult = split(MultiLineString(lines_touching_machines), multi)
+    #Split lines with machine objects#
+    try:
+        sresult = split(MultiLineString(lines_touching_machines), multi)
+    except:
+        print("Split Error")
+        continue
 
     nextTime = time.perf_counter()
     if TIMING: print(f"Split {nextTime - starttime}")
@@ -209,8 +221,13 @@ for i in range(ITERATIONS):
     F.remove_edges_from(narrowPaths)
 
     #Find largest connected component to filter out "loose" parts
-    Fcc = max(nx.connected_components(F), key=len)
-    F = F.subgraph(Fcc).copy()
+    Fcc = sorted(nx.connected_components(F), key=len, reverse=True)
+
+    print(f"Connected components ratio: {len(Fcc[0])/len(Fcc[1])}", )
+    #if len(Fcc[0])/len(Fcc[1]) < 10: continue
+
+ 
+    F = F.subgraph(Fcc[0]).copy()
 
     #find crossroads
     old_crossroads = [node for node, degree in F.degree() if degree >= 3]
@@ -328,11 +345,13 @@ for i in range(ITERATIONS):
 
         for line in route_lines:
             ax.plot(line.xy[0], line.xy[1], color='black')
-            for point in line.boundary.geoms:
-                nearest_point = hit_tree.nearest_geom(point)
-                #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
-                ax.add_patch(plt.Circle((point.x, point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.3))
+            # Plot Circle for every line Endpoint, since Startpoint is likely connected to other line segment
+            point = line.boundary.geoms[0]
+            nearest_point = hit_tree.nearest_geom(point)
+            #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
+            ax.add_patch(plt.Circle((point.x, point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.6))
             #ax.add_patch(descartes.PolygonPatch(line.buffer(1), fc="black", ec='#000000', alpha=0.5))
+
 
         if SAVEPLOT: plt.savefig("2_Pathwidth_Calculation.svg", format="svg")
         plt.show()
@@ -395,4 +414,34 @@ for i in range(ITERATIONS):
     nextTime = time.perf_counter()
     if TIMING: print(f"Plotting {nextTime - starttime}")
 
-   
+# Graph Reduzieren
+# Sackgassen in den Ecken über Berührungspunkte mit Außenwand filtern
+
+
+"""
+
+1 - Materialflusslänge	            Entfernung (direkt)
+	                                Entfernung (wegorientiert)
+2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
+3 - Stetigkeit	                    Richtungswechsel im Materialfluss
+4 - Intensität	                    Anzahl der Transporte
+5 - Wegekonzept	                    Auslegung Wegbreite
+	                                Sackgassen
+	                                Verwinkelung
+	                                Vorhandensein eindeutiger Wegachsen
+	                                Wegeeffizienz
+6 - Zugänglichkeit	                Abdeckung Wegenetz
+	                                Kontaktflächen Wegenetz
+7 - Flächennutzungsgrad	            genutzte Fabrikfläche (ohne zusammenhängende Freifläche)
+1 - Skalierbarkeit 	                Ausdehnung der größten verfügbaren Freifläche
+2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
+1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
+2 - Ruhe	                        Erfüllung der Arbeitsplatzanforderungen
+3 - Erschütterungsfreiheit	        Erfüllung der Arbeitsplatzanforderungen
+4 - Sauberkeit	                    Erfüllung der Arbeitsplatzanforderungen
+5 - Temperatur	                    Erfüllung der Arbeitsplatzanforderungen
+
+
+
+
+"""
