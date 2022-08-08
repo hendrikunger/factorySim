@@ -4,20 +4,25 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point, MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box, shape
 from shapely.affinity import translate, rotate
 from shapely.strtree import STRtree
-from shapely.ops import split,  voronoi_diagram,  unary_union
+from shapely.ops import split,  voronoi_diagram,  unary_union, triangulate, nearest_points
 import descartes
 import networkx as nx
 import pickle
 import ezdxf
 from ezdxf.addons import geo
+from tqdm import tqdm
+
+from helpers import pruneAlongPath
 
 
 import time
 # %%
 SAVEPLOT = False
+SAVEFORMAT = "png"
 DETAILPLOT = False
+PLOT = True
 TIMING = True
-LOADDATA = True
+LOADDATA = False
 LOADDXF = False
 ITERATIONS = 1
 
@@ -47,11 +52,12 @@ MAXCORNERS = 3
 #%%
 MINDEADEND_LENGTH = 2.0 # If Deadends are shorter than this, they are deleted
 MINPATHWIDTH = 1.0  # Minimum Width of a Road to keep
-BOUNDARYSPACING = 1.5  # Spacing of Points used as Voronoi Kernels
+BOUNDARYSPACING = 2.0  # Spacing of Points used as Voronoi Kernels
 #%% Create Layout -----------------------------------------------------------------------------------------------------------------
-for i in range(ITERATIONS):
+for i in tqdm(range(ITERATIONS)):
 
     starttime = time.perf_counter()
+    totaltime = starttime
 
     rng = np.random.default_rng()
     bb = box(0,0,WIDTH,HEIGHT)
@@ -167,8 +173,12 @@ for i in range(ITERATIONS):
     hitpoints = points + list(MultiPoint(walkableArea.exterior.coords).geoms)
     hit_tree = STRtree(hitpoints)
 
+
     # Create Graph -----------------------------------------------------------------------------------------------------------------
     G = nx.Graph()
+
+    memory = None
+    memomry_distance = None
 
     for line in route_lines:
 
@@ -176,18 +186,23 @@ for i in range(ITERATIONS):
         firstTuple = (first.x, first.y)
         first_str = str(firstTuple)
         #find closest next point in boundary for path width calculation
-        nearest_point_first = hit_tree.nearest_geom(first)
-        first_distance = first.distance(nearest_point_first)
+        if memory == first:
+            first_distance = memomry_distance
+        else:
+            nearest_point_first = hit_tree.nearest_geom(first)
+            first_distance = first.distance(nearest_point_first)
 
         second = line.boundary.geoms[1]
         secondTuple = (second.x, second.y)
         second_str = str(secondTuple)
         #find closest next point in boundary for path width calculation
-        nearest_point_second = hit_tree.nearest_geom(line.boundary.geoms[1])
+        nearest_point_second = hit_tree.nearest_geom(second)
         second_distance = second.distance(nearest_point_second)
+        memory, memomry_distance = second, second_distance
 
-        #edge weigth is minimum path width of the nodes making up the edge
+        #edge width is minimum path width of the nodes making up the edge
         smallestPathwidth = min(first_distance, second_distance)
+
 
     #This is replaced by the version below. Delete Line Filtering below as well 
         G.add_node(first_str, pos=firstTuple, pathwidth=smallestPathwidth)
@@ -223,7 +238,7 @@ for i in range(ITERATIONS):
     #Find largest connected component to filter out "loose" parts
     Fcc = sorted(nx.connected_components(F), key=len, reverse=True)
 
-    print(f"Connected components ratio: {len(Fcc[0])/len(Fcc[1])}", )
+    #print(f"Connected components ratio: {len(Fcc[0])/len(Fcc[1])}", )
     #if len(Fcc[0])/len(Fcc[1]) < 10: continue
 
  
@@ -237,48 +252,70 @@ for i in range(ITERATIONS):
     #find deadends
     old_endpoints = [node for node, degree in F.degree() if degree == 1]
 
-    shortDeadEnds =[]
 
-    for endpoint in old_endpoints:
-
-        total_length = 0
-        currentNode = endpoint
-        nextNode = None
-        lastNode = None
-        tempDeadEnds = []
-
-        #Follow path from endnnode to next crossroads, track length of path
-        while True:
-            for neighbor in F.neighbors(currentNode):
-                #Identifying next node (there will at most be two edges connected to every node)
-                if (neighbor == lastNode):
-                    #this is last node
-                    continue
-                else:
-                    #found the next one
-                    nextNode = neighbor
-                    break
-            # keep track of route length
-            total_length += F.edges[currentNode, nextNode]["weight"]
-            #Stop if route is longer than min_length
-            if total_length > MINDEADEND_LENGTH:
-                break
-
-            if "isCrossroads" in F.nodes[nextNode]:
-                tempDeadEnds.append(currentNode)
-                shortDeadEnds.extend(tempDeadEnds)
-                break
-            else:
-                tempDeadEnds.append(currentNode)
-                lastNode = currentNode
-                currentNode = nextNode
+    shortDeadEnds = pruneAlongPath(F, starts=old_endpoints, ends=old_crossroads, min_length=MINDEADEND_LENGTH)
 
     F.remove_nodes_from(shortDeadEnds)
     endpoints = [node for node, degree in F.degree() if degree == 1]
     crossroads = [node for node, degree in F.degree() if degree >= 3]
 
+# Prune unused dead ends
+    pos=nx.get_node_attributes(G,'pos')
+
+    repPoints = [poly.representative_point() for poly in multi.geoms]
+    #Create Positions lists for nodes, since we need to querry shapley for shortest distance
+    endpoint_pos = [pos[endpoint] for endpoint in endpoints ]
+    crossroad_pos = [pos[crossroad] for crossroad in crossroads]
+    total = endpoint_pos + crossroad_pos
+
+    endpoints_to_prune = endpoints.copy()
+
+    for point in repPoints:
+        hit = nearest_points(point, MultiPoint(total))[1]
+        key = str((hit.x, hit.y))
+        if key in endpoints_to_prune: endpoints_to_prune.remove(key)
+
+    nodes_to_prune = pruneAlongPath(F, starts=endpoints_to_prune, ends=crossroads, min_length=10)
+
+    E = F.copy()
+    E.remove_nodes_from(nodes_to_prune)
+
+    endpoints = [node for node, degree in E.degree() if degree == 1]
+    crossroads = [node for node, degree in E.degree() if degree >= 3]
+
     nextTime = time.perf_counter()
     if TIMING: print(f"Network Filtering {nextTime - starttime}")
+    starttime = nextTime
+
+
+    # Simplyfy  Graph ------------------------------------------------------------------------------------------------------------
+
+    H = E.copy()
+
+
+    # Select all nodes with only 2 neighbors
+    nodes_to_remove = [n for n in H.nodes if len(list(H.neighbors(n))) == 2]
+
+    # For each of those nodes
+    for node in nodes_to_remove:
+        
+        # Get the two neighbors
+        neighbors = list(H.neighbors(node))
+        #if len is not 2 we found a loop 
+        if len(neighbors) == 2:
+            total_weight = H[neighbors[0]][node]["weight"] + H[node][neighbors[1]]["weight"]
+            pathwidth = min(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
+            max_pathwidth = max(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
+            H.add_edge(*neighbors, weight=total_weight, pathwidth=pathwidth, max_pathwidth=max_pathwidth)
+        # And delete the node
+        H.remove_node(node)
+      
+    nextTime = time.perf_counter()
+
+    if TIMING: 
+        print(f"Network Simplification {nextTime - starttime}")
+        print(f"Algorithm Total: {nextTime - totaltime}")
+        
     starttime = nextTime
 
     # Create Machine Colors
@@ -290,11 +327,136 @@ for i in range(ITERATIONS):
         machine_colors = rng.random(size=(len(multi.geoms),3))
 
     
+if PLOT:
+        # %% Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
+        if DETAILPLOT:
 
-    # %% Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
-    pos=nx.get_node_attributes(G,'pos')
-    if DETAILPLOT:
+            
+            fig, ax = plt.subplots(1,figsize=(16, 16))
+            plt.xlim(0,WIDTH)
+            plt.ylim(0,HEIGHT)
+            plt.autoscale(False)
+
+
+            if multi.geom_type ==  'Polygon':
+                ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
+            else:
+                for j, poly in enumerate(multi.geoms):
+                    ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
+            for line in route_lines:
+                ax.plot(line.xy[0], line.xy[1], color='dimgray', linewidth=3)
+            for line in lines_touching_machines:
+                ax.plot(line.xy[0], line.xy[1], color='green', alpha=0.5)
+            for line in lines_to_machines:
+                ax.plot(line.xy[0], line.xy[1], color='red', alpha=0.9)
+
+            # for point in bb_points:
+            #     ax.scatter(point.xy[0], point.xy[1], color='red')
+            #ax.add_patch(descartes.PolygonPatch(allEdges, fc='blue', ec='#000000', alpha=0.5))  
+            if SAVEPLOT: plt.savefig(f"{i+1}_1_Filtered_Lines.{SAVEFORMAT}", format=SAVEFORMAT)
+            plt.show()
+
+        # %% Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
+        if DETAILPLOT:
+            fig, ax = plt.subplots(1,figsize=(16, 16))
+            plt.xlim(0,WIDTH)
+            plt.ylim(0,HEIGHT)
+            plt.autoscale(False)
+
+
+            if multi.geom_type ==  'Polygon':
+                ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
+            else:
+                for j, poly in enumerate(multi.geoms):
+                    ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
+
+            # for line in voronoiArea_:
+            #     ax.plot(line.xy[0], line.xy[1], color='green', alpha=0.5)
+            for line in voronoiArea.geoms[0].geoms:
+                ax.plot(line.xy[0], line.xy[1], color='red', alpha=0.0)
+
+
+
+            for point in hitpoints:
+                ax.scatter(point.x, point.y, color='red')
+
+            for line in route_lines:
+                ax.plot(line.xy[0], line.xy[1], color='black')
+                # Plot Circle for every line Endpoint, since Startpoint is likely connected to other line segment
+                point = line.boundary.geoms[0]
+                nearest_point = hit_tree.nearest_geom(point)
+                #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
+                ax.add_patch(plt.Circle((point.x, point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.6))
+                #ax.add_patch(descartes.PolygonPatch(line.buffer(1), fc="black", ec='#000000', alpha=0.5))
+
+
+            if SAVEPLOT: plt.savefig(f"{i+1}_2_Pathwidth_Calculation.{SAVEFORMAT}", format=SAVEFORMAT)
+            plt.show()
+
+        # %% Filtering Plot -----------------------------------------------------------------------------------------------------------------
+
+        fig, ax = plt.subplots(1, figsize=(16, 16))
+        ax.set_xlim(0,WIDTH)
+        ax.set_ylim(0,HEIGHT)
+        plt.autoscale(False)
+
+        if multi.geom_type ==  'Polygon':
+            ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
+        else:
+            for j, poly in enumerate(multi.geoms):
+                ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
+
+        pathwidth = np.array(list((nx.get_edge_attributes(G,'pathwidth').values())))
+
+        nx.draw_networkx_edges(G, pos=pos, ax=ax, edge_color="silver", width=pathwidth * 50, alpha=0.6)
+        nx.draw_networkx_edges(G, pos=pos, ax=ax, edge_color="red", width=2, alpha=1)
+        nx.draw_networkx_edges(F, pos=pos, ax=ax, edge_color="lime", width=2, alpha=1)
+        nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="dimgrey", width=5, alpha=1)
+        nx.draw_networkx_edges(G, pos=pos, ax=ax, edgelist=narrowPaths, edge_color="blue", width=2, alpha=1)
+
+
+        nx.draw_networkx_nodes(G, pos=pos, ax=ax, nodelist=shortDeadEnds, node_size=80, node_color='white', alpha=0.6, linewidths=4, edgecolors='green')
+        nx.draw_networkx_nodes(G, pos=pos, ax=ax, nodelist=old_endpoints, node_size=150, node_color='green')
+        nx.draw_networkx_nodes(G, pos=pos, ax=ax, nodelist=old_crossroads, node_size=150, node_color='white', alpha=0.6, linewidths=4, edgecolors='red')
+
+        if SAVEPLOT: plt.savefig(f"{i+1}_3_Pruning.{SAVEFORMAT}", format=SAVEFORMAT)
         
+        plt.show()
+
+        # %% Clean Plot -----------------------------------------------------------------------------------------------------------------
+
+        fig, ax = plt.subplots(1, figsize=(16, 16))
+
+        ax.set_xlim(0,WIDTH)
+        ax.set_ylim(0,HEIGHT)
+        plt.autoscale(False)
+
+        if multi.geom_type ==  'Polygon':
+            ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
+        else:
+            for j, poly in enumerate(multi.geoms):
+                ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
+
+
+        weights = np.array(list((nx.get_edge_attributes(E,'weight').values())))
+        pathwidth = np.array(list((nx.get_edge_attributes(E,'pathwidth').values())))
+
+        #nx.draw_networkx_nodes(F, pos=pos, ax=ax, node_size=20, node_color='black', alpha=0.5)
+        nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=crossroads, node_size=120, node_color='red')
+        nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=endpoints, node_size=120, node_color='blue')
+        nx.draw_networkx_edges(E, pos=pos, ax=ax, width=pathwidth * 9, edge_color="dimgray", alpha=0.8)
+        nx.draw_networkx_edges(E, pos=pos, ax=ax, width=3, edge_color="black", alpha=0.5)
+
+        if SAVEPLOT: plt.savefig(f"{i+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT)
+        
+        plt.show()
+
+
+
+
+        # %% Simplification Plot -----------------------------------------------------------------------------------------------------------------
+
+
         fig, ax = plt.subplots(1,figsize=(16, 16))
         plt.xlim(0,WIDTH)
         plt.ylim(0,HEIGHT)
@@ -306,165 +468,27 @@ for i in range(ITERATIONS):
         else:
             for j, poly in enumerate(multi.geoms):
                 ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
-        for line in route_lines:
-            ax.plot(line.xy[0], line.xy[1], color='black')
-        for line in lines_touching_machines:
-            ax.plot(line.xy[0], line.xy[1], color='green', alpha=0.5)
-        for line in lines_to_machines:
-            ax.plot(line.xy[0], line.xy[1], color='red', alpha=0.5)
 
-        # for point in bb_points:
-        #     ax.scatter(point.xy[0], point.xy[1], color='red')
-        #ax.add_patch(descartes.PolygonPatch(allEdges, fc='blue', ec='#000000', alpha=0.5))  
-        if SAVEPLOT: plt.savefig("1_Filtered_Lines.svg", format="svg")
+
+        min_pathwidth = np.array(list((nx.get_edge_attributes(H,'pathwidth').values())))
+        max_pathwidth = np.array(list((nx.get_edge_attributes(H,'max_pathwidth').values())))
+        print(f"max {len(max_pathwidth)}, min {len(min_pathwidth)}")
+
+        nx.draw_networkx_nodes(E, pos=pos, ax=ax, node_size=20, node_color='black')
+        nx.draw_networkx_nodes(H, pos=pos, ax=ax, node_size=120, node_color='red')
+        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="grey", alpha=0.8)
+        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="black", alpha=0.7)
+        nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
+
+
+        if SAVEPLOT: plt.savefig(f"{i+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
         plt.show()
 
-    # %% Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
-    if DETAILPLOT:
-        fig, ax = plt.subplots(1,figsize=(16, 16))
-        plt.xlim(0,WIDTH)
-        plt.ylim(0,HEIGHT)
-        plt.autoscale(False)
 
+        nextTime = time.perf_counter()
+        if TIMING: print(f"Plotting {nextTime - starttime}")
 
-        if multi.geom_type ==  'Polygon':
-            ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
-        else:
-            for j, poly in enumerate(multi.geoms):
-                ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
-
-        # for line in voronoiArea_:
-        #     ax.plot(line.xy[0], line.xy[1], color='green', alpha=0.5)
-        for line in voronoiArea.geoms[0].geoms:
-            ax.plot(line.xy[0], line.xy[1], color='red', alpha=0.0)
-
-
-
-        for point in hitpoints:
-            ax.scatter(point.x, point.y, color='red')
-
-        for line in route_lines:
-            ax.plot(line.xy[0], line.xy[1], color='black')
-            # Plot Circle for every line Endpoint, since Startpoint is likely connected to other line segment
-            point = line.boundary.geoms[0]
-            nearest_point = hit_tree.nearest_geom(point)
-            #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
-            ax.add_patch(plt.Circle((point.x, point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.6))
-            #ax.add_patch(descartes.PolygonPatch(line.buffer(1), fc="black", ec='#000000', alpha=0.5))
-
-
-        if SAVEPLOT: plt.savefig("2_Pathwidth_Calculation.svg", format="svg")
-        plt.show()
-
-    # %% Filtering Plot -----------------------------------------------------------------------------------------------------------------
-
-    fig, (ax1, ax2) = plt.subplots(1,2,figsize=(32, 16))
-    plt.tight_layout()
-    ax1.set_xlim(0,WIDTH)
-    ax1.set_ylim(0,HEIGHT)
-    plt.autoscale(False)
-    if multi.geom_type ==  'Polygon':
-        ax1.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
-    else:
-        for j, poly in enumerate(multi.geoms):
-            ax1.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
-
-    pathwidth = np.array(list((nx.get_edge_attributes(G,'pathwidth').values())))
-
-    nx.draw_networkx_edges(G, pos=pos, ax=ax1, edge_color="silver", width=pathwidth * 50, alpha=0.6)
-    nx.draw_networkx_edges(G, pos=pos, ax=ax1, edge_color="red", width=2, alpha=0.8)
-    nx.draw_networkx_edges(F, pos=pos, ax=ax1, edge_color="dimgrey", width=5, alpha=1)
-    nx.draw_networkx_edges(G, pos=pos, ax=ax1, edgelist=narrowPaths, edge_color="blue", width=2, alpha=0.9)
-
-
-    nx.draw_networkx_nodes(G, pos=pos, ax=ax1, nodelist=shortDeadEnds, node_size=80, node_color='white', alpha=0.6, linewidths=4, edgecolors='green')
-    nx.draw_networkx_nodes(G, pos=pos, ax=ax1, nodelist=old_endpoints, node_size=150, node_color='green')
-    nx.draw_networkx_nodes(G, pos=pos, ax=ax1, nodelist=old_crossroads, node_size=150, node_color='white', alpha=0.6, linewidths=4, edgecolors='red')
-
-  
-
-    # %% Deadends Plot -----------------------------------------------------------------------------------------------------------------
-
-
-
-    ax2.set_xlim(0,WIDTH)
-    ax2.set_ylim(0,HEIGHT)
-    plt.autoscale(False)
-
-    if multi.geom_type ==  'Polygon':
-        ax2.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
-    else:
-        for j, poly in enumerate(multi.geoms):
-            ax2.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
-
-
-    weights = np.array(list((nx.get_edge_attributes(F,'weight').values())))
-    pathwidth = np.array(list((nx.get_edge_attributes(F,'pathwidth').values())))
-
-    #nx.draw_networkx_nodes(F, pos=pos, ax=ax2, node_size=20, node_color='black', alpha=0.5)
-    nx.draw_networkx_nodes(F, pos=pos, ax=ax2, nodelist=crossroads, node_size=120, node_color='red')
-    nx.draw_networkx_nodes(F, pos=pos, ax=ax2, nodelist=endpoints, node_size=120, node_color='blue')
-    nx.draw_networkx_edges(F, pos=pos, ax=ax2, width=pathwidth * 9, edge_color="dimgray", alpha=0.8)
-    nx.draw_networkx_edges(F, pos=pos, ax=ax2, width=3, edge_color="black", alpha=0.5)
-
-    if SAVEPLOT: plt.savefig(f"{i+1}_factory.png", format="png")
-    
-    plt.show()
-
-    nextTime = time.perf_counter()
-    if TIMING: print(f"Plotting {nextTime - starttime}")
-
-
-#%% Graph reduzieren
-
-H = F.copy()
-
-# Select all nodes with only 2 neighbors
-nodes_to_remove = [n for n in H.nodes if len(list(H.neighbors(n))) == 2]
-
-# For each of those nodes
-for node in nodes_to_remove:
-    
-    # Get the two neighbors
-    neighbors = list(H.neighbors(node))
-
-    total_weight = H[neighbors[0]][node]["weight"] + H[node][neighbors[1]]["weight"]
-    total_pathwidth = min(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
-
-    H.add_edge(*neighbors, weight=total_weight, pathwidth=total_pathwidth)
-    # And delete the node
-    H.remove_node(node)
-
-
-fig, ax = plt.subplots(1,figsize=(16, 16))
-plt.xlim(0,WIDTH)
-plt.ylim(0,HEIGHT)
-plt.autoscale(False)
-
-
-if multi.geom_type ==  'Polygon':
-    ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
-else:
-    for j, poly in enumerate(multi.geoms):
-        ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
-
-
-new_pathwidth = np.array(list((nx.get_edge_attributes(H,'pathwidth').values())))
-
-nx.draw_networkx_nodes(F, pos=pos, ax=ax, node_size=20, node_color='black')
-nx.draw_networkx_nodes(H, pos=pos, ax=ax, node_size=120, node_color='red')
-nx.draw_networkx_edges(H, pos=pos, ax=ax, width=new_pathwidth * 9, edge_color="black", alpha=0.8)
-nx.draw_networkx_edges(F, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
-
-if SAVEPLOT: plt.savefig("5_Simplification.svg", format="svg")
-plt.show()
-
-
-
-
-# Sackgassen in den Ecken über Berührungspunkte mit Außenwand filtern
-
-
+        print(f"Mean Road Dimension Variability: {np.mean(min_pathwidth/max_pathwidth)}")
 
 
 
@@ -500,7 +524,7 @@ plt.show()
 
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-from shapely.ops import nearest_points
+
 fig, ax = plt.subplots(1,figsize=(16, 16))
 plt.xlim(0,WIDTH)
 plt.ylim(0,HEIGHT)
@@ -509,19 +533,36 @@ plt.autoscale(False)
 
 
 ax.add_patch(descartes.PolygonPatch(walkableArea, alpha=0.5))
+triangles = triangulate(walkableArea)
 
-for i, line in enumerate(multi.boundary.geoms):
+# for tri in triangles:
+#     ax.add_patch(descartes.PolygonPatch(tri, alpha=0.5))
 
-    color = rng.random(size=3)
-    ax.plot(line.coords.xy[0], line.coords.xy[1], color=color, linewidth=10)
-    for s in line.coords:
-        start_point = Point(s)
-        end_point = nearest_points(start_point, MultiLineString([x for j,x in enumerate(multi.boundary.geoms) if j!=i]  )) 
-        ax.plot([start_point.x, end_point[1].x], [start_point.y, end_point[1].y], color=color, linewidth=3)
+nx.draw_networkx_edges(F, pos=pos, ax=ax, edge_color="grey", width=4)
+nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="red", width=5)
+repPoints = [poly.representative_point() for poly in multi.geoms]
+endpoint_pos = [pos[endpoint] for endpoint in endpoints ]
+crossroad_pos = [pos[crossroad] for crossroad in crossroads]
+total = endpoint_pos + crossroad_pos
+
+endpoints_to_prune = endpoints.copy()
+
+
+
+for point in repPoints:
+    ax.plot(point.x, point.y, 'o', color='green', ms=10)
+    hit = nearest_points(point, MultiPoint(total))[1]
+    ax.plot([point.x, hit.x],[ point.y, hit.y], color=rng.random(size=3),linewidth=3)
+    key = str((hit.x, hit.y))
+    if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
 
 
 plt.show()
+
+
 # %%
-for i, line in enumerate(walkableArea.boundary.geoms):
-    print(line)
+print("Fertsch")
+
+
+
