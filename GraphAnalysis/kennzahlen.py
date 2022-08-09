@@ -12,7 +12,9 @@ import ezdxf
 from ezdxf.addons import geo
 from tqdm import tqdm
 
-from helpers import pruneAlongPath
+
+from helpers import pruneAlongPath, calculateNodeAngles, findSupportNodes
+
 
 
 import time
@@ -48,11 +50,22 @@ AMOUNTRECT = 25
 AMOUNTPOLY = 5
 MAXCORNERS = 3
 
+#%% Big Layout
+# WIDTH = 64
+# HEIGHT = 64
+# MAXSHAPEWIDTH = 2
+# MAXSHAPEHEIGHT = 2
+# AMOUNTRECT = 200
+# AMOUNTPOLY = 0
+# MAXCORNERS = 0
 
 #%%
 MINDEADEND_LENGTH = 2.0 # If Deadends are shorter than this, they are deleted
 MINPATHWIDTH = 1.0  # Minimum Width of a Road to keep
-BOUNDARYSPACING = 2.0  # Spacing of Points used as Voronoi Kernels
+BOUNDARYSPACING = 1.5  # Spacing of Points used as Voronoi Kernels
+SIMPLIFICATION_ANGLE = 35 # Angle in degrees, used for support point calculation in simple path
+
+
 #%% Create Layout -----------------------------------------------------------------------------------------------------------------
 for i in tqdm(range(ITERATIONS)):
 
@@ -259,6 +272,7 @@ for i in tqdm(range(ITERATIONS)):
     endpoints = [node for node, degree in F.degree() if degree == 1]
     crossroads = [node for node, degree in F.degree() if degree >= 3]
 
+
 # Prune unused dead ends
     pos=nx.get_node_attributes(G,'pos')
 
@@ -283,6 +297,10 @@ for i in tqdm(range(ITERATIONS)):
     endpoints = [node for node, degree in E.degree() if degree == 1]
     crossroads = [node for node, degree in E.degree() if degree >= 3]
 
+    nx.set_node_attributes(E, findSupportNodes(E, cutoff=SIMPLIFICATION_ANGLE))
+    support = list(nx.get_node_attributes(E, "isSupport").keys())
+
+
     nextTime = time.perf_counter()
     if TIMING: print(f"Network Filtering {nextTime - starttime}")
     starttime = nextTime
@@ -291,25 +309,54 @@ for i in tqdm(range(ITERATIONS)):
     # Simplyfy  Graph ------------------------------------------------------------------------------------------------------------
 
     H = E.copy()
-
-
+ 
     # Select all nodes with only 2 neighbors
-    nodes_to_remove = [n for n in H.nodes if len(list(H.neighbors(n))) == 2]
+
+
+    nodes_to_remove = [n for n in H.nodes if len(list(H.neighbors(n))) == 2 and n not in support]
+  
 
     # For each of those nodes
     for node in nodes_to_remove:
-        
+
         # Get the two neighbors
         neighbors = list(H.neighbors(node))
         #if len is not 2 we found a loop 
         if len(neighbors) == 2:
             total_weight = H[neighbors[0]][node]["weight"] + H[node][neighbors[1]]["weight"]
             pathwidth = min(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
-            max_pathwidth = max(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
-            H.add_edge(*neighbors, weight=total_weight, pathwidth=pathwidth, max_pathwidth=max_pathwidth)
+        
+            #We need to check if max_pathwidth was already set on the edge
+            if ('max_pathwidth' in H[neighbors[0]][node]):
+                first_max_pathwidth = H[neighbors[0]][node]['max_pathwidth']
+            else:
+                first_max_pathwidth = H[neighbors[0]][node]["pathwidth"]
+
+            if ('max_pathwidth' in H[node][neighbors[1]]):
+                second_max_pathwidth = H[node][neighbors[1]]['max_pathwidth']
+            else:
+                second_max_pathwidth = H[node][neighbors[1]]["pathwidth"]
+
+            # If we have double edges, we keep the shorter one
+            if (H.has_edge(*neighbors)) and (H[neighbors[0]][neighbors[1]]['weight'] < total_weight):
+                # Old edge ist shorter, keep it
+                pass                    
+            else:
+                H.add_edge(
+                    *neighbors,
+                    weight=total_weight,
+                    pathwidth=pathwidth, 
+                    max_pathwidth=max(first_max_pathwidth, second_max_pathwidth)
+                    )
         # And delete the node
         H.remove_node(node)
-      
+
+    #Find edges that are directly connecting elements of endpoints + crossroads and set 
+    #their max_pathwidth 
+    for first, second, data in H.edges.data():
+        if 'max_pathwidth' not in data:
+            H[first][second]['max_pathwidth'] = data['pathwidth']
+
     nextTime = time.perf_counter()
 
     if TIMING: 
@@ -327,7 +374,7 @@ for i in tqdm(range(ITERATIONS)):
         machine_colors = rng.random(size=(len(multi.geoms),3))
 
     
-if PLOT:
+    if PLOT:
         # %% Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
         if DETAILPLOT:
 
@@ -451,11 +498,7 @@ if PLOT:
         
         plt.show()
 
-
-
-
         # %% Simplification Plot -----------------------------------------------------------------------------------------------------------------
-
 
         fig, ax = plt.subplots(1,figsize=(16, 16))
         plt.xlim(0,WIDTH)
@@ -472,24 +515,66 @@ if PLOT:
 
         min_pathwidth = np.array(list((nx.get_edge_attributes(H,'pathwidth').values())))
         max_pathwidth = np.array(list((nx.get_edge_attributes(H,'max_pathwidth').values())))
-        print(f"max {len(max_pathwidth)}, min {len(min_pathwidth)}")
+ 
+        # minpaths = nx.get_edge_attributes(H,'pathwidth').keys()
+        # maxpaths = nx.get_edge_attributes(H,'max_pathwidth').keys()
+
 
         nx.draw_networkx_nodes(E, pos=pos, ax=ax, node_size=20, node_color='black')
         nx.draw_networkx_nodes(H, pos=pos, ax=ax, node_size=120, node_color='red')
-        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="grey", alpha=0.8)
-        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="black", alpha=0.7)
+        nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=support, node_size=120, node_color='green')
+        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey")
+        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
         nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
+        #nx.draw_networkx_edges(H, pos=pos, ax=ax, edgelist=minpaths, width=5, edge_color="red")
+        #nx.draw_networkx_edges(H, pos=pos, ax=ax, edgelist=maxpaths, width=5, edge_color="blue")
 
 
         if SAVEPLOT: plt.savefig(f"{i+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
         plt.show()
 
+        # %% Closest Edge Plot -----------------------------------------------------------------------------------------------------------------
+        if DETAILPLOT:
+
+            fig, ax = plt.subplots(1,figsize=(16, 16))
+            plt.xlim(0,WIDTH)
+            plt.ylim(0,HEIGHT)
+            plt.autoscale(False)
+
+            ax.add_patch(descartes.PolygonPatch(walkableArea, alpha=0.5))
+            triangles = triangulate(walkableArea)
+
+            # for tri in triangles:
+            #     ax.add_patch(descartes.PolygonPatch(tri, alpha=0.5))
+
+            nx.draw_networkx_edges(F, pos=pos, ax=ax, edge_color="grey", width=4)
+            nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="red", width=5)
+            repPoints = [poly.representative_point() for poly in multi.geoms]
+            endpoint_pos = [pos[endpoint] for endpoint in endpoints ]
+            crossroad_pos = [pos[crossroad] for crossroad in crossroads]
+            total = endpoint_pos + crossroad_pos
+
+            endpoints_to_prune = endpoints.copy()
+
+
+
+            for point in repPoints:
+                ax.plot(point.x, point.y, 'o', color='green', ms=10)
+                hit = nearest_points(point, MultiPoint(total))[1]
+                ax.plot([point.x, hit.x],[ point.y, hit.y], color=rng.random(size=3),linewidth=3)
+                key = str((hit.x, hit.y))
+                if key in endpoints_to_prune: endpoints_to_prune.remove(key)
+
+
+            plt.show()
+
+            if SAVEPLOT: plt.savefig(f"{i+1}_5_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT)
+            plt.show()
 
         nextTime = time.perf_counter()
         if TIMING: print(f"Plotting {nextTime - starttime}")
 
         print(f"Mean Road Dimension Variability: {np.mean(min_pathwidth/max_pathwidth)}")
-
 
 
 # 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
@@ -523,46 +608,10 @@ if PLOT:
 
 
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-fig, ax = plt.subplots(1,figsize=(16, 16))
-plt.xlim(0,WIDTH)
-plt.ylim(0,HEIGHT)
-plt.autoscale(False)
 
 
+#%%
+print(H)
+print(E)
 
-ax.add_patch(descartes.PolygonPatch(walkableArea, alpha=0.5))
-triangles = triangulate(walkableArea)
-
-# for tri in triangles:
-#     ax.add_patch(descartes.PolygonPatch(tri, alpha=0.5))
-
-nx.draw_networkx_edges(F, pos=pos, ax=ax, edge_color="grey", width=4)
-nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="red", width=5)
-repPoints = [poly.representative_point() for poly in multi.geoms]
-endpoint_pos = [pos[endpoint] for endpoint in endpoints ]
-crossroad_pos = [pos[crossroad] for crossroad in crossroads]
-total = endpoint_pos + crossroad_pos
-
-endpoints_to_prune = endpoints.copy()
-
-
-
-for point in repPoints:
-    ax.plot(point.x, point.y, 'o', color='green', ms=10)
-    hit = nearest_points(point, MultiPoint(total))[1]
-    ax.plot([point.x, hit.x],[ point.y, hit.y], color=rng.random(size=3),linewidth=3)
-    key = str((hit.x, hit.y))
-    if key in endpoints_to_prune: endpoints_to_prune.remove(key)
-
-
-
-plt.show()
-
-
-# %%
-print("Fertsch")
-
-
-
+#%%
