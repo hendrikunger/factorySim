@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Point, MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box, shape
 from shapely.affinity import translate, rotate
 from shapely.strtree import STRtree
+from shapely.prepared import prep
 from shapely.ops import split,  voronoi_diagram,  unary_union, triangulate, nearest_points
 import descartes
 import networkx as nx
@@ -12,14 +13,12 @@ import ezdxf
 from ezdxf.addons import geo
 from tqdm import tqdm
 
-
 from helpers import pruneAlongPath, calculateNodeAngles, findSupportNodes
-
 
 
 import time
 # %%
-SAVEPLOT = False
+SAVEPLOT = True
 SAVEFORMAT = "png"
 DETAILPLOT = False
 PLOT = True
@@ -47,21 +46,24 @@ HEIGHT = 32
 MAXSHAPEWIDTH = 4
 MAXSHAPEHEIGHT = 4
 AMOUNTRECT = 25
-AMOUNTPOLY = 5
+AMOUNTPOLY = 0
 MAXCORNERS = 3
 
 #%% Big Layout
-# WIDTH = 64
-# HEIGHT = 64
-# MAXSHAPEWIDTH = 2
-# MAXSHAPEHEIGHT = 2
-# AMOUNTRECT = 200
-# AMOUNTPOLY = 0
-# MAXCORNERS = 0
+WIDTH = 64
+HEIGHT = 64
+MAXSHAPEWIDTH = 2
+MAXSHAPEHEIGHT = 2
+AMOUNTRECT = 180
+AMOUNTPOLY = 0
+MAXCORNERS = 0
+
+
 
 #%%
 MINDEADEND_LENGTH = 2.0 # If Deadends are shorter than this, they are deleted
 MINPATHWIDTH = 1.0  # Minimum Width of a Road to keep
+MINTWOWAYPATHWIDTH = 2.0  # Minimum Width of a Road to keep
 BOUNDARYSPACING = 1.5  # Spacing of Points used as Voronoi Kernels
 SIMPLIFICATION_ANGLE = 35 # Angle in degrees, used for support point calculation in simple path
 
@@ -121,8 +123,7 @@ for i in tqdm(range(ITERATIONS)):
     if TIMING: print(f"Factory generation {nextTime - starttime}")
     starttime = nextTime
 
-    # %% Create Voronoi -----------------------------------------------------------------------------------------------------------------
-
+#   Create Voronoi -----------------------------------------------------------------------------------------------------------------
     #Points around boundary
     distances = np.arange(0,  bb.boundary.length, BOUNDARYSPACING)
     points = [ bb.boundary.interpolate(distance) for distance in distances]
@@ -147,9 +148,12 @@ for i in tqdm(range(ITERATIONS)):
     lines_touching_machines = []
     lines_to_machines = []
 
+    processed_multi = prep(multi)
+    processed_bb = prep(bb)
+
     for line in voronoiArea.geoms[0].geoms:
         #find routes close to machines
-        if  multi.intersects(line) or bb.crosses(line): 
+        if  processed_multi.intersects(line) or processed_bb.crosses(line): 
             lines_touching_machines.append(line)
         #rest are main routes and dead ends
         else:
@@ -160,30 +164,31 @@ for i in tqdm(range(ITERATIONS)):
     if TIMING: print(f"Find Routes {nextTime - starttime}")
     starttime = nextTime
 
+    if DETAILPLOT:
+        #Split lines with machine objects#
+        try:
+            sresult = split(MultiLineString(lines_touching_machines), multi)
+        except:
+            print("Split Error")
+            continue
 
-    #Split lines with machine objects#
-    try:
-        sresult = split(MultiLineString(lines_touching_machines), multi)
-    except:
-        print("Split Error")
-        continue
-
-    nextTime = time.perf_counter()
-    if TIMING: print(f"Split {nextTime - starttime}")
-    starttime = nextTime
+        nextTime = time.perf_counter()
+        if TIMING: print(f"Split {nextTime - starttime}")
+        starttime = nextTime
 
 
-    #Remove Geometries that are inside machines
-    for line in sresult.geoms:
-        if  not (multi.covers(line) and (not multi.disjoint(line) ) or multi.crosses(line)):
-            lines_to_machines.append(line)
+        #Remove Geometries that are inside machines
+        for line in sresult.geoms:
+            if  not (processed_multi.covers(line) and (not processed_multi.disjoint(line) ) or processed_multi.crosses(line)):
+                lines_to_machines.append(line)
 
-    nextTime = time.perf_counter()
-    if TIMING: print(f"Line Filtering {nextTime - starttime}")
-    starttime = nextTime
+        nextTime = time.perf_counter()
+        if TIMING: print(f"Line Filtering {nextTime - starttime}")
+        starttime = nextTime
 
     # Find closest points in voronoi cells
     hitpoints = points + list(MultiPoint(walkableArea.exterior.coords).geoms)
+    #hitpoints = MultiPoint(points+list(walkableArea.exterior.coords))
     hit_tree = STRtree(hitpoints)
 
 
@@ -204,6 +209,8 @@ for i in tqdm(range(ITERATIONS)):
         else:
             nearest_point_first = hit_tree.nearest_geom(first)
             first_distance = first.distance(nearest_point_first)
+            #nearest_point_first = nearest_points(hitpoints,first)[0]
+            #first_distance = first.distance(nearest_point_first)
 
         second = line.boundary.geoms[1]
         secondTuple = (second.x, second.y)
@@ -211,6 +218,8 @@ for i in tqdm(range(ITERATIONS)):
         #find closest next point in boundary for path width calculation
         nearest_point_second = hit_tree.nearest_geom(second)
         second_distance = second.distance(nearest_point_second)
+        #nearest_point_second = nearest_points(hitpoints,second)[0]
+        #second_distance = second.distance(nearest_point_second)
         memory, memomry_distance = second, second_distance
 
         #edge width is minimum path width of the nodes making up the edge
@@ -218,8 +227,8 @@ for i in tqdm(range(ITERATIONS)):
 
 
     #This is replaced by the version below. Delete Line Filtering below as well 
-        G.add_node(first_str, pos=firstTuple, pathwidth=smallestPathwidth)
-        G.add_node(second_str, pos=secondTuple, pathwidth=smallestPathwidth)
+        G.add_node(first_str, pos=firstTuple)
+        G.add_node(second_str, pos=secondTuple)
         G.add_edge(first_str, second_str, weight=first.distance(second), pathwidth=smallestPathwidth)
 
 
@@ -315,18 +324,25 @@ for i in tqdm(range(ITERATIONS)):
 
     nodes_to_remove = [n for n in H.nodes if len(list(H.neighbors(n))) == 2 and n not in support]
   
-
     # For each of those nodes
     for node in nodes_to_remove:
 
         # Get the two neighbors
         neighbors = list(H.neighbors(node))
+
         #if len is not 2 we found a loop 
         if len(neighbors) == 2:
             total_weight = H[neighbors[0]][node]["weight"] + H[node][neighbors[1]]["weight"]
             pathwidth = min(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
+
+            edgelist = [(pos[neighbors[0]],pos[node]), (pos[node], pos[neighbors[1]])]
+            
+            if 'edgelist' in H[neighbors[0]][node]:
+                 edgelist =  H[neighbors[0]][node]["edgelist"] + edgelist
+            if 'edgelist' in H[node][neighbors[1]]:
+                edgelist = edgelist + H[node][neighbors[1]]["edgelist"] 
         
-            #We need to check if max_pathwidth was already set on the edge
+            #We need to check if max_pathwidth was already set on the edge-
             if ('max_pathwidth' in H[neighbors[0]][node]):
                 first_max_pathwidth = H[neighbors[0]][node]['max_pathwidth']
             else:
@@ -346,23 +362,126 @@ for i in tqdm(range(ITERATIONS)):
                     *neighbors,
                     weight=total_weight,
                     pathwidth=pathwidth, 
-                    max_pathwidth=max(first_max_pathwidth, second_max_pathwidth)
+                    max_pathwidth=max(first_max_pathwidth, second_max_pathwidth),
+                    edgelist=edgelist
                     )
         # And delete the node
         H.remove_node(node)
 
     #Find edges that are directly connecting elements of endpoints + crossroads and set 
-    #their max_pathwidth 
+    #their max_pathwidth and edge dict
     for first, second, data in H.edges.data():
         if 'max_pathwidth' not in data:
             H[first][second]['max_pathwidth'] = data['pathwidth']
+        if 'edgelist' not in data:
+            H[first][second]['edgelist'] = [(pos[first],pos[second])]
+        if 'nodelist' not in data:
+            H[first][second]['nodelist'] = [(pos[first],pos[second])]
+        else:
+            H[first][second]['nodelist'] = [pos[second]] + H[first][second]['nodelist'] + [pos[first]]
+    
+    nextTime = time.perf_counter()
+    if TIMING: print(f"Network Simplification {nextTime - starttime}")        
+    starttime = nextTime
+
+
+    # Alternative Simpicification and Path Generation ------------------------------------------------------------------------------------
+    I = nx.Graph()
+
+    visited = set() # Set to keep track of visited nodes.
+    tempPath = [] # List to keep track of visited nodes in current path.
+    paths = [] # List to keep track of all paths.
+
+    ep=[node for node, degree in E.degree() if degree == 1]
+    cross= [node for node, degree in E.degree() if degree >= 3]
+    stoppers = set(ep + cross + support)
+
+    if ep: 
+        nodes_to_visit = [ep[0]]
+    else:
+        nodes_to_visit = [cross[0]]
+
+    maxpath = 0
+    minpath = float('inf')
+    totalweight = 0
+    currentInnerNode = None
+
+#DFS Start
+    while(nodes_to_visit):
+
+        currentOuterNode = nodes_to_visit.pop()
+        if currentOuterNode in visited:
+            continue
+        else:
+            visited.add(currentOuterNode)
+
+        for outerNeighbor in E.neighbors(currentOuterNode):
+            if outerNeighbor in visited: continue
+
+            maxpath = 0
+            minpath = float('inf')
+            totalweight = 0
+
+            lastNode = currentOuterNode
+            currentInnerNode = outerNeighbor
+            tempPath.append(currentOuterNode)
+
+
+
+            while True:
+                #check if next node is deadend or crossroad
+                currentEdgeKey = str((lastNode,currentInnerNode))
+                totalweight += E[lastNode][currentInnerNode]["weight"]
+                pathwidth = E[lastNode][currentInnerNode]["pathwidth"]
+                maxpath = max(maxpath, pathwidth)
+                minpath = min(minpath, pathwidth)
+
+                if currentInnerNode in stoppers:
+                    #found a crossroad or deadend
+                    tempPath.append(currentInnerNode)
+                    paths.append(tempPath)
+                    
+                    #Prevent going back and forth between direct connected crossroads 
+                    if lastNode != currentOuterNode:
+                        visited.add(lastNode)
+                    nodes_to_visit.append(currentInnerNode)
+
+                    pathtype = "oneway"
+                    if minpath > MINTWOWAYPATHWIDTH: pathtype = "twoway"
+
+
+                    I.add_node(currentOuterNode, pos=pos[currentOuterNode])
+                    I.add_node(currentInnerNode, pos=pos[currentInnerNode])
+                    I.add_edge(currentOuterNode, 
+                        currentInnerNode, 
+                        weight=totalweight,
+                        pathwidth=minpath, 
+                        max_pathwidth=maxpath, 
+                        nodelist=tempPath,
+                        pathtype=pathtype
+                    )
+                    tempPath = [] 
+                    break 
+                else:
+                    #going along path
+                    tempPath.append(currentInnerNode)
+
+                for innerNeighbor in E.neighbors(currentInnerNode):
+                    #Identifying next node (there will at most be two edges connected to every node)
+                    if (innerNeighbor == lastNode):
+                        #this is last node
+                        continue
+                    else:
+                        #found the next one
+                        lastNode = currentInnerNode
+                        currentInnerNode = innerNeighbor
+                        break
+
 
     nextTime = time.perf_counter()
-
     if TIMING: 
-        print(f"Network Simplification {nextTime - starttime}")
+        print(f"Network Path Generation {nextTime - starttime}")
         print(f"Algorithm Total: {nextTime - totaltime}")
-        
     starttime = nextTime
 
     # Create Machine Colors
@@ -375,7 +494,7 @@ for i in tqdm(range(ITERATIONS)):
 
     
     if PLOT:
-        # %% Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
+    #  Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
         if DETAILPLOT:
 
             
@@ -403,26 +522,17 @@ for i in tqdm(range(ITERATIONS)):
             if SAVEPLOT: plt.savefig(f"{i+1}_1_Filtered_Lines.{SAVEFORMAT}", format=SAVEFORMAT)
             plt.show()
 
-        # %% Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
+        # Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
         if DETAILPLOT:
             fig, ax = plt.subplots(1,figsize=(16, 16))
             plt.xlim(0,WIDTH)
             plt.ylim(0,HEIGHT)
             plt.autoscale(False)
 
-
-            if multi.geom_type ==  'Polygon':
-                ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
-            else:
-                for j, poly in enumerate(multi.geoms):
-                    ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
-
             # for line in voronoiArea_:
             #     ax.plot(line.xy[0], line.xy[1], color='green', alpha=0.5)
             for line in voronoiArea.geoms[0].geoms:
                 ax.plot(line.xy[0], line.xy[1], color='red', alpha=0.0)
-
-
 
             for point in hitpoints:
                 ax.scatter(point.x, point.y, color='red')
@@ -435,12 +545,17 @@ for i in tqdm(range(ITERATIONS)):
                 #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
                 ax.add_patch(plt.Circle((point.x, point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.6))
                 #ax.add_patch(descartes.PolygonPatch(line.buffer(1), fc="black", ec='#000000', alpha=0.5))
-
+            
+            if multi.geom_type ==  'Polygon':
+                ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
+            else:
+                for j, poly in enumerate(multi.geoms):
+                    ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.8))           
 
             if SAVEPLOT: plt.savefig(f"{i+1}_2_Pathwidth_Calculation.{SAVEFORMAT}", format=SAVEFORMAT)
             plt.show()
 
-        # %% Filtering Plot -----------------------------------------------------------------------------------------------------------------
+        #  Filtering Plot -----------------------------------------------------------------------------------------------------------------
 
         fig, ax = plt.subplots(1, figsize=(16, 16))
         ax.set_xlim(0,WIDTH)
@@ -470,7 +585,7 @@ for i in tqdm(range(ITERATIONS)):
         
         plt.show()
 
-        # %% Clean Plot -----------------------------------------------------------------------------------------------------------------
+        #  Clean Plot -----------------------------------------------------------------------------------------------------------------
 
         fig, ax = plt.subplots(1, figsize=(16, 16))
 
@@ -485,25 +600,37 @@ for i in tqdm(range(ITERATIONS)):
                 ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
 
-        weights = np.array(list((nx.get_edge_attributes(E,'weight').values())))
-        pathwidth = np.array(list((nx.get_edge_attributes(E,'pathwidth').values())))
+        for u,v,data in I.edges(data=True):
+            temp = [pos[x] for x in data['nodelist']]
+            ax.plot(*zip(*temp), color="dimgray", linewidth=data['pathwidth'] * 9, alpha=1.0, solid_capstyle='round')
 
-        #nx.draw_networkx_nodes(F, pos=pos, ax=ax, node_size=20, node_color='black', alpha=0.5)
+
+        for u,v,data in I.edges(data=True):
+            temp = [pos[x] for x in data['nodelist']]
+            if data['pathtype'] =="twoway":
+                ax.plot(*zip(*temp), color="white", linewidth=3, alpha=0.5, solid_capstyle='round', linestyle='dashed')
+
         nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=crossroads, node_size=120, node_color='red')
         nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=endpoints, node_size=120, node_color='blue')
-        nx.draw_networkx_edges(E, pos=pos, ax=ax, width=pathwidth * 9, edge_color="dimgray", alpha=0.8)
-        nx.draw_networkx_edges(E, pos=pos, ax=ax, width=3, edge_color="black", alpha=0.5)
+        nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=support, node_size=120, node_color='green')
 
         if SAVEPLOT: plt.savefig(f"{i+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT)
-        
+
         plt.show()
 
-        # %% Simplification Plot -----------------------------------------------------------------------------------------------------------------
+        #  Simplification Plot -----------------------------------------------------------------------------------------------------------------
 
         fig, ax = plt.subplots(1,figsize=(16, 16))
         plt.xlim(0,WIDTH)
         plt.ylim(0,HEIGHT)
         plt.autoscale(False)
+
+        for u,v,a in H.edges(data=True):
+            linecolor = rng.random(size=3)
+            for line in a["edgelist"]:
+                if(not isinstance(line[0][0], float)):
+                    print(line)
+                ax.plot(line[0][0], line[0][1], line[1][0], line[1][1], color=linecolor, linewidth=50)
 
 
         if multi.geom_type ==  'Polygon':
@@ -515,25 +642,29 @@ for i in tqdm(range(ITERATIONS)):
 
         min_pathwidth = np.array(list((nx.get_edge_attributes(H,'pathwidth').values())))
         max_pathwidth = np.array(list((nx.get_edge_attributes(H,'max_pathwidth').values())))
- 
-        # minpaths = nx.get_edge_attributes(H,'pathwidth').keys()
-        # maxpaths = nx.get_edge_attributes(H,'max_pathwidth').keys()
-
 
         nx.draw_networkx_nodes(E, pos=pos, ax=ax, node_size=20, node_color='black')
         nx.draw_networkx_nodes(H, pos=pos, ax=ax, node_size=120, node_color='red')
         nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=support, node_size=120, node_color='green')
-        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey")
-        nx.draw_networkx_edges(H, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
+        #old simplification
+        #nx.draw_networkx_edges(H, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey")
+        #nx.draw_networkx_edges(H, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
         nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
-        #nx.draw_networkx_edges(H, pos=pos, ax=ax, edgelist=minpaths, width=5, edge_color="red")
-        #nx.draw_networkx_edges(H, pos=pos, ax=ax, edgelist=maxpaths, width=5, edge_color="blue")
+
+        min_pathwidth = np.array(list((nx.get_edge_attributes(I,'pathwidth').values())))
+        max_pathwidth = np.array(list((nx.get_edge_attributes(I,'max_pathwidth').values())))
+
+        nx.draw_networkx_edges(I, pos=pos, ax=ax, edge_color="yellow", width=4)
+        nx.draw_networkx_edges(I, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey", alpha=0.7)
+        nx.draw_networkx_edges(I, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
+
+
 
 
         if SAVEPLOT: plt.savefig(f"{i+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
         plt.show()
 
-        # %% Closest Edge Plot -----------------------------------------------------------------------------------------------------------------
+        #  Closest Edge Plot -----------------------------------------------------------------------------------------------------------------
         if DETAILPLOT:
 
             fig, ax = plt.subplots(1,figsize=(16, 16))
@@ -571,10 +702,33 @@ for i in tqdm(range(ITERATIONS)):
             if SAVEPLOT: plt.savefig(f"{i+1}_5_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT)
             plt.show()
 
+        #  Path Plot --------------------------------------------------------------------------------------------------------
+        fig, ax = plt.subplots(1,figsize=(16, 16))
+        plt.xlim(0,WIDTH)
+        plt.ylim(0,HEIGHT)
+        plt.autoscale(False)
+
+        nx.draw(E, pos=pos, ax=ax, node_size=80, node_color='black')
+
+        for path in paths:
+            linecolor = rng.random(size=3)
+            temp = [pos[x] for x in path]
+            ax.plot(*zip(*temp), color=linecolor, linewidth=5)
+
+
+        if multi.geom_type ==  'Polygon':
+            ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
+        else:
+            for j, poly in enumerate(multi.geoms):
+                ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
+
+        if SAVEPLOT: plt.savefig(f"{i+1}_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT)
+        plt.show()
+
         nextTime = time.perf_counter()
         if TIMING: print(f"Plotting {nextTime - starttime}")
-
-        print(f"Mean Road Dimension Variability: {np.mean(min_pathwidth/max_pathwidth)}")
+        starttime = nextTime
+        
 
 
 # 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
@@ -608,10 +762,30 @@ for i in tqdm(range(ITERATIONS)):
 
 
 
+#%%
+print(f"H.size(): {H.size()}")
+print(f"I.size(): {I.size()}\n")
+
+print(f"H.size(): {H.size(weight='weight')}")
+print(f"I.size(): {I.size(weight='weight')}\n")
+
+print(f"H.size(): {H.size(weight='pathwidth')}")
+print(f"I.size(): {I.size(weight='pathwidth')}\n")
+
+print(f"H.size(): {H.size(weight='max_pathwidth')}")
+print(f"I.size(): {I.size(weight='max_pathwidth')}\n")
+
+print(f"Mean Road Dimension Variability: {np.mean(min_pathwidth/max_pathwidth)}")
+
 
 
 #%%
-print(H)
-print(E)
 
-#%%
+# %%
+
+# %%
+
+
+
+
+
