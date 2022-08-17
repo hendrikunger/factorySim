@@ -15,12 +15,11 @@ from tqdm import tqdm
 
 from helpers import pruneAlongPath, calculateNodeAngles, findSupportNodes
 
-
 import time
 # %%
 SAVEPLOT = True
 SAVEFORMAT = "png"
-DETAILPLOT = False
+DETAILPLOT = True
 PLOT = True
 TIMING = True
 LOADDATA = False
@@ -50,13 +49,13 @@ AMOUNTPOLY = 0
 MAXCORNERS = 3
 
 #%% Big Layout
-WIDTH = 64
-HEIGHT = 64
-MAXSHAPEWIDTH = 2
-MAXSHAPEHEIGHT = 2
-AMOUNTRECT = 180
-AMOUNTPOLY = 0
-MAXCORNERS = 0
+# WIDTH = 64
+# HEIGHT = 64
+# MAXSHAPEWIDTH = 2
+# MAXSHAPEHEIGHT = 2
+# AMOUNTRECT = 180
+# AMOUNTPOLY = 0
+# MAXCORNERS = 0
 
 
 
@@ -780,12 +779,6 @@ print(f"Mean Road Dimension Variability: {np.mean(min_pathwidth/max_pathwidth)}"
 
 
 #%%
-
-# %%
-
-# %%
-
-
 
 
 
