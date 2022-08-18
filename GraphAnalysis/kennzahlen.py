@@ -19,10 +19,10 @@ import time
 # %%
 SAVEPLOT = True
 SAVEFORMAT = "png"
-DETAILPLOT = True
+DETAILPLOT = False
 PLOT = True
 TIMING = True
-LOADDATA = False
+LOADDATA = True
 LOADDXF = False
 ITERATIONS = 1
 
@@ -781,4 +781,8 @@ print(f"Mean Road Dimension Variability: {np.mean(min_pathwidth/max_pathwidth)}"
 #%%
 
 
+print(multi)
 
+# %%
+
+# %%
