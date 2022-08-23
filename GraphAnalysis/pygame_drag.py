@@ -3,7 +3,7 @@ import cairo
 import numpy as np
 import pickle
 
-from shapely.geometry import MultiPoint, MultiPolygon, box, GeometryCollection
+from shapely.geometry import Point, MultiPoint, MultiPolygon, box, GeometryCollection
 from shapely.affinity import rotate, scale, translate
 import networkx as nx
 from shapely.strtree import STRtree
@@ -12,10 +12,15 @@ from shapely.ops import split,  voronoi_diagram,  unary_union, nearest_points
 
 from helpers import pruneAlongPath, findSupportNodes
  
-SCREEN_WIDTH  = 1920
-SCREEN_HEIGHT = 1080
 
+# SCREEN_WIDTH  = 3840
+# SCREEN_HEIGHT = 2160
 
+# SCREEN_WIDTH  = 1920
+# SCREEN_HEIGHT = 1080
+
+SCREEN_WIDTH  = 1280
+SCREEN_HEIGHT = 720
 
 WIDTH = 32
 HEIGHT = 32
@@ -30,7 +35,6 @@ MINPATHWIDTH = 1.0  # Minimum Width of a Road to keep
 MINTWOWAYPATHWIDTH = 2.0  # Minimum Width of a Road to keep
 BOUNDARYSPACING = 1.5  # Spacing of Points used as Voronoi Kernels
 SIMPLIFICATION_ANGLE = 35 # Angle in degrees, used for support point calculation in simple path
-
 
 
 
@@ -52,7 +56,7 @@ def draw_rect(ctx, rect, color):
 
 def draw_poly(ctx, poly, color):
     ctx.set_source_rgba(*color, 0.8)
-    ctx.set_line_width(1)
+    ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
     ctx.set_line_join(cairo.LINE_JOIN_ROUND)
     ctx.set_line_cap(cairo.LINE_CAP_ROUND)
 
@@ -82,11 +86,13 @@ def draw_paths(ctx, G, I):
     for u,v,data in I.edges(data=True):
         temp = [pos[x] for x in data['nodelist']]
         if data['pathtype'] =="twoway":
-            ctx.set_line_width(1)
+            ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
             ctx.move_to(*temp[0])
             for node in temp[1:]:
                 ctx.line_to(*node)
+    ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
     ctx.stroke()
+    ctx.set_dash([])
 
 def update_fps():
 	fps = str(int(clock.get_fps()))
@@ -146,21 +152,13 @@ def create_factory(load = False):
     return multi, bb, sugesstedscale
 
 
-    
 
-
-def scale_factory(multi, bb, aScale = 1.0, newScale = 1.0):
+def scale_factory(ctx, aScale = 1.0, newScale = 1.0):
     reverseScale = 1.0 / aScale if aScale else 1.0
-    multi = scale(multi, xfact= reverseScale, yfact=-reverseScale, zfact=-reverseScale, origin=(0,0))
-    multi = scale(multi, xfact= newScale, yfact=-newScale, zfact=-newScale, origin=(0,0))
-    bb = scale(bb, xfact= reverseScale, yfact=-reverseScale, zfact=-reverseScale, origin=(0,0))
-    bb = scale(bb, xfact= newScale, yfact=-newScale, zfact=-newScale, origin=(0,0))
+    ctx.scale(reverseScale, reverseScale)
+    ctx.scale(newScale, newScale)
 
-    rects = []
-    for poly in multi.geoms:
-        rects.append(pygame.Rect(poly.bounds[0], poly.bounds[1], poly.bounds[2]-poly.bounds[0], poly.bounds[3]-poly.bounds[1]))
-    return multi, bb, rects
-
+    return  ctx
 
 
 def create_paths(multi, bb):
@@ -172,11 +170,11 @@ def create_paths(multi, bb):
     #   Create Voronoi -----------------------------------------------------------------------------------------------------------------
     #Points around boundary
 
-    distances = np.arange(0,  bb.boundary.length, BOUNDARYSPACING * currentScale)
+    distances = np.arange(0,  bb.boundary.length, BOUNDARYSPACING)
     points = [ bb.boundary.interpolate(distance) for distance in distances]
 
     #Points on Machines
-    distances = np.arange(0,  multi.boundary.length, BOUNDARYSPACING * currentScale)
+    distances = np.arange(0,  multi.boundary.length, BOUNDARYSPACING)
     points.extend([ multi.boundary.interpolate(distance) for distance in distances])
     bb_points = unary_union(points) 
 
@@ -196,7 +194,13 @@ def create_paths(multi, bb):
             route_lines.append(line)
 
     # Find closest points in voronoi cells
-    hitpoints = points + list(MultiPoint(walkableArea.exterior.coords).geoms)
+    if walkableArea.geom_type ==  'MultiPolygon':
+        exteriorPoints = []
+        for x in walkableArea.geoms:
+            exteriorPoints.extend(list(x.exterior.coords))
+    else:
+        exteriorPoints = list(walkableArea.exterior.coords)
+    hitpoints = points + list(MultiPoint(exteriorPoints).geoms)
     #hitpoints = MultiPoint(points+list(walkableArea.exterior.coords))
     hit_tree = STRtree(hitpoints)
 
@@ -253,7 +257,7 @@ def create_paths(multi, bb):
 
     # Filter  Graph -----------------------------------------------------------------------------------------------------------------
 
-    narrowPaths = [(n1, n2) for n1, n2, w in G.edges(data="pathwidth") if w < MINPATHWIDTH * currentScale]
+    narrowPaths = [(n1, n2) for n1, n2, w in G.edges(data="pathwidth") if w < MINPATHWIDTH]
     G.remove_edges_from(narrowPaths)
 
     #Find largest connected component to filter out "loose" parts
@@ -267,7 +271,7 @@ def create_paths(multi, bb):
     #find deadends
     old_endpoints = [node for node, degree in G.degree() if degree == 1]
 
-    shortDeadEnds = pruneAlongPath(G, starts=old_endpoints, ends=old_crossroads, min_length=MINDEADEND_LENGTH * currentScale * 2)
+    shortDeadEnds = pruneAlongPath(G, starts=old_endpoints, ends=old_crossroads, min_length=MINDEADEND_LENGTH)
 
     G.remove_nodes_from(shortDeadEnds)
     endpoints = [node for node, degree in G.degree() if degree == 1]
@@ -289,7 +293,7 @@ def create_paths(multi, bb):
         key = str((hit.x, hit.y))
         if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
-    nodes_to_prune = pruneAlongPath(G, starts=endpoints_to_prune, ends=crossroads, min_length=10 * currentScale)
+    nodes_to_prune = pruneAlongPath(G, starts=endpoints_to_prune, ends=crossroads, min_length=10)
 
     G.remove_nodes_from(nodes_to_prune)
 
@@ -361,7 +365,7 @@ def create_paths(multi, bb):
                     nodes_to_visit.append(currentInnerNode)
 
                     pathtype = "oneway"
-                    if minpath > MINTWOWAYPATHWIDTH * currentScale: pathtype = "twoway"
+                    if minpath > MINTWOWAYPATHWIDTH: pathtype = "twoway"
 
 
                     I.add_node(currentOuterNode, pos=pos[currentOuterNode])
@@ -407,8 +411,8 @@ selected = None
 currentScale = 1.0
 appliedScale = None
 
-multi, bb, currentScale = create_factory(load=False)
-rects = []
+multi, bb, currentScale = create_factory(load=True)
+
 
 colors = [rng.random(size=3) for _ in multi.geoms]
 
@@ -441,11 +445,12 @@ while is_running:
  
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
-                for i, r in enumerate(rects):
-                    if r.collidepoint(event.pos):
+                for i, poly in enumerate(multi.geoms):
+                    point_scaled = Point(event.pos[0]/appliedScale, event.pos[1]/appliedScale)
+                    if poly.contains(point_scaled):
                         selected = i
-                        selected_offset_x = r.x - event.pos[0]
-                        selected_offset_y = r.y - event.pos[1]
+                        selected_offset_x = poly.bounds[0] - point_scaled.x
+                        selected_offset_y = poly.bounds[1] - point_scaled.y
                
         elif event.type == pygame.MOUSEBUTTONUP:
             if event.button == 1:
@@ -453,15 +458,13 @@ while is_running:
                
         elif event.type == pygame.MOUSEMOTION:
             if selected is not None: # selected can be `0` so `is not None` is required
-                # move object
-                rects[selected].x = event.pos[0] + selected_offset_x
-                rects[selected].y = (event.pos[1]) + selected_offset_y
+                # move object  
                 temp = list(multi.geoms)
                 temp_x = temp[selected].bounds[0]
                 temp_y = temp[selected].bounds[1] # max y for shapely, min y for pygame coordinates
                 temp[selected] = translate(multi.geoms[selected], 
-                    xoff=((event.pos[0] - temp_x) + selected_offset_x),
-                    yoff=((event.pos[1] - temp_y) + selected_offset_y)
+                    xoff=((event.pos[0]/appliedScale - temp_x) + selected_offset_x),
+                    yoff=((event.pos[1]/appliedScale - temp_y) + selected_offset_y)
                     )
                 multi = MultiPolygon(temp)
                 is_dirty = True
@@ -469,13 +472,13 @@ while is_running:
         pressed_keys = pygame.key.get_pressed()
  
         if pressed_keys[pygame.K_PLUS]:
-            currentScale += 0.1
+            currentScale += 0.2
         if pressed_keys[pygame.K_MINUS]:
-            currentScale -= 0.1
+            currentScale -= 0.2
                
         # --- objects events ---
     if currentScale != appliedScale:
-        multi, bb, rects = scale_factory(multi, bb, appliedScale, currentScale)
+        ctx = scale_factory(ctx, appliedScale, currentScale)
         is_dirty = True
         appliedScale = currentScale
        
@@ -485,8 +488,6 @@ while is_running:
     
     draw_BG(ctx)
 
-    # for r in rects:
-    #     draw_rect(ctx, r, rng.random(size=3))
     
     for poly, color in zip(multi.geoms, colors):
         draw_poly(ctx, poly, color)

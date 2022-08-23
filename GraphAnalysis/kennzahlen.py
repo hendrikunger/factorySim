@@ -186,7 +186,13 @@ for i in tqdm(range(ITERATIONS)):
         starttime = nextTime
 
     # Find closest points in voronoi cells
-    hitpoints = points + list(MultiPoint(walkableArea.exterior.coords).geoms)
+    if walkableArea.geom_type ==  'MultiPolygon':
+        exteriorPoints = []
+        for x in walkableArea.geoms:
+            exteriorPoints.extend(list(x.exterior.coords))
+    else:
+        exteriorPoints = list(walkableArea.exterior.coords)
+    hitpoints = points + list(MultiPoint(exteriorPoints).geoms)
     #hitpoints = MultiPoint(points+list(walkableArea.exterior.coords))
     hit_tree = STRtree(hitpoints)
 
