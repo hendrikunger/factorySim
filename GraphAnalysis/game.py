@@ -7,7 +7,7 @@ import moderngl_window as mglw
 import numpy as np
 import pickle
 
-from shapely.geometry import Point, MultiPoint, MultiPolygon, box, GeometryCollection
+from shapely.geometry import Point, Polygon, MultiPoint, MultiPolygon, box, GeometryCollection
 from shapely.affinity import rotate, scale, translate
 import networkx as nx
 from shapely.strtree import STRtree
@@ -17,13 +17,22 @@ from shapely.ops import  voronoi_diagram,  unary_union, nearest_points
 from helpers import pruneAlongPath, findSupportNodes
 
 from concurrent.futures import ThreadPoolExecutor
+from enum import Enum, auto
 
+
+WIDTH = 300
+HEIGHT = 30
+MAXSHAPEWIDTH = 5
+MAXSHAPEHEIGHT = 5
+AMOUNTRECT = 150
+AMOUNTPOLY = 0
+MAXCORNERS = 3
 
 WIDTH = 32
-HEIGHT = 32
-MAXSHAPEWIDTH = 4
-MAXSHAPEHEIGHT = 4
-AMOUNTRECT = 25
+HEIGHT = 18
+MAXSHAPEWIDTH = 3
+MAXSHAPEHEIGHT = 2
+AMOUNTRECT = 20
 AMOUNTPOLY = 0
 MAXCORNERS = 3
 
@@ -33,8 +42,32 @@ MINTWOWAYPATHWIDTH = 2.0  # Minimum Width of a Road to keep
 BOUNDARYSPACING = 1.5  # Spacing of Points used as Voronoi Kernels
 SIMPLIFICATION_ANGLE = 35 # Angle in degrees, used for support point calculation in simple path
 
+class DrawingModes(Enum):
+    NONE = None
+    RECTANGLE = 114 # R Key
+    POLYGON = 112 # P Key
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_ 
 
 
+class Modes (Enum):
+    MODE1 = 49 # 1 Key
+    MODE2 = 50 # 2 Key
+    MODE3 = 51 # 3 Key
+    MODE4 = 52 # 4 Key
+    MODE5 = 53 # 5 Key
+    MODE6 = 54 # 6 Key
+    MODE7 = 55 # 7 Key
+    MODE8 = 56 # 8 Key
+    MODE9 = 57 # 9 Key
+    MODE0 = 48 # 0 Key
+    DRAWING = DrawingModes.NONE
+
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_ 
 
 
 class factorySimLive(mglw.WindowConfig):
@@ -42,21 +75,23 @@ class factorySimLive(mglw.WindowConfig):
     lastTime = 1
     fps_counter = 30
     #window_size = (3840, 2160)
-    #window_size = (1920, 1080)
-    window_size = (1280, 720)
+    window_size = (1920, 1080)
+    #window_size = (1280, 720)
+    #window_size = (1920*6, 1080)
     aspect_ratio = None
     fullscreen = False
     resizable = True
     selected = None
     currentScale = 1.0
-    is_darkmode = False
+    is_darkmode = True
     is_dirty = False
     is_calculating = False
     update_during_calculation = False
-    
+    clickedPoints = []
+   
 
     
-
+    
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -71,6 +106,9 @@ class factorySimLive(mglw.WindowConfig):
         
         self.colors = [self.rng.random(size=3) for _ in self.multi.geoms]
         self.G, self.I = self.future.result()
+        self.setupKeys()
+        
+        
 
         self.prog = self.ctx.program(
             vertex_shader="""
@@ -127,12 +165,10 @@ class factorySimLive(mglw.WindowConfig):
         keys = self.wnd.keys
 
         # Key presses
-
         if action == keys.ACTION_PRESS:
             # Toggle Fullscreen
             if key == keys.F:
-                self.wnd.fullscreen = not self.wnd.fullscreen
-            
+                self.wnd.fullscreen = not self.wnd.fullscreen      
             # Zoom
             if key == 43: # +
                 self.currentScale += 0.2
@@ -141,14 +177,29 @@ class factorySimLive(mglw.WindowConfig):
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
-
             # Toggle mouse exclusivity
             if key == keys.M:
                 self.wnd.mouse_exclusivity = not self.wnd.mouse_exclusivity
+            # End Drawing Mode
+            if key == keys.ESCAPE:
+                self.clickedPoints.clear()
+                self.activeModes[Modes.DRAWING] = DrawingModes.NONE
+                self.wnd.exit_key = keys.ESCAPE
 
+            if(Modes.has_value(key)):
+                self.activeModes[Modes(key)] = not self.activeModes[Modes(key)]
+
+            if(DrawingModes.has_value(key)):
+                self.activeModes[Modes.DRAWING] = DrawingModes(key)
+                self.clickedPoints.clear()
+                self.wnd.exit_key = None
+
+
+    def mouse_position_event(self, x, y, dx, dy):
+        self.cursorPosition = (x, y)
 
     def mouse_drag_event(self, x, y, dx, dy):
-        if self.selected is not None: # selected can be `0` so `is not None` is required
+        if self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
             # move object  
             temp = list(self.multi.geoms)
             temp_x = temp[self.selected].bounds[0]
@@ -158,19 +209,54 @@ class factorySimLive(mglw.WindowConfig):
                 yoff=((y / self.currentScale) - temp_y) + self.selected_offset_y
                 )            
             self.multi = MultiPolygon(temp)
-            self.is_dirty = True
-            if self.is_calculating:
-                self.update_during_calculation = True
+            self.update_needed()
 
 
     def mouse_press_event(self, x, y, button):
-        if button == 1:
-            for i, poly in enumerate(self.multi.geoms):
-                point_scaled = Point(x/self.currentScale, y/self.currentScale)
-                if poly.contains(point_scaled):
-                    self.selected = i
-                    self.selected_offset_x = poly.bounds[0] - point_scaled.x
-                    self.selected_offset_y = poly.bounds[1] - point_scaled.y
+        #Highlight and prepare for Drag
+        if button == 1:  
+            #Draw Rectangle         
+            if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE:
+                self.clickedPoints.append((x,y))
+                if len(self.clickedPoints) >= 2:
+                    self.factory_add_rect(self.clickedPoints[0], self.clickedPoints[1])
+                    self.clickedPoints.clear()
+                    #self.activeModes[Modes.DRAWING] = DrawingModes.NONE
+                    self.update_needed()
+
+             #Draw Polygon         
+            elif self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON:
+                self.clickedPoints.append((x,y))
+
+            #Prepare Mouse Drag
+            else:
+                for i, poly in enumerate(self.multi.geoms):
+                    point_scaled = Point(x/self.currentScale, y/self.currentScale)
+                    if poly.contains(point_scaled):
+                        self.selected = i
+                        self.selected_offset_x = poly.bounds[0] - point_scaled.x
+                        self.selected_offset_y = poly.bounds[1] - point_scaled.y
+
+
+        if button == 2:
+            #Finish Polygon
+            if self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON:
+                if len(self.clickedPoints) >= 3:
+                    self.factory_add_poly(self.clickedPoints)
+                    self.clickedPoints.clear()
+                    #self.activeModes[Modes.DRAWING] = DrawingModes.NONE
+                    self.update_needed()
+
+        #Shift Click to delete Objects
+        if button == 1 and self.wnd.modifiers.shift and self.selected is not None and len(self.multi.geoms) > 1:
+            temp = list(self.multi.geoms)
+            temp.pop(self.selected)
+            self.colors.pop(self.selected)
+            self.multi = MultiPolygon(temp)
+            self.colors
+            self.selected = None
+            self.update_needed()
+
 
 
     def mouse_release_event(self, x: int, y: int, button: int):
@@ -197,8 +283,6 @@ class factorySimLive(mglw.WindowConfig):
 
         self.draw_BG(cctx)
         
-        for poly, color in zip(self.multi.geoms, self.colors):
-            self.draw_poly(cctx, poly, color)
 
         if self.is_dirty:
             if self.is_calculating:
@@ -216,8 +300,21 @@ class factorySimLive(mglw.WindowConfig):
                 self.future = self.executor.submit(self.create_Paths)
                 self.is_calculating = True
 
+        if self.activeModes[Modes.MODE1]:
+            self.draw_detail_paths(cctx, self.G, self.I)
 
-        self.draw_paths(cctx, self.G, self.I)
+        if self.activeModes[Modes.MODE2]:
+            self.draw_simple_paths(cctx, self.G, self.I)
+
+        for i, (poly, color) in enumerate(zip(self.multi.geoms, self.colors)):
+            self.draw_poly(cctx, poly, color, highlight= True if i == self.selected else False)
+
+        if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
+            self.draw_live_rect(cctx, self.clickedPoints[0], self.cursorPosition)
+        if self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON and len(self.clickedPoints) > 0:
+            self.draw_live_poly(cctx, self.clickedPoints, self.cursorPosition)
+
+
         self.draw_fps(cctx, self.fps_counter)
 
         # Copy surface to texture
@@ -231,6 +328,27 @@ class factorySimLive(mglw.WindowConfig):
 
 
 #--------------------------------------------------------------------------------------------------------------------------------
+    def update_needed(self):            
+        self.is_dirty = True
+        if self.is_calculating:
+            self.update_during_calculation = True
+
+    def setupKeys(self):
+        keys = self.wnd.keys
+
+        self.activeModes = {Modes.MODE0 : False,
+                        Modes.MODE1 : False,
+                        Modes.MODE2 : False,
+                        Modes.MODE3 : False,
+                        Modes.MODE4 : False,
+                        Modes.MODE5 : False,
+                        Modes.MODE6 : False,
+                        Modes.MODE7 : False,
+                        Modes.MODE8 : False,
+                        Modes.MODE9 : False,
+                        Modes.DRAWING : DrawingModes.NONE
+        }
+
 
     def draw_fps(self, ctx, fps):
 
@@ -240,8 +358,10 @@ class factorySimLive(mglw.WindowConfig):
             ctx.set_source_rgb(1.0, 1.0, 1.0)
         else:
             ctx.set_source_rgba(0.0, 0.0, 0.0)
-
-        ctx.show_text(f"{fps:.0f}")
+        if self.activeModes[Modes.DRAWING].value:
+            ctx.show_text(f"{fps:.0f}    {self.activeModes[Modes.DRAWING].name}")
+        else:
+            ctx.show_text(f"{fps:.0f}")
 
 
     def draw_BG(self, ctx):
@@ -254,14 +374,41 @@ class factorySimLive(mglw.WindowConfig):
         ctx.fill()
 
 
-    def draw_rect(self, ctx, rect, color):
-        ctx.rectangle(rect.left, rect.top, rect.width, rect.height)
-        #Color is actually BGR in Pygame
-        ctx.set_source_rgba(*color, 0.8)
-        ctx.fill()
+    def draw_live_rect(self, ctx, topleft, bottomright):
+        ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        ctx.set_source_rgba(1.0, 0.0, 0.0, 0.3)
+        ctx.set_line_width(ctx.device_to_user_distance(2, 2)[0])
+        ctx.set_dash(list(ctx.device_to_user_distance(5, 5)))
 
-    def draw_poly(self, ctx, poly, color):
-        ctx.set_source_rgba(*color, 0.8)
+        ctx.rectangle(*ctx.device_to_user_distance(*topleft), *ctx.device_to_user_distance(*np.subtract(bottomright, topleft)))
+        ctx.fill_preserve()
+        ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+        ctx.stroke()
+
+    def draw_live_poly(self, ctx, points, cursorPosition):
+
+        ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        ctx.set_source_rgba(1.0, 0.0, 0.0, 0.3)
+        ctx.set_line_width(ctx.device_to_user_distance(2, 2)[0])
+        ctx.set_dash(list(ctx.device_to_user_distance(5, 5)))
+
+        ctx.move_to(*ctx.device_to_user_distance(*points[0]))
+        if len(points) > 1:
+            for x,y in points[1:]:
+                ctx.line_to(*ctx.device_to_user_distance(x,y))
+        ctx.line_to(*ctx.device_to_user_distance(*cursorPosition))
+        ctx.close_path()
+        ctx.fill_preserve()
+        ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+        ctx.stroke()
+
+    def draw_poly(self, ctx, poly, color, highlight=False):
+        if highlight:
+            ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+        else:
+            ctx.set_source_rgba(*color, 0.8)
         ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
         ctx.set_line_join(cairo.LINE_JOIN_ROUND)
         ctx.set_line_cap(cairo.LINE_CAP_ROUND)
@@ -273,7 +420,7 @@ class factorySimLive(mglw.WindowConfig):
         ctx.fill_preserve()
         ctx.stroke()
 
-    def draw_paths(self, ctx, G, I):
+    def draw_detail_paths(self, ctx, G, I):
 
         ctx.set_source_rgba(0.3, 0.3, 0.3, 1.0)
         ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
@@ -299,6 +446,39 @@ class factorySimLive(mglw.WindowConfig):
         ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
         ctx.stroke()
         ctx.set_dash([])
+
+    def draw_simple_paths(self, ctx, G, I):
+
+        ctx.set_source_rgba(0.0, 0.0, 0.5, 0.5)
+        ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        pos=nx.get_node_attributes(G,'pos')
+
+        for u,v in I.edges():
+            ctx.set_line_width(ctx.device_to_user_distance(10, 10)[0])
+            ctx.move_to(*pos[u])
+            ctx.line_to(*pos[v])
+            ctx.stroke()
+        
+        #crossroads = list(nx.get_node_attributes(G, "isCrossroads").keys())
+
+        endpoints=[node for node, degree in G.degree() if degree == 1]
+        crossroads= [node for node, degree in G.degree() if degree >= 3]
+
+        ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+        for point in crossroads:
+            ctx.move_to(*pos[point])
+            ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+        ctx.fill()
+
+        ctx.set_source_rgba(0.0, 1.0, 0.0, 1.0)
+        for point in crossroads:
+            ctx.move_to(*pos[point])
+            ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+        ctx.fill()
+
+
+
 
     def create_factory(self, load = False):
         polygons = []
@@ -338,7 +518,21 @@ class factorySimLive(mglw.WindowConfig):
         self.multi = scale(unary_union(polygons), yfact=-1, origin=self.bb.centroid)
 
 
+    def factory_add_rect(self, topleft, bottomright):
+        newRect = box(topleft[0]/self.currentScale, topleft[1]/self.currentScale, bottomright[0]/self.currentScale, bottomright[1]/self.currentScale)
+        temp = list(self.multi.geoms)
+        temp.append(newRect)
+        self.colors.append(self.rng.random(size=3))
+        self.multi = MultiPolygon(temp)
 
+    def factory_add_poly(self, points):
+        scaledPoints = np.array(points)/self.currentScale
+        newPoly = Polygon(scaledPoints)
+        if newPoly.is_valid:
+            temp = list(self.multi.geoms)
+            temp.append(newPoly)
+            self.colors.append(self.rng.random(size=3))
+            self.multi = MultiPolygon(temp)
 
     def scale_factory(self):
         boundingBox = self.bb.bounds   
@@ -352,9 +546,6 @@ class factorySimLive(mglw.WindowConfig):
         sugesstedscale = min(scale_x, scale_y)
 
         return sugesstedscale
-
-
-
 
 
     def create_Paths(self):
@@ -513,83 +704,84 @@ class factorySimLive(mglw.WindowConfig):
 
         if ep: 
             nodes_to_visit = [ep[0]]
-        else:
+        elif cross:
             nodes_to_visit = [cross[0]]
 
-        maxpath = 0
-        minpath = float('inf')
-        totalweight = 0
-        currentInnerNode = None
+        if ep or cross:
+            maxpath = 0
+            minpath = float('inf')
+            totalweight = 0
+            currentInnerNode = None
 
-        #DFS Start
-        while(nodes_to_visit):
+            #DFS Start
+            while(nodes_to_visit):
 
-            currentOuterNode = nodes_to_visit.pop()
-            if currentOuterNode in visited:
-                continue
-            else:
-                visited.add(currentOuterNode)
+                currentOuterNode = nodes_to_visit.pop()
+                if currentOuterNode in visited:
+                    continue
+                else:
+                    visited.add(currentOuterNode)
 
-            for outerNeighbor in G.neighbors(currentOuterNode):
-                if outerNeighbor in visited: continue
+                for outerNeighbor in G.neighbors(currentOuterNode):
+                    if outerNeighbor in visited: continue
 
-                maxpath = 0
-                minpath = float('inf')
-                totalweight = 0
+                    maxpath = 0
+                    minpath = float('inf')
+                    totalweight = 0
 
-                lastNode = currentOuterNode
-                currentInnerNode = outerNeighbor
-                tempPath.append(currentOuterNode)
-
-
-                while True:
-                    #check if next node is deadend or crossroad
-                    currentEdgeKey = str((lastNode,currentInnerNode))
-                    totalweight += G[lastNode][currentInnerNode]["weight"]
-                    pathwidth = G[lastNode][currentInnerNode]["pathwidth"]
-                    maxpath = max(maxpath, pathwidth)
-                    minpath = min(minpath, pathwidth)
-
-                    if currentInnerNode in stoppers:
-                        #found a crossroad or deadend
-                        tempPath.append(currentInnerNode)
-                        paths.append(tempPath)
-                        
-                        #Prevent going back and forth between direct connected crossroads 
-                        if lastNode != currentOuterNode:
-                            visited.add(lastNode)
-                        nodes_to_visit.append(currentInnerNode)
-
-                        pathtype = "oneway"
-                        if minpath > MINTWOWAYPATHWIDTH: pathtype = "twoway"
+                    lastNode = currentOuterNode
+                    currentInnerNode = outerNeighbor
+                    tempPath.append(currentOuterNode)
 
 
-                        I.add_node(currentOuterNode, pos=pos[currentOuterNode])
-                        I.add_node(currentInnerNode, pos=pos[currentInnerNode])
-                        I.add_edge(currentOuterNode, 
-                            currentInnerNode, 
-                            weight=totalweight,
-                            pathwidth=minpath, 
-                            max_pathwidth=maxpath, 
-                            nodelist=tempPath,
-                            pathtype=pathtype
-                        )
-                        tempPath = [] 
-                        break 
-                    else:
-                        #going along path
-                        tempPath.append(currentInnerNode)
+                    while True:
+                        #check if next node is deadend or crossroad
+                        currentEdgeKey = str((lastNode,currentInnerNode))
+                        totalweight += G[lastNode][currentInnerNode]["weight"]
+                        pathwidth = G[lastNode][currentInnerNode]["pathwidth"]
+                        maxpath = max(maxpath, pathwidth)
+                        minpath = min(minpath, pathwidth)
 
-                    for innerNeighbor in G.neighbors(currentInnerNode):
-                        #Identifying next node (there will at most be two edges connected to every node)
-                        if (innerNeighbor == lastNode):
-                            #this is last node
-                            continue
+                        if currentInnerNode in stoppers:
+                            #found a crossroad or deadend
+                            tempPath.append(currentInnerNode)
+                            paths.append(tempPath)
+                            
+                            #Prevent going back and forth between direct connected crossroads 
+                            if lastNode != currentOuterNode:
+                                visited.add(lastNode)
+                            nodes_to_visit.append(currentInnerNode)
+
+                            pathtype = "oneway"
+                            if minpath > MINTWOWAYPATHWIDTH: pathtype = "twoway"
+
+
+                            I.add_node(currentOuterNode, pos=pos[currentOuterNode])
+                            I.add_node(currentInnerNode, pos=pos[currentInnerNode])
+                            I.add_edge(currentOuterNode, 
+                                currentInnerNode, 
+                                weight=totalweight,
+                                pathwidth=minpath, 
+                                max_pathwidth=maxpath, 
+                                nodelist=tempPath,
+                                pathtype=pathtype
+                            )
+                            tempPath = [] 
+                            break 
                         else:
-                            #found the next one
-                            lastNode = currentInnerNode
-                            currentInnerNode = innerNeighbor
-                            break
+                            #going along path
+                            tempPath.append(currentInnerNode)
+
+                        for innerNeighbor in G.neighbors(currentInnerNode):
+                            #Identifying next node (there will at most be two edges connected to every node)
+                            if (innerNeighbor == lastNode):
+                                #this is last node
+                                continue
+                            else:
+                                #found the next one
+                                lastNode = currentInnerNode
+                                currentInnerNode = innerNeighbor
+                                break
         return G, I
 
 

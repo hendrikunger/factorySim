@@ -1,11 +1,9 @@
 import numpy as np
 import networkx as nx
 
-
 def calculateNodeAngles(G, cutoff=45):
 
     candidates = [node for node, degree in G.degree() if degree == 2]
-
     node_data ={}
     pos=nx.get_node_attributes(G,'pos')
 
@@ -17,7 +15,7 @@ def calculateNodeAngles(G, cutoff=45):
 
         unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
         unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
-        dot_product = np.dot(unit_vector_1, unit_vector_2)
+        dot_product = np.clip(np.dot(unit_vector_1, unit_vector_2),-0.99999999,0.99999999)
         angle = np.rad2deg(np.arccos(dot_product))
 
 
