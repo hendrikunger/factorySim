@@ -1,28 +1,28 @@
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
+
 from shapely.geometry import Point, MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box, shape
-from shapely.affinity import translate, rotate
 from shapely.strtree import STRtree
 from shapely.prepared import prep
 from shapely.ops import split,  voronoi_diagram,  unary_union, triangulate, nearest_points
 import descartes
 import networkx as nx
-import pickle
-import ezdxf
-from ezdxf.addons import geo
 from tqdm import tqdm
 
-from helpers import pruneAlongPath, calculateNodeAngles, findSupportNodes
+from routing import FactoryPath
+from creation import FactoryCreator
+from kpi import FactoryRating
+import baseConfigs
 
 import time
 # %%
-SAVEPLOT = True
+SAVEPLOT = False
 SAVEFORMAT = "png"
-DETAILPLOT = False
+DETAILPLOT = True
 PLOT = True
 TIMING = True
-LOADDATA = True
+LOADDATA = False
 LOADDXF = False
 ITERATIONS = 1
 
@@ -30,41 +30,8 @@ ITERATIONS = 1
 # pickle.dump( savedata, open( "FigureFactory.p", "wb" ) )
 
 
-#%% Single Machines
-WIDTH = 8
-HEIGHT = 8
-MAXSHAPEWIDTH = 4
-MAXSHAPEHEIGHT = 5
-AMOUNTRECT = 2
-AMOUNTPOLY = 1
-MAXCORNERS = 3
-
-#%% Full Layout
-WIDTH = 32
-HEIGHT = 32
-MAXSHAPEWIDTH = 4
-MAXSHAPEHEIGHT = 4
-AMOUNTRECT = 25
-AMOUNTPOLY = 0
-MAXCORNERS = 3
-
-#%% Big Layout
-# WIDTH = 64
-# HEIGHT = 64
-# MAXSHAPEWIDTH = 2
-# MAXSHAPEHEIGHT = 2
-# AMOUNTRECT = 180
-# AMOUNTPOLY = 0
-# MAXCORNERS = 0
-
-
-
-#%%
-MINDEADEND_LENGTH = 2.0 # If Deadends are shorter than this, they are deleted
-MINPATHWIDTH = 1.0  # Minimum Width of a Road to keep
-MINTWOWAYPATHWIDTH = 2.0  # Minimum Width of a Road to keep
-BOUNDARYSPACING = 1.5  # Spacing of Points used as Voronoi Kernels
-SIMPLIFICATION_ANGLE = 35 # Angle in degrees, used for support point calculation in simple path
+factoryConfig = baseConfigs.SMALLSQUARE
+factoryPath = FactoryPath(factoryConfig.pathParameters())
 
 
 #%% Create Layout -----------------------------------------------------------------------------------------------------------------
@@ -74,45 +41,12 @@ for i in tqdm(range(ITERATIONS)):
     totaltime = starttime
 
     rng = np.random.default_rng()
-    bb = box(0,0,WIDTH,HEIGHT)
-
-    lowerLeftCornersRect = rng.integers([0,0], [WIDTH - MAXSHAPEWIDTH, HEIGHT - MAXSHAPEHEIGHT], size=[AMOUNTRECT,2], endpoint=True)
-    lowerLeftCornersPoly = rng.integers([0,0], [WIDTH - MAXSHAPEWIDTH, HEIGHT - MAXSHAPEWIDTH], size=[AMOUNTPOLY,2], endpoint=True)
-
-    polygons = []
-    #Create Recangles
-    for x,y in lowerLeftCornersRect:
-        singlePoly = box(x,y,x + rng.integers(1, MAXSHAPEWIDTH+1), y + rng.integers(1, MAXSHAPEHEIGHT+1))
-        singlePoly= rotate(singlePoly, rng.choice([0,90,180,270]))  
-        polygons.append(singlePoly)
-
-    #Create Convex Polygons
-    for x,y in lowerLeftCornersPoly: 
-        corners = []
-        corners.append([x,y]) # First Corner
-        for _ in range(rng.integers(2,MAXCORNERS+1)):
-            corners.append([x + rng.integers(0, MAXSHAPEWIDTH+1), y + rng.integers(0, MAXSHAPEWIDTH+1)])
-
-        singlePoly = MultiPoint(corners).minimum_rotated_rectangle
-        singlePoly= rotate(singlePoly, rng.integers(0,361))  
-        #Filter Linestrings
-        if singlePoly.geom_type ==  'Polygon':
-        #Filter small Objects
-            if singlePoly.area > MAXSHAPEWIDTH*MAXSHAPEWIDTH*0.05:
-                polygons.append(singlePoly)
-        
-    multi = unary_union(MultiPolygon(polygons))
-
+    multi, bb = FactoryCreator(*factoryConfig.creationParameters()).create_factory()
     if LOADDATA:
-        loaddata = pickle.load( open( "FigureFactory.p", "rb" ) )
-        bb = loaddata["bounding_box"]
-        multi = loaddata["machines"]
+        multi, bb = FactoryCreator.load_pickled_factory("FigureFactory.p")
 
     if LOADDXF:
-        doc = ezdxf.readfile("Test.dxf")
-        geo_proxy = geo.proxy(doc.modelspace())
-        multi = shape(geo_proxy)
-
+        multi, bb = FactoryCreator.load_dxf_factory("Test.dxf")
 
     walkableArea = bb.difference(multi)
     if walkableArea.geom_type ==  'MultiPolygon':
@@ -124,11 +58,11 @@ for i in tqdm(range(ITERATIONS)):
 
 #   Create Voronoi -----------------------------------------------------------------------------------------------------------------
     #Points around boundary
-    distances = np.arange(0,  bb.boundary.length, BOUNDARYSPACING)
+    distances = np.arange(0,  bb.boundary.length, factoryConfig.BOUNDARYSPACING)
     points = [ bb.boundary.interpolate(distance) for distance in distances]
     
     #Points on Machines
-    distances = np.arange(0,  multi.boundary.length, BOUNDARYSPACING)
+    distances = np.arange(0,  multi.boundary.length, factoryConfig.BOUNDARYSPACING)
     points.extend([ multi.boundary.interpolate(distance) for distance in distances])
     bb_points = unary_union(points) 
 
@@ -238,7 +172,7 @@ for i in tqdm(range(ITERATIONS)):
 
 
     #For later --------------------------
-        # if smallestPathwidth < MINPATHWIDTH:
+        # if smallestPathwidth < factoryConfig.MINPATHWIDTH:
         #     continue
         # else:
         #     G.add_node(first_str, pos=firstTuple, pathwidth=smallestPathwidth)
@@ -258,7 +192,7 @@ for i in tqdm(range(ITERATIONS)):
 
     """
 
-    narrowPaths = [(n1, n2) for n1, n2, w in G.edges(data="pathwidth") if w < MINPATHWIDTH]
+    narrowPaths = [(n1, n2) for n1, n2, w in G.edges(data="pathwidth") if w < factoryConfig.MINPATHWIDTH]
     F = G.copy()
     F.remove_edges_from(narrowPaths)
 
@@ -280,7 +214,7 @@ for i in tqdm(range(ITERATIONS)):
     old_endpoints = [node for node, degree in F.degree() if degree == 1]
 
 
-    shortDeadEnds = pruneAlongPath(F, starts=old_endpoints, ends=old_crossroads, min_length=MINDEADEND_LENGTH)
+    shortDeadEnds = FactoryPath.pruneAlongPath(FactoryPath, F, starts=old_endpoints, ends=old_crossroads, min_length=factoryConfig.MINDEADENDLENGTH)
 
     F.remove_nodes_from(shortDeadEnds)
     endpoints = [node for node, degree in F.degree() if degree == 1]
@@ -303,7 +237,7 @@ for i in tqdm(range(ITERATIONS)):
         key = str((hit.x, hit.y))
         if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
-    nodes_to_prune = pruneAlongPath(F, starts=endpoints_to_prune, ends=crossroads, min_length=10)
+    nodes_to_prune = FactoryPath.pruneAlongPath(FactoryPath, F, starts=endpoints_to_prune, ends=crossroads, min_length=10)
 
     E = F.copy()
     E.remove_nodes_from(nodes_to_prune)
@@ -311,7 +245,7 @@ for i in tqdm(range(ITERATIONS)):
     endpoints = [node for node, degree in E.degree() if degree == 1]
     crossroads = [node for node, degree in E.degree() if degree >= 3]
 
-    nx.set_node_attributes(E, findSupportNodes(E, cutoff=SIMPLIFICATION_ANGLE))
+    nx.set_node_attributes(E, FactoryPath.findSupportNodes(FactoryPath, E, cutoff=factoryConfig.SIMPLIFICATIONANGLE))
     support = list(nx.get_node_attributes(E, "isSupport").keys())
 
 
@@ -319,75 +253,6 @@ for i in tqdm(range(ITERATIONS)):
     if TIMING: print(f"Network Filtering {nextTime - starttime}")
     starttime = nextTime
 
-
-    # Simplyfy  Graph ------------------------------------------------------------------------------------------------------------
-
-    H = E.copy()
- 
-    # Select all nodes with only 2 neighbors
-
-
-    nodes_to_remove = [n for n in H.nodes if len(list(H.neighbors(n))) == 2 and n not in support]
-  
-    # For each of those nodes
-    for node in nodes_to_remove:
-
-        # Get the two neighbors
-        neighbors = list(H.neighbors(node))
-
-        #if len is not 2 we found a loop 
-        if len(neighbors) == 2:
-            total_weight = H[neighbors[0]][node]["weight"] + H[node][neighbors[1]]["weight"]
-            pathwidth = min(H[neighbors[0]][node]["pathwidth"], H[node][neighbors[1]]["pathwidth"])
-
-            edgelist = [(pos[neighbors[0]],pos[node]), (pos[node], pos[neighbors[1]])]
-            
-            if 'edgelist' in H[neighbors[0]][node]:
-                 edgelist =  H[neighbors[0]][node]["edgelist"] + edgelist
-            if 'edgelist' in H[node][neighbors[1]]:
-                edgelist = edgelist + H[node][neighbors[1]]["edgelist"] 
-        
-            #We need to check if max_pathwidth was already set on the edge-
-            if ('max_pathwidth' in H[neighbors[0]][node]):
-                first_max_pathwidth = H[neighbors[0]][node]['max_pathwidth']
-            else:
-                first_max_pathwidth = H[neighbors[0]][node]["pathwidth"]
-
-            if ('max_pathwidth' in H[node][neighbors[1]]):
-                second_max_pathwidth = H[node][neighbors[1]]['max_pathwidth']
-            else:
-                second_max_pathwidth = H[node][neighbors[1]]["pathwidth"]
-
-            # If we have double edges, we keep the shorter one
-            if (H.has_edge(*neighbors)) and (H[neighbors[0]][neighbors[1]]['weight'] < total_weight):
-                # Old edge ist shorter, keep it
-                pass                    
-            else:
-                H.add_edge(
-                    *neighbors,
-                    weight=total_weight,
-                    pathwidth=pathwidth, 
-                    max_pathwidth=max(first_max_pathwidth, second_max_pathwidth),
-                    edgelist=edgelist
-                    )
-        # And delete the node
-        H.remove_node(node)
-
-    #Find edges that are directly connecting elements of endpoints + crossroads and set 
-    #their max_pathwidth and edge dict
-    for first, second, data in H.edges.data():
-        if 'max_pathwidth' not in data:
-            H[first][second]['max_pathwidth'] = data['pathwidth']
-        if 'edgelist' not in data:
-            H[first][second]['edgelist'] = [(pos[first],pos[second])]
-        if 'nodelist' not in data:
-            H[first][second]['nodelist'] = [(pos[first],pos[second])]
-        else:
-            H[first][second]['nodelist'] = [pos[second]] + H[first][second]['nodelist'] + [pos[first]]
-    
-    nextTime = time.perf_counter()
-    if TIMING: print(f"Network Simplification {nextTime - starttime}")        
-    starttime = nextTime
 
 
     # Alternative Simpicification and Path Generation ------------------------------------------------------------------------------------
@@ -452,7 +317,7 @@ for i in tqdm(range(ITERATIONS)):
                     nodes_to_visit.append(currentInnerNode)
 
                     pathtype = "oneway"
-                    if minpath > MINTWOWAYPATHWIDTH: pathtype = "twoway"
+                    if minpath > factoryConfig.MINTWOWAYPATHWIDTH: pathtype = "twoway"
 
 
                     I.add_node(currentOuterNode, pos=pos[currentOuterNode])
@@ -504,8 +369,8 @@ for i in tqdm(range(ITERATIONS)):
 
             
             fig, ax = plt.subplots(1,figsize=(16, 16))
-            plt.xlim(0,WIDTH)
-            plt.ylim(0,HEIGHT)
+            plt.xlim(0,bb.bounds[2])
+            plt.ylim(0,bb.bounds[3])
             plt.autoscale(False)
 
 
@@ -530,8 +395,8 @@ for i in tqdm(range(ITERATIONS)):
         # Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
         if DETAILPLOT:
             fig, ax = plt.subplots(1,figsize=(16, 16))
-            plt.xlim(0,WIDTH)
-            plt.ylim(0,HEIGHT)
+            plt.xlim(0,bb.bounds[2])
+            plt.ylim(0,bb.bounds[3])
             plt.autoscale(False)
 
             # for line in voronoiArea_:
@@ -563,8 +428,8 @@ for i in tqdm(range(ITERATIONS)):
         #  Filtering Plot -----------------------------------------------------------------------------------------------------------------
 
         fig, ax = plt.subplots(1, figsize=(16, 16))
-        ax.set_xlim(0,WIDTH)
-        ax.set_ylim(0,HEIGHT)
+        plt.xlim(0,bb.bounds[2])
+        plt.ylim(0,bb.bounds[3])
         plt.autoscale(False)
 
         if multi.geom_type ==  'Polygon':
@@ -593,9 +458,8 @@ for i in tqdm(range(ITERATIONS)):
         #  Clean Plot -----------------------------------------------------------------------------------------------------------------
 
         fig, ax = plt.subplots(1, figsize=(16, 16))
-
-        ax.set_xlim(0,WIDTH)
-        ax.set_ylim(0,HEIGHT)
+        plt.xlim(0,bb.bounds[2])
+        plt.ylim(0,bb.bounds[3])
         plt.autoscale(False)
 
         if multi.geom_type ==  'Polygon':
@@ -626,16 +490,15 @@ for i in tqdm(range(ITERATIONS)):
         #  Simplification Plot -----------------------------------------------------------------------------------------------------------------
 
         fig, ax = plt.subplots(1,figsize=(16, 16))
-        plt.xlim(0,WIDTH)
-        plt.ylim(0,HEIGHT)
+        plt.xlim(0,bb.bounds[2])
+        plt.ylim(0,bb.bounds[3])
         plt.autoscale(False)
 
-        for u,v,a in H.edges(data=True):
+        for u,v,a in I.edges(data=True):
             linecolor = rng.random(size=3)
-            for line in a["edgelist"]:
-                if(not isinstance(line[0][0], float)):
-                    print(line)
-                ax.plot(line[0][0], line[0][1], line[1][0], line[1][1], color=linecolor, linewidth=50)
+            temp = [pos[x] for x in data['nodelist']]
+            for i, node in enumerate(temp[1:]):
+                ax.plot(*temp[i-1], *node, color=linecolor, linewidth=50)
 
 
         if multi.geom_type ==  'Polygon':
@@ -645,15 +508,15 @@ for i in tqdm(range(ITERATIONS)):
                 ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
 
-        min_pathwidth = np.array(list((nx.get_edge_attributes(H,'pathwidth').values())))
-        max_pathwidth = np.array(list((nx.get_edge_attributes(H,'max_pathwidth').values())))
+        min_pathwidth = np.array(list((nx.get_edge_attributes(I,'pathwidth').values())))
+        max_pathwidth = np.array(list((nx.get_edge_attributes(I,'max_pathwidth').values())))
 
         nx.draw_networkx_nodes(E, pos=pos, ax=ax, node_size=20, node_color='black')
-        nx.draw_networkx_nodes(H, pos=pos, ax=ax, node_size=120, node_color='red')
+        nx.draw_networkx_nodes(I, pos=pos, ax=ax, node_size=120, node_color='red')
         nx.draw_networkx_nodes(E, pos=pos, ax=ax, nodelist=support, node_size=120, node_color='green')
         #old simplification
-        #nx.draw_networkx_edges(H, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey")
-        #nx.draw_networkx_edges(H, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
+        #nx.draw_networkx_edges(I, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey")
+        #nx.draw_networkx_edges(I, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
         nx.draw_networkx_edges(E, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
 
         min_pathwidth = np.array(list((nx.get_edge_attributes(I,'pathwidth').values())))
@@ -673,8 +536,8 @@ for i in tqdm(range(ITERATIONS)):
         if DETAILPLOT:
 
             fig, ax = plt.subplots(1,figsize=(16, 16))
-            plt.xlim(0,WIDTH)
-            plt.ylim(0,HEIGHT)
+            plt.xlim(0,bb.bounds[2])
+            plt.ylim(0,bb.bounds[3])
             plt.autoscale(False)
 
             ax.add_patch(descartes.PolygonPatch(walkableArea, alpha=0.5))
@@ -702,15 +565,13 @@ for i in tqdm(range(ITERATIONS)):
                 if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
 
-            plt.show()
-
             if SAVEPLOT: plt.savefig(f"{i+1}_5_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT)
             plt.show()
 
         #  Path Plot --------------------------------------------------------------------------------------------------------
         fig, ax = plt.subplots(1,figsize=(16, 16))
-        plt.xlim(0,WIDTH)
-        plt.ylim(0,HEIGHT)
+        plt.xlim(0,bb.bounds[2])
+        plt.ylim(0,bb.bounds[3])
         plt.autoscale(False)
 
         nx.draw(E, pos=pos, ax=ax, node_size=80, node_color='black')
@@ -727,7 +588,7 @@ for i in tqdm(range(ITERATIONS)):
             for j, poly in enumerate(multi.geoms):
                 ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
-        if SAVEPLOT: plt.savefig(f"{i+1}_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT)
+        if SAVEPLOT: plt.savefig(f"{i+1}_6_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT)
         plt.show()
 
         nextTime = time.perf_counter()
@@ -768,27 +629,13 @@ for i in tqdm(range(ITERATIONS)):
 
 
 #%%
-print(f"H.size(): {H.size()}")
-print(f"I.size(): {I.size()}\n")
+print(f"I.size: {I.size()}\n")
+print(f"I.weight: {I.size(weight='weight')}\n")
+print(f"I.pathwidth: {I.size(weight='pathwidth')}\n")
+print(f"I.max_pathwidth: {I.size(weight='max_pathwidth')}\n")
 
-print(f"H.size(): {H.size(weight='weight')}")
-print(f"I.size(): {I.size(weight='weight')}\n")
+factoryRating = FactoryRating(None, E, I)
 
-print(f"H.size(): {H.size(weight='pathwidth')}")
-print(f"I.size(): {I.size(weight='pathwidth')}\n")
-
-print(f"H.size(): {H.size(weight='max_pathwidth')}")
-print(f"I.size(): {I.size(weight='max_pathwidth')}\n")
-
-print(f"Mean Road Dimension Variability: {np.mean(min_pathwidth/max_pathwidth)}")
+print(f"Mean Road Dimension Variability: {factoryRating.PathWideVariance()}")
 
 
-
-#%%
-
-
-print(multi)
-
-# %%
-
-# %%
