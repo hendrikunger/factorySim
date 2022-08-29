@@ -1,6 +1,8 @@
 from array import array
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+import queue
+import json
 
 import cairo
 import moderngl
@@ -8,9 +10,10 @@ import moderngl_window as mglw
 import numpy as np
 from shapely.geometry import Point, Polygon, MultiPolygon, box
 from shapely.affinity import translate
+from paho.mqtt import client as mqtt
 
 from routing import FactoryPath
-from rendering import draw_simple_paths, draw_detail_paths, draw_poly, draw_pathwidth_calculation
+from rendering import draw_simple_paths, draw_detail_paths, draw_poly, draw_pathwidth_circles, draw_route_lines
 from creation import FactoryCreator
 import baseConfigs 
 
@@ -43,13 +46,14 @@ class Modes (Enum):
         return value in cls._value2member_map_ 
 
 
+
 class factorySimLive(mglw.WindowConfig):
     title = "factorySimLive"
     lastTime = 1
     fps_counter = 30
     #window_size = (3840, 2160)
-    window_size = (1920, 1080)
-    #window_size = (1280, 720)
+    #window_size = (1920, 1080)
+    window_size = (1280, 720)
     #window_size = (1920*6, 1080)
     aspect_ratio = None
     fullscreen = False
@@ -63,7 +67,7 @@ class factorySimLive(mglw.WindowConfig):
     clickedPoints = []
     factoryPath = None
     factoryConfig = baseConfigs.SMALL
-
+    mqtt_Q = None # Holds mqtt messages till they are processed
       
 
     def __init__(self, **kwargs):
@@ -79,6 +83,14 @@ class factorySimLive(mglw.WindowConfig):
         self.colors = [self.rng.random(size=3) for _ in self.multi.geoms]
         self.G, self.I = self.future.result()
         self.setupKeys()
+        #MQTT Connection
+        self.mqtt_Q = queue.Queue(maxsize=100)
+        self.mqtt_client = mqtt.Client(client_id="factorySimLive")
+        self.mqtt_client.on_connect = self.on_connect
+        self.mqtt_client.on_disconnect = self.on_disconnect
+        self.mqtt_client.on_message = self.on_message
+        self.mqtt_client.connect("broker.hivemq.com", 1883)
+        self.mqtt_client.loop_start()
         
         
 
@@ -131,6 +143,7 @@ class factorySimLive(mglw.WindowConfig):
     def close(self):
         print("closing")
         self.executor.shutdown()
+        self.mqtt_client.loop_stop()
         
 
     def key_event(self, key, action, modifiers):
@@ -174,6 +187,7 @@ class factorySimLive(mglw.WindowConfig):
         if self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
             # move object  
             temp = list(self.multi.geoms)
+            #Get coordinates of objects top left corner
             temp_x = temp[self.selected].bounds[0]
             temp_y = temp[self.selected].bounds[1] # max y for shapely, min y for pygame coordinates
             temp[self.selected] = translate(self.multi.geoms[self.selected], 
@@ -246,6 +260,7 @@ class factorySimLive(mglw.WindowConfig):
         texture.use(location=0)
         self.screen_rectangle.render(mode=moderngl.TRIANGLE_STRIP)
         texture.release()
+        self.process_mqtt()
 
 
     def render_cairo_to_texture(self):
@@ -283,8 +298,10 @@ class factorySimLive(mglw.WindowConfig):
             cctx = draw_simple_paths(cctx, self.G, self.I)
         
         if self.activeModes[Modes.MODE3]:
-            cctx = draw_pathwidth_calculation(cctx, self.factoryPath.route_lines, self.G)
+            cctx = draw_route_lines(cctx, self.factoryPath.route_lines)
 
+        if self.activeModes[Modes.MODE4]:
+            cctx = draw_pathwidth_circles(cctx, self.G)
 
         for i, (poly, color) in enumerate(zip(self.multi.geoms, self.colors)):
             cctx = draw_poly(cctx, poly, color, highlight= True if i == self.selected else False)
@@ -414,6 +431,66 @@ class factorySimLive(mglw.WindowConfig):
         sugesstedscale = min(scale_x, scale_y)
 
         return sugesstedscale
+
+
+
+# MQTT Stuff ----------------------------------------------------------------
+
+    def on_connect(self, client, userdata, flags, rc):
+        print("Connected with result code "+str(rc))
+        client.subscribe("EDF/#")
+
+    def on_disconnect(self, client, userdata, rc):
+        print("Disconnected with result code "+str(rc))
+
+    def on_message(self, client, userdata, msg):
+        try:
+            self.mqtt_Q.put_nowait((msg.topic, msg.payload))
+        except queue.Full:
+            print("Dropping message because queue is full.")
+            return
+
+    def process_mqtt(self):
+
+        if not self.mqtt_Q.empty():
+            try:
+                topic, payload = self.mqtt_Q.get_nowait()
+            except queue.Empty:
+                print("Tried reading from empty Queue.")
+                return
+            if topic == "EDF/bg":
+                if payload == b"True":
+                    self.is_darkmode = True
+                elif payload == b"False":
+                    self.is_darkmode = False
+                else:
+                    print("Unknown payload for EDF/bg: " + payload)
+
+            if topic.startswith("EDF/pos/"):
+                pp = json.loads(payload)
+                index = topic.split("/")
+                #safeguard against misformed topics
+                if len(index) >=2:
+                    try:
+                        index = int(index[2])
+                    except ValueError:
+                        print("Not an integer: ", index[2])
+                        return
+                        
+                    temp = list(self.multi.geoms)
+                    temp_x = temp[index].bounds[0]
+                    temp_y = temp[index].bounds[1] # max y for shapely, min y for pygame coordinates
+                    temp[index] = translate(self.multi.geoms[index], 
+                    xoff=(pp["x"]- temp_x),
+                    yoff=(pp["y"] - temp_y)
+                    )            
+                    self.multi = MultiPolygon(temp)
+                    self.update_needed()
+
+
+                
+
+
 
 if __name__ == "__main__":
     factorySimLive.run()

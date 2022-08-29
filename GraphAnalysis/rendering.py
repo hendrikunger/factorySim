@@ -77,19 +77,21 @@ def draw_poly(ctx, poly, color, highlight=False):
     ctx.stroke()
     return ctx
 
-def draw_pathwidth_calculation(ctx, route_lines, G):
-
-    for line in route_lines:
-        ctx.move_to(line.xy[0][0], line.xy[1][0])
-        ctx.line_to(line.xy[0][1], line.xy[1][1])
-    ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
-    ctx.set_source_rgba(0.5, 0.5, 0.5, 1.0)
-    ctx.stroke()
+def draw_pathwidth_circles(ctx, G):
 
     for _ , data in G.nodes(data=True):
         ctx.move_to(data['pos'][0] + data['pathwidth'], data['pos'][1])
         ctx.arc(*data['pos'], data['pathwidth'], 0, 2*np.pi)
     ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
     ctx.set_source_rgba(0.0, 0.0, 0.8, 0.8)
+    ctx.stroke()
+    return ctx
+
+def draw_route_lines(ctx, route_lines):
+    for line in route_lines:
+        ctx.move_to(line.xy[0][0], line.xy[1][0])
+        ctx.line_to(line.xy[0][1], line.xy[1][1])
+    ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
+    ctx.set_source_rgba(0.5, 0.5, 0.5, 1.0)
     ctx.stroke()
     return ctx
