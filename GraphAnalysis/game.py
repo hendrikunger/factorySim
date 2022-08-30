@@ -206,7 +206,7 @@ class factorySimLive(mglw.WindowConfig):
             if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE:
                 self.clickedPoints.append((x,y))
                 if len(self.clickedPoints) >= 2:
-                    self.factory_add_rect(self.clickedPoints[0], self.clickedPoints[1])
+                    self.factory_add_rect(self.clickedPoints[0], self.clickedPoints[1], useWindowCoordinates=True)
                     self.clickedPoints.clear()
                     #self.activeModes[Modes.DRAWING] = DrawingModes.NONE
                     self.update_needed()
@@ -334,7 +334,7 @@ class factorySimLive(mglw.WindowConfig):
         keys = self.wnd.keys
 
         self.activeModes = {Modes.MODE0 : False,
-                        Modes.MODE1 : False,
+                        Modes.MODE1 : True,
                         Modes.MODE2 : False,
                         Modes.MODE3 : False,
                         Modes.MODE4 : False,
@@ -402,8 +402,12 @@ class factorySimLive(mglw.WindowConfig):
         ctx.stroke()
 
 
-    def factory_add_rect(self, topleft, bottomright):
-        newRect = box(topleft[0]/self.currentScale, topleft[1]/self.currentScale, bottomright[0]/self.currentScale, bottomright[1]/self.currentScale)
+    def factory_add_rect(self, topleft, bottomright, useWindowCoordinates = False):
+        if useWindowCoordinates:
+            newRect = box(topleft[0]/self.currentScale, topleft[1]/self.currentScale, bottomright[0]/self.currentScale, bottomright[1]/self.currentScale)
+        else:
+            newRect = box(topleft[0], topleft[1], bottomright[0], bottomright[1])
+
         temp = list(self.multi.geoms)
         temp.append(newRect)
         self.colors.append(self.rng.random(size=3))
@@ -451,7 +455,6 @@ class factorySimLive(mglw.WindowConfig):
             return
 
     def process_mqtt(self):
-
         if not self.mqtt_Q.empty():
             try:
                 topic, payload = self.mqtt_Q.get_nowait()
@@ -466,29 +469,49 @@ class factorySimLive(mglw.WindowConfig):
                 else:
                     print("Unknown payload for EDF/bg: " + payload)
 
-            if topic.startswith("EDF/pos/"):
-                pp = json.loads(payload)
-                index = topic.split("/")
-                #safeguard against misformed topics
-                if len(index) >=2:
-                    try:
-                        index = int(index[2])
-                    except ValueError:
-                        print("Not an integer: ", index[2])
-                        return
-                        
-                    temp = list(self.multi.geoms)
-                    temp_x = temp[index].bounds[0]
-                    temp_y = temp[index].bounds[1] # max y for shapely, min y for pygame coordinates
-                    temp[index] = translate(self.multi.geoms[index], 
-                    xoff=(pp["x"]- temp_x),
-                    yoff=(pp["y"] - temp_y)
-                    )            
-                    self.multi = MultiPolygon(temp)
-                    self.update_needed()
+            if topic.startswith("EDF/machines/"):
+                if topic.endswith("/pos"):
+                    self.handleMQTT_Position(topic, payload)
+                if topic.endswith("/geom"):
+                    self.handleMQTT_Geometry(topic, payload)
 
 
-                
+    def extractID(self, topic):
+        index = topic.split("/")
+        #safeguard against misformed topics
+        if len(index) >=2:
+            try:
+                index = int(index[2])
+                return index
+            except ValueError:
+                print("Not an integer: ", index[2])
+                return None
+
+
+    def handleMQTT_Position(self, topic, payload):
+        pp = json.loads(payload)
+        index = self.extractID(topic)
+        if index is not None and "x" in pp and "y" in pp:
+            temp = list(self.multi.geoms)
+            temp_x = temp[index].bounds[0]
+            temp_y = temp[index].bounds[1] # max y for shapely, min y for pygame coordinates
+            temp[index] = translate(self.multi.geoms[index], 
+            xoff=(pp["x"] - temp_x),
+            yoff=(pp["y"] - temp_y)
+            )            
+            self.multi = MultiPolygon(temp)
+            self.update_needed()
+        else:
+            print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index")
+    
+    def handleMQTT_Geometry(self, topic, payload):
+        pp = json.loads(payload)
+        index = self.extractID(topic)
+        if index is not None and "topleft_x" in pp and "topleft_y" in pp and "bottomright_x" in pp and "bottomright_y" in pp:
+            self.factory_add_rect((pp["topleft_x"],pp["topleft_y"]),(pp["bottomright_x"],pp["bottomright_y"]))
+            self.update_needed()
+        else:
+            print("MQTT message malformed. Needs JSON Payload containing topleft_x, topleft_y, bottomright_x, bottomright_y")
 
 
 
