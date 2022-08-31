@@ -96,7 +96,7 @@ class FactorySimEnv(gym.Env):
         objectScaling = self.objectScaling,
         verboseOutput = self.Loglevel)
 
-        self.machineCount = len(self.factory.machine_list)
+        self.machineCount = len(self.factory.machine_dict)
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0

@@ -7,7 +7,7 @@ from itertools import combinations
 from time import time
 
 import numpy as np
-import ifcopenshell
+
 import cairo
 import networkx as nx
 import pandas as pd
@@ -15,6 +15,7 @@ import pandas as pd
 from shapely.geometry import  Polygon,  MultiPolygon
 from shapely.affinity import translate, rotate
 from shapely.ops import unary_union
+from factorySim.creation import FactoryCreator
 
 
 class FactorySim:
@@ -47,13 +48,12 @@ class FactorySim:
         if(self.verboseOutput >= 2):
             print("Lade: ", chosen_ifc_file)
 
-        self.ifc_file = ifcopenshell.open(chosen_ifc_file)
+        self.ifc_file = chosen_ifc_file
 
         if(self.verboseOutput >= 3):
             self.printTime("Datei geladen")
         #Importing Machines
 
-        self.machine_list = []
         if(self.MAXMF_ELEMENTS):
 
             path = os.path.join(os.path.dirname(chosen_ifc_file), "MFO_LIB.ifc")
@@ -65,14 +65,16 @@ class FactorySim:
             if(self.verboseOutput >= 2):
                 print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {mfo_ifc_file_path} geladen.")
             #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
-            self.machine_list = self.importIFC_Data(ifcopenshell.open(mfo_ifc_file_path), "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
+            self.machine_dict = FactoryCreator.load_ifc_factory(mfo_ifc_file_path, "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
         else:
             if(self.verboseOutput >= 2):
                 print("Nutze alle MF Objekte in der IFC Datei")
-            self.machine_list = self.importIFC_Data(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
+            self.machine_dict = FactoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
 
+        if(self.verboseOutput >= 1):
+            self.printTime(f"IFCBUILDINGELEMENTPROXY geparsed")
         #Importing Walls
-        self.wall_list = self.importIFC_Data(self.ifc_file, "IFCWALL") 
+        self.wall_list = FactoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL") 
         self.machineCollisionList = []
         self.wallCollisionList = []
 
@@ -85,7 +87,7 @@ class FactorySim:
 
         self.episodeCounter = 0
         
-        allElements = unary_union([x.poly for x in self.wall_list])
+        allElements = unary_union([x.poly for x in self.wall_list.values()])
  
         #Shifting and Scaling to fit into target Output Size
         boundingBox = allElements.bounds      
@@ -104,10 +106,11 @@ class FactorySim:
             scale_y = self.HEIGHT / (self.max_value_y - self.min_value_y)
             scale = min(scale_x, scale_y)
 
-            for machine in self.machine_list:
+            for machine in self.machine_dict.values():
                 machine.scale_Points(scale * objectScaling, scale * objectScaling, -self.min_value_x, -self.min_value_y)
-            for wall in self.wall_list:
+            for wall in self.wall_list.values():
                 wall.scale_Points(scale, scale, -self.min_value_x, -self.min_value_y)
+
             self.min_value_x = (self.min_value_x - self.min_value_x) * scale   
             self.max_value_x = (self.max_value_x - self.min_value_x) * scale   
             self.min_value_y = (self.min_value_y - self.min_value_y) * scale   
@@ -119,8 +122,8 @@ class FactorySim:
         
         #Creating random positions
         if randomPos:
-            for index, _ in enumerate(self.machine_list):
-                self.update(index,
+            for key in self.machine_dict:
+                self.update(key,
                     xPosition = random.uniform(-1,1),
                     yPosition = random.uniform(-1,1),
                     rotation = random.uniform(-1,1),
@@ -132,8 +135,8 @@ class FactorySim:
         #Import Materialflow from Excel
         if randomMF is True:
             names = []
-            for _ in range(0,len(self.machine_list) * 2):
-                samples = random.sample(self.machine_list, k=2)
+            for _ in range(0,len(self.machine_dict) * 2):
+                samples = random.sample(list(self.machine_dict.values()), k=2)
                 names.append([samples[0].name, samples[1].name]) 
             self.materialflow_file = pd.DataFrame(data=names, columns=["from", "to"])
             self.materialflow_file['intensity'] = np.random.randint(1,100, size=len(self.materialflow_file))
@@ -152,7 +155,8 @@ class FactorySim:
         #normalise intensity sum 
         self.materialflow_file['intensity_sum_norm'] = self.materialflow_file['intensity_sum'] / self.materialflow_file.max()["intensity_sum"]
         #use machine index as sink and source for materialflow
-        machine_dict = {machine.name: index for index, machine in enumerate(self.machine_list)}
+        #Replace Machine Names in Material flow (From Sketchup Import) with machine dict key
+        machine_dict = {machine.name: key for key, machine in self.machine_dict.items()}
         self.materialflow_file[['from','to']] = self.materialflow_file[['from','to']].replace(machine_dict)
         #set initial values for costs
         self.materialflow_file['costs'] = 0
@@ -188,7 +192,7 @@ class FactorySim:
             #Always choose Representation 0
             items = element.Representation.Representations[0].Items
 
-            #Parse imported data into MFO Object (Machine, Wall, ...)
+            #Parse imported data into Factory Object (Machine, Wall, ...)
   
             result = []
 
@@ -223,8 +227,8 @@ class FactorySim:
             #Fix coordinates, since ifc does not save geometry at the correct position
             singleElement = translate(singleElement, origin[0], origin[1])
             singleElement = rotate(singleElement, rotation, origin=(origin[0], origin[1]), use_radians=True)
-            #create MFO Object       
-            mfo_object = MFO(gid=element.GlobalId, 
+            #create Factory Object       
+            mfo_object = FactoryObject(gid=element.GlobalId, 
                             name=element.Name + my_uuid,
                             origin=(origin[0], origin[1]),
                             poly=singleElement)
@@ -238,31 +242,38 @@ class FactorySim:
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0, massUpdate = False):
+        if type(machineIndex) == int:
+            if machineIndex< len(self.machine_dict):
+                machineIndex = list(self.machine_dict)[machineIndex]
+            else:
+                print("Machine Index not found")
+                return
+
         if not massUpdate: self.episodeCounter += 1
         if(skip < 0.8):
-            self.lastUpdatedMachine = self.machine_list[machineIndex].gid
+            self.lastUpdatedMachine = self.machine_dict[machineIndex].gid
 
             if(self.verboseOutput >= 2):
-                print(f"Update: {self.machine_list[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
+                print(f"Update: {self.machine_dict[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
             if (rotation is not None):
                 mappedRot = self.mapRange(np.clip(rotation,-1.0, 1.0), (-1,1), (0, 2*math.pi))
-                self.machine_list[machineIndex].rotate_Item(mappedRot)
+                self.machine_dict[machineIndex].rotate_Item(mappedRot)
 
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
-            mappedXPos = self.mapRange(np.clip(xPosition,-1.0, 1.0), (-1,1), (0,self.WIDTH - self.machine_list[machineIndex].width))
-            mappedYPos = self.mapRange(np.clip(yPosition,-1.0, 1.0), (-1,1), (0,self.HEIGHT - self.machine_list[machineIndex].height))
+            mappedXPos = self.mapRange(np.clip(xPosition,-1.0, 1.0), (-1,1), (0,self.WIDTH - self.machine_dict[machineIndex].width))
+            mappedYPos = self.mapRange(np.clip(yPosition,-1.0, 1.0), (-1,1), (0,self.HEIGHT - self.machine_dict[machineIndex].height))
             #mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH))
             #mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT))
 
-            self.machine_list[machineIndex].translate_Item(mappedXPos, mappedYPos)
+            self.machine_dict[machineIndex].translate_Item(mappedXPos, mappedYPos)
             if not massUpdate:
                 self.findCollisions()
             if(self.verboseOutput >= 3):
-                self.printTime(f"{self.machine_list[machineIndex].name} geupdated")
+                self.printTime(f"{self.machine_dict[machineIndex].name} geupdated")
         else:
              if(self.verboseOutput >= 2):
-                print(f"Update: {self.machine_list[machineIndex].name} - Skipped Update")
+                print(f"Update: {self.machine_dict[machineIndex].name} - Skipped Update")
 
 
     
@@ -328,7 +339,7 @@ class FactorySim:
 
 
         #if(self.episodeCounter >= 3 * len(self.machine_list)):
-        if(self.episodeCounter > len(self.machine_list)+1):
+        if(self.episodeCounter > len(self.machine_dict)+1):
             done = True
             output["done"] = True
         else:
@@ -348,8 +359,8 @@ class FactorySim:
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF_Helper(self, source, sink): 
-        source_center = self.machine_list[int(source)].center
-        sink_center = self.machine_list[int(sink)].center
+        source_center = self.machine_dict[source].center
+        sink_center = self.machine_dict[sink].center
         return math.sqrt(math.pow(source_center.x-sink_center.x,2) + math.pow(source_center.y-sink_center.y,2))
 
  #------------------------------------------------------------------------------------------------------------
@@ -375,10 +386,10 @@ class FactorySim:
         #    machineCollisionArea += collision.area()
         #for collision in self.wallCollisionList:
         #   wallCollisionArea += collision.area() 
-        #for machine in self.machine_list:      
+        #for machine in self.machine_list.values():      
         #    totalMachineArea += machine.hull.area()
 
-        #print(len(list(combinations(self.machine_list, 2))))
+        #print(len(list(combinations(self.machine_list.values(), 2))))
         nMachineCollisions = len(self.machineCollisionList)
         nWallCollosions = len(self.wallCollisionList)
 
@@ -400,7 +411,7 @@ class FactorySim:
         self.collisionAfterLastUpdate = False
         #Machines with Machines
         self.machineCollisionList = []       
-        for a,b in combinations(self.machine_list, 2):
+        for a,b in combinations(self.machine_dict.values(), 2):
             if a.poly.overlaps(b.poly):
                 if(self.verboseOutput >= 4):
                     print(f"Kollision zwischen {a.name} und {b.name} gefunden.")
@@ -411,8 +422,8 @@ class FactorySim:
                 if(a.gid == self.lastUpdatedMachine or b.gid == self.lastUpdatedMachine): self.collisionAfterLastUpdate = True
         #Machines with Walls     
         self.wallCollisionList = []
-        for a in self.wall_list:
-            for b in self.machine_list:
+        for a in self.wall_list.values():
+            for b in self.machine_dict.values():
                 if a.poly.overlaps(b.poly):
                     if(self.verboseOutput >= 4):
                         print(f"Kollision Wand {a.name} und Maschine {b.name} gefunden.")
@@ -445,7 +456,7 @@ class FactorySim:
       #Walls
         if drawWalls:
             ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
-            for wall in self.wall_list:
+            for wall in self.wall_list.values():
                 #draw all walls
                 for poly in wall.poly.geoms:
                     ctx.set_source_rgb(0, 0, 0)
@@ -465,7 +476,7 @@ class FactorySim:
         if drawMachines:
             ctx.set_fill_rule(cairo.FillRule.WINDING)
             ctx.set_line_width(self.DOT_RADIUS)
-            for index, machine in enumerate(self.machine_list):
+            for index, machine in enumerate(self.machine_dict.values()):
 
                 for poly in machine.poly.geoms:
                     for point in poly.exterior.coords: 
@@ -475,7 +486,7 @@ class FactorySim:
                     if(highlight is None):
                         ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
                     #highlighted machine
-                    elif(index == highlight):
+                    elif(index == highlight or machine.gid == highlight):
                         ctx.set_source_rgb(0.9, 0.9, 0.9)
                     #other machines
                     else:
@@ -504,14 +515,16 @@ class FactorySim:
         if drawMaterialflow:
 
             for index, row in self.materialflow_file.iterrows():
+                current_from_Machine = self.machine_dict[row['from']]
+                current_to_Machine = self.machine_dict[row['to']]
                 try:
                     if(drawColors):
-                        ctx.set_source_rgb(self.machine_list[int(row['from'])].color[0], self.machine_list[int(row['from'])].color[1], self.machine_list[int(row['from'])].color[2])
+                        ctx.set_source_rgb(*current_from_Machine.color)
                     else:
                         ctx.set_source_rgb(0.6, 0.6, 0.6)
 
-                    ctx.move_to(self.machine_list[int(row['from'])].center.x, self.machine_list[int(row['from'])].center.y)
-                    ctx.line_to(self.machine_list[int(row['to'])].center.x, self.machine_list[int(row['to'])].center.y)
+                    ctx.move_to(current_from_Machine.center.x, current_from_Machine.center.y)
+                    ctx.line_to(current_to_Machine.center.x, current_to_Machine.center.y)
                     ctx.set_line_width(row["intensity_sum_norm"] * self.MAX_STROKE_WIDTH)
                     ctx.stroke()   
                 except KeyError:
@@ -540,9 +553,9 @@ class FactorySim:
             ctx.fill()
         
         #draw machine positions
-        for i, machine in enumerate(self.machine_list):
+        for i, machine in enumerate(self.machine_dict.values()):
             for poly in machine.poly.geoms:
-                if ((i == highlight) and (highlight is not None)):
+                if (((i == highlight) or machine.gid==highlight) and (highlight is not None)):
                     ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
                 elif randomcolors:
                         ctx.set_source_rgb(random.random(), random.random(), random.random())
@@ -636,7 +649,7 @@ class FactorySim:
  # Destructor  
  #------------------------------------------------------------------------------------------------------------
     def __del__(self):
-        del(self.machine_list)
+        del(self.machine_dict)
         del(self.wall_list)
         del(self.machineCollisionList)
         del(self.wallCollisionList)
@@ -742,8 +755,8 @@ def main():
 
     
 if __name__ == "__main__":
-    from factorySim.Helpers.MFO import MFO 
+    from factorySim.factoryObject import FactoryObject 
     main()
 else:
-    from factorySim.Helpers.MFO import MFO
+    from factorySim.factoryObject import FactoryObject
     
