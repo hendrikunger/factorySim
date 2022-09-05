@@ -9,72 +9,71 @@ from time import time
 import numpy as np
 
 import cairo
-import networkx as nx
 import pandas as pd
-
 from shapely.geometry import  Polygon,  MultiPolygon
-from shapely.affinity import translate, rotate
-from shapely.ops import unary_union
+
 from factorySim.creation import FactoryCreator
+import factorySim.baseConfigs as baseConfigs
 
 
 class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file, width=1000, heigth=1000, randseed = None, path_to_materialflow_file = None, outputfile = "Out", randomPos = False, randomMF = False, verboseOutput = 0, maxMF_Elements = None, objectScaling = 1.0):
-        self.WIDTH = width
-        self.HEIGHT = heigth
+    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALL, randseed = None, randomPos = False,  verboseOutput = 0, maxMF_Elements = None, objectScaling = 1.0):
+        self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.MAXMF_ELEMENTS = maxMF_Elements
-        self.MAX_STROKE_WIDTH = min(width,heigth) * 0.04 * objectScaling
-        self.DOT_RADIUS = self.MAX_STROKE_WIDTH / 4
-
+        self.factoryCreator = FactoryCreator(*factoryConfig.creationParameters())
         self.verboseOutput = verboseOutput
         self.RANDSEED = randseed
         random.seed(randseed)
             
         self.timezero = time()
         self.lasttime = 0
-        
-        self.outputfile = outputfile
 
         if(os.path.isdir(path_to_ifc_file)):
             
-            chosen_ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x and "LIB" not in x])
-            chosen_ifc_file = os.path.join(path_to_ifc_file, chosen_ifc_file)
+            self.ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x and "LIB" not in x])
+            self.ifc_file = os.path.join(path_to_ifc_file, self.ifc_file)
         else:
-            chosen_ifc_file = path_to_ifc_file
+            self.ifc_file = path_to_ifc_file
             
         if(self.verboseOutput >= 2):
-            print("Lade: ", chosen_ifc_file)
-
-        self.ifc_file = chosen_ifc_file
+            print("Lade: ", self.ifc_file)
 
         if(self.verboseOutput >= 3):
             self.printTime("Datei geladen")
+
         #Importing Machines
+        if path_to_ifc_file:
+            if(self.MAXMF_ELEMENTS):
+                path = os.path.join(os.path.dirname(self.ifc_file), "MFO_LIB.ifc")
+                if(os.path.exists(path)):
+                    mfo_ifc_file_path = path
+                else:
+                    mfo_ifc_file_path = self.ifc_file
 
-        if(self.MAXMF_ELEMENTS):
-
-            path = os.path.join(os.path.dirname(chosen_ifc_file), "MFO_LIB.ifc")
-            if(os.path.exists(path)):
-                mfo_ifc_file_path = path
+                if(self.verboseOutput >= 2):
+                    print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {mfo_ifc_file_path} geladen.")
+                #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
+                self.machine_dict = self.factoryCreator.load_ifc_factory(mfo_ifc_file_path, "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
             else:
-                mfo_ifc_file_path = chosen_ifc_file
+                if(self.verboseOutput >= 2):
+                    print("Nutze alle MF Objekte in der IFC Datei")
+                self.machine_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
 
-            if(self.verboseOutput >= 2):
-                print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {mfo_ifc_file_path} geladen.")
-            #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
-            self.machine_dict = FactoryCreator.load_ifc_factory(mfo_ifc_file_path, "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
+            #Set factory size accordint to what we have loaded from file:
+            bbox = self.factoryCreator.bb.bounds
+            self.FACTORYDIMENSIONS = (bbox[2], bbox[3])
+
+        #Random Machines if nothing to import
         else:
-            if(self.verboseOutput >= 2):
-                print("Nutze alle MF Objekte in der IFC Datei")
-            self.machine_dict = FactoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
+            self.machine_dict = self.factoryCreator.create_factory()
 
         if(self.verboseOutput >= 1):
             self.printTime(f"IFCBUILDINGELEMENTPROXY geparsed")
         #Importing Walls
-        self.wall_list = FactoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL") 
+        self.wall_list = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL") 
         self.machineCollisionList = []
         self.wallCollisionList = []
 
@@ -86,40 +85,11 @@ class FactorySim:
         self.collisionAfterLastUpdate = False # True if latest update leads to new collsions
 
         self.episodeCounter = 0
-        
-        allElements = unary_union([x.poly for x in self.wall_list.values()])
- 
-        #Shifting and Scaling to fit into target Output Size
-        boundingBox = allElements.bounds      
-        self.min_value_x = boundingBox[0]     
-        self.max_value_x = boundingBox[2]     
-        self.min_value_y = boundingBox[1]     
-        self.max_value_y = boundingBox[3]     
-        del(allElements)
 
-        if(self.verboseOutput >= 3):
-            self.printTime("Boundingbox erstellt")
- 
-        if((self.max_value_x > self.WIDTH) or (self.max_value_y > self.HEIGHT)):
-            #Calculate new scale
-            scale_x = self.WIDTH / (self.max_value_x - self.min_value_x)
-            scale_y = self.HEIGHT / (self.max_value_y - self.min_value_y)
-            scale = min(scale_x, scale_y)
-
-            for machine in self.machine_dict.values():
-                machine.scale_Points(scale * objectScaling, scale * objectScaling, -self.min_value_x, -self.min_value_y)
-            for wall in self.wall_list.values():
-                wall.scale_Points(scale, scale, -self.min_value_x, -self.min_value_y)
-
-            self.min_value_x = (self.min_value_x - self.min_value_x) * scale   
-            self.max_value_x = (self.max_value_x - self.min_value_x) * scale   
-            self.min_value_y = (self.min_value_y - self.min_value_y) * scale   
-            self.max_value_y = (self.max_value_y - self.min_value_y) * scale 
-
+    
         if(self.verboseOutput >= 3):
             self.printTime("Skaliert")
-        
-        
+
         #Creating random positions
         if randomPos:
             for key in self.machine_dict:
@@ -133,20 +103,19 @@ class FactorySim:
         self.findCollisions()
         
         #Import Materialflow from Excel
-        if randomMF is True:
+        if path_to_materialflow_file:
+            self.materialflow_file = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
+            #Rename Colums
+            indexes = self.materialflow_file.columns.tolist()
+            self.materialflow_file.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
+        else:
+            #Create Random Materialflow
             names = []
             for _ in range(0,len(self.machine_dict) * 2):
                 samples = random.sample(list(self.machine_dict.values()), k=2)
                 names.append([samples[0].name, samples[1].name]) 
             self.materialflow_file = pd.DataFrame(data=names, columns=["from", "to"])
             self.materialflow_file['intensity'] = np.random.randint(1,100, size=len(self.materialflow_file))
-
-        elif path_to_materialflow_file is not None:
-
-            self.materialflow_file = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
-            #Rename Colums
-            indexes = self.materialflow_file.columns.tolist()
-            self.materialflow_file.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
 
         #Group by from and two, add up intensity of all duplicates in intensity_sum
         self.materialflow_file['intensity_sum'] = self.materialflow_file.groupby(by=['from', 'to'])['intensity'].transform('sum')
@@ -164,80 +133,8 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Materialfluss geladen")
 
+
         
-      
-  #------------------------------------------------------------------------------------------------------------
-    def importIFC_Data(self, ifc_file, elementName, randomMF=None):
-        elementlist = []
-        elements = []
-        if(randomMF):
-            elements = random.choices(ifc_file.by_type(elementName), k=random.randint(2, randomMF))
-        else:
-            elements = ifc_file.by_type(elementName)
-        for index, element in enumerate(elements):
-            #get origin
-            origin = element.ObjectPlacement.RelativePlacement.Location.Coordinates
-            #element.ObjectPlacement.RelativePlacement.Axis.DirectionRatios[0]
-            #element.ObjectPlacement.RelativePlacement.RefDirection.DirectionRatios[0]
-
-            #get rotation
-            x = element.ObjectPlacement.RelativePlacement.RefDirection.DirectionRatios[0]
-            y = element.ObjectPlacement.RelativePlacement.RefDirection.DirectionRatios[1]
-            rotation = math.atan2(y,x)
-            my_uuid = ""
-            if(randomMF):
-                my_uuid= "_" + str(index)
-
-            #points = element.Representation.Representations[0].Items[0].Outer.CfsFaces[0].Bounds[0].Bound.Polygon
-            #Always choose Representation 0
-            items = element.Representation.Representations[0].Items
-
-            #Parse imported data into Factory Object (Machine, Wall, ...)
-  
-            result = []
-
-            for item in items:
-                faces = item.Outer.CfsFaces
-                facelist = []
-
-                for face in faces:
-                    exterior = []
-                    interior = []
-                    bounds = face.Bounds
-                    for bound in bounds:
-                        type = bound.get_info()['type']
-                        points = bound.Bound.Polygon
-                        #Remove z Dimension of Polygon Coordinates
-                        pointlist = [(point.Coordinates[0], point.Coordinates[1]) for point in points ]
-                        #Check if face is a surface or a hole
-                        if (type == "IfcFaceBound"):
-                            interior.append(pointlist)
-                        else:
-                            #Case surface
-                            exterior = pointlist
-
-                    facelist.append(Polygon(exterior, interior))
-                
-                result.append(MultiPolygon(facelist))
-
-
-            singleElement = unary_union(result)
-            if singleElement.type != "MultiPolygon":
-                singleElement = MultiPolygon([singleElement])
-            #Fix coordinates, since ifc does not save geometry at the correct position
-            singleElement = translate(singleElement, origin[0], origin[1])
-            singleElement = rotate(singleElement, rotation, origin=(origin[0], origin[1]), use_radians=True)
-            #create Factory Object       
-            mfo_object = FactoryObject(gid=element.GlobalId, 
-                            name=element.Name + my_uuid,
-                            origin=(origin[0], origin[1]),
-                            poly=singleElement)
-            elementlist.append(mfo_object)
-            
-        if(self.verboseOutput >= 1):
-            self.printTime(f"{elementName} geparsed")
-        return elementlist
-
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
@@ -439,15 +336,25 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def drawPositions(self, surfaceIn=None, scale = 1, drawColors = True, drawMachines = True, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawWalls = True, highlight = None):   
+    def provideCairoDrawingData(self, width, height):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+        ctx = cairo.Context(self.surface)
+        scale = self.factoryCreator.scale_factory(width, height)
+        self.ctx.scale(scale, scale)
+        return surface, ctx
+
+
+
+#------------------------------------------------------------------------------------------------------------ 
+    def drawPositions(self, ctx, scale = 1, drawColors = True, drawMachines = True, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawWalls = True, highlight = None):   
         #Drawing
         if(surfaceIn is None):
             surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
         else:
             surface = surfaceIn
         ctx = cairo.Context(surface)
-        ctx.scale(1.0 * scale, -1.0 * scale)
-        ctx.translate(0.0,-self.HEIGHT)
+        #ctx.scale(1.0 * scale, -1.0 * scale)
+        #ctx.translate(0.0,-self.HEIGHT)
         if(surfaceIn is None):
             ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
             ctx.set_source_rgb(1.0, 1.0, 1.0)
@@ -592,8 +499,8 @@ class FactorySim:
         else:
             surface = surfaceIn
         ctx = cairo.Context(surface)
-        ctx.scale(1.0 * scale, -1.0 * scale)
-        ctx.translate(0.0,-self.HEIGHT)
+        #ctx.scale(1.0 * scale, -1.0 * scale)
+        #ctx.translate(0.0,-self.HEIGHT)
         if(surfaceIn is None):
             ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
             ctx.set_source_rgb(1.0, 1.0, 1.0)
@@ -653,7 +560,6 @@ class FactorySim:
         del(self.wall_list)
         del(self.machineCollisionList)
         del(self.wallCollisionList)
-        del(self.ifc_file)
         del(self.materialflow_file)
 
 #------------------------------------------------------------------------------------------------------------
