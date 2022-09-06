@@ -103,7 +103,9 @@ class FactoryCreator():
 
         return self.multi, self.bb
 
-    def load_ifc_factory(self, ifc_file_path, elementName, randomMF=None):
+
+
+    def load_ifc_factory(self, ifc_file_path, elementName, randomMF=None, recalculate_bb=False):
         ifc_file = ifcopenshell.open(ifc_file_path)
         elementlist = {}
         elements = []
@@ -171,18 +173,22 @@ class FactoryCreator():
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement)
 
-        bbox = unary_union([x.poly for x in elementlist.values()])
-        #Prevent error due to single element in IFC File
-        if bbox.type == "MultiPolygon":
-            bbox = bbox.bounds
-        else:
-            bbox = MultiPolygon([bbox]).bounds
 
-        self.bb = box(0,0,bbox[2],bbox[3])
-        center = self.bb.centroid
-        for machine in elementlist.values():
-            machine.poly = scale(machine.poly, yfact=-1, origin=center)
-            polybbox = machine.poly.bounds
-            machine.origin = (polybbox[0], polybbox[1])
+        if recalculate_bb:
+            bbox = unary_union([x.poly for x in elementlist.values()])
+            #Prevent error due to single element in IFC File
+            if bbox.type == "MultiPolygon":
+                bbox = bbox.bounds
+            else:
+                bbox = MultiPolygon([bbox]).bounds
+            self.bb = box(0,0,bbox[2],bbox[3])
+            self.factoryWidth = bbox[2]
+            self.factoryHeight = bbox[3]
+
+        for element in elementlist.values():
+            element.poly = scale(element.poly, yfact=-1, origin=self.bb.centroid)
+            polybbox = element.poly.bounds
+            element.origin = (polybbox[0], polybbox[1])
+            element.center = element.poly.representative_point()
 
         return elementlist

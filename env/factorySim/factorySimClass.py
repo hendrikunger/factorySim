@@ -3,7 +3,7 @@
 import os
 import math
 import random
-from itertools import combinations
+
 from time import time
 
 import numpy as np
@@ -14,13 +14,15 @@ from shapely.geometry import  Polygon,  MultiPolygon
 
 from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
+from factorySim.rendering import  draw_BG, drawFactory, drawCollisions
+from factorySim.kpi import FactoryRating
 
 
 class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALL, randseed = None, randomPos = False,  verboseOutput = 0, maxMF_Elements = None, objectScaling = 1.0):
+    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randseed = None, randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None, objectScaling = 1.0):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.MAXMF_ELEMENTS = maxMF_Elements
         self.factoryCreator = FactoryCreator(*factoryConfig.creationParameters())
@@ -29,7 +31,10 @@ class FactorySim:
         random.seed(randseed)
             
         self.timezero = time()
-        self.lasttime = 0
+        self.lasttime = 0        
+
+        if(self.verboseOutput >= 1):
+            self.printTime("IFCWALL geparsed")
 
         if(os.path.isdir(path_to_ifc_file)):
             
@@ -41,11 +46,15 @@ class FactorySim:
         if(self.verboseOutput >= 2):
             print("Lade: ", self.ifc_file)
 
-        if(self.verboseOutput >= 3):
-            self.printTime("Datei geladen")
+        #Importing Walls
+        self.wall_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True) 
 
-        #Importing Machines
-        if path_to_ifc_file:
+        #Create Random Machines
+        if createMachines:
+            self.machine_dict = self.factoryCreator.create_factory()
+        #Import Machines from IFC File
+        else:
+            #Import up to MAXMF_ELEMENTS from File
             if(self.MAXMF_ELEMENTS):
                 path = os.path.join(os.path.dirname(self.ifc_file), "MFO_LIB.ifc")
                 if(os.path.exists(path)):
@@ -58,22 +67,20 @@ class FactorySim:
                 #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
                 self.machine_dict = self.factoryCreator.load_ifc_factory(mfo_ifc_file_path, "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
             else:
+                #Import full file
                 if(self.verboseOutput >= 2):
                     print("Nutze alle MF Objekte in der IFC Datei")
                 self.machine_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
 
-            #Set factory size accordint to what we have loaded from file:
-            bbox = self.factoryCreator.bb.bounds
-            self.FACTORYDIMENSIONS = (bbox[2], bbox[3])
 
-        #Random Machines if nothing to import
-        else:
-            self.machine_dict = self.factoryCreator.create_factory()
+            if(self.verboseOutput >= 3):
+                self.printTime("Datei geladen")
+
 
         if(self.verboseOutput >= 1):
-            self.printTime(f"IFCBUILDINGELEMENTPROXY geparsed")
-        #Importing Walls
-        self.wall_list = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL") 
+            self.printTime("IFCBUILDINGELEMENTPROXY geparsed")
+
+
         self.machineCollisionList = []
         self.wallCollisionList = []
 
@@ -85,10 +92,6 @@ class FactorySim:
         self.collisionAfterLastUpdate = False # True if latest update leads to new collsions
 
         self.episodeCounter = 0
-
-    
-        if(self.verboseOutput >= 3):
-            self.printTime("Skaliert")
 
         #Creating random positions
         if randomPos:
@@ -157,11 +160,12 @@ class FactorySim:
                 mappedRot = self.mapRange(np.clip(rotation,-1.0, 1.0), (-1,1), (0, 2*math.pi))
                 self.machine_dict[machineIndex].rotate_Item(mappedRot)
 
+            bbox = self.factoryCreator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
-            mappedXPos = self.mapRange(np.clip(xPosition,-1.0, 1.0), (-1,1), (0,self.WIDTH - self.machine_dict[machineIndex].width))
-            mappedYPos = self.mapRange(np.clip(yPosition,-1.0, 1.0), (-1,1), (0,self.HEIGHT - self.machine_dict[machineIndex].height))
-            #mappedXPos = self.mapRange(xPosition, (-1,1), (0,self.WIDTH))
-            #mappedYPos = self.mapRange(yPosition, (-1,1), (0,self.HEIGHT))
+            mappedXPos = self.mapRange(np.clip(xPosition,-1.0, 1.0), (-1,1), (0,bbox[2] - self.machine_dict[machineIndex].width))
+            mappedYPos = self.mapRange(np.clip(yPosition,-1.0, 1.0), (-1,1), (0,bbox[3] - self.machine_dict[machineIndex].height))
+            #mappedXPos = self.mapRange(xPosition, (-1,1), (0,bbox[2]))
+            #mappedYPos = self.mapRange(yPosition, (-1,1), (0,bbox[3]))
 
             self.machine_dict[machineIndex].translate_Item(mappedXPos, mappedYPos)
             if not massUpdate:
@@ -264,7 +268,8 @@ class FactorySim:
     def evaluateMF(self):
         self.materialflow_file['distance'] = self.materialflow_file.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
         #sum of all costs /  maximum intensity (intensity sum norm * 1) 
-        maxDistance = max(self.max_value_x,  self.max_value_y)
+        #find longest distance possible in factory
+        maxDistance = max(self.factoryCreator.bb.bounds[2],  self.factoryCreator.bb.bounds[3])
         self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
         self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm']
         output = 1 - (math.pow(self.materialflow_file['costs'].sum(),2) / self.materialflow_file['intensity_sum_norm'].sum())
@@ -305,31 +310,10 @@ class FactorySim:
  # Collision Detection
  #------------------------------------------------------------------------------------------------------------
     def findCollisions(self):
-        self.collisionAfterLastUpdate = False
-        #Machines with Machines
-        self.machineCollisionList = []       
-        for a,b in combinations(self.machine_dict.values(), 2):
-            if a.poly.overlaps(b.poly):
-                if(self.verboseOutput >= 4):
-                    print(f"Kollision zwischen {a.name} und {b.name} gefunden.")
-                col = a.poly.intersection(b.poly)
-                if col.type != "MultiPolygon":
-                    col = MultiPolygon([col])
-                self.machineCollisionList.append(col)
-                if(a.gid == self.lastUpdatedMachine or b.gid == self.lastUpdatedMachine): self.collisionAfterLastUpdate = True
-        #Machines with Walls     
-        self.wallCollisionList = []
-        for a in self.wall_list.values():
-            for b in self.machine_dict.values():
-                if a.poly.overlaps(b.poly):
-                    if(self.verboseOutput >= 4):
-                        print(f"Kollision Wand {a.name} und Maschine {b.name} gefunden.")
-                    col = a.poly.intersection(b.poly)
-                    if col.type != "MultiPolygon":
-                        col = MultiPolygon([col])
-                    self.wallCollisionList.append(col)
-                    if(b.gid == self.lastUpdatedMachine): self.collisionAfterLastUpdate = True
-                    
+        factoryRating = FactoryRating(self.machine_dict, self.wall_dict)
+        self.collisionAfterLastUpdate = factoryRating.findCollisions(self.lastUpdatedMachine)
+        self.machineCollisionList = factoryRating.machineCollisionList
+        self.wallCollisionList = factoryRating.wallCollisionList                    
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionen berechnen abgeschlossen")
 
@@ -338,110 +322,12 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def provideCairoDrawingData(self, width, height):
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-        ctx = cairo.Context(self.surface)
+        ctx = cairo.Context(surface)
         scale = self.factoryCreator.scale_factory(width, height)
-        self.ctx.scale(scale, scale)
+        ctx.scale(scale, scale)
         return surface, ctx
 
 
-
-#------------------------------------------------------------------------------------------------------------ 
-    def drawPositions(self, ctx, scale = 1, drawColors = True, drawMachines = True, drawMaterialflow = True, drawMachineCenter = False, drawOrigin = True, drawWalls = True, highlight = None):   
-        #Drawing
-        if(surfaceIn is None):
-            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
-        else:
-            surface = surfaceIn
-        ctx = cairo.Context(surface)
-        #ctx.scale(1.0 * scale, -1.0 * scale)
-        #ctx.translate(0.0,-self.HEIGHT)
-        if(surfaceIn is None):
-            ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
-            ctx.set_source_rgb(1.0, 1.0, 1.0)
-            ctx.fill()
-
-      #Walls
-        if drawWalls:
-            ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
-            for wall in self.wall_list.values():
-                #draw all walls
-                for poly in wall.poly.geoms:
-                    ctx.set_source_rgb(0, 0, 0)
-                    for point in poly.exterior.coords:  
-                        ctx.line_to(point[0], point[1])
-                    ctx.close_path()
-                    ctx.fill()
-                #draw all holes
-                    ctx.set_source_rgb(1, 1, 1)
-                    for loop in poly.interiors:
-                        for point in loop.coords:
-                            ctx.line_to(point[0], point[1])
-                        ctx.close_path()
-                    ctx.fill()
-                            
-        #draw machine positions
-        if drawMachines:
-            ctx.set_fill_rule(cairo.FillRule.WINDING)
-            ctx.set_line_width(self.DOT_RADIUS)
-            for index, machine in enumerate(self.machine_dict.values()):
-
-                for poly in machine.poly.geoms:
-                    for point in poly.exterior.coords: 
-                        ctx.line_to(point[0], point[1])
-                    ctx.close_path()
-                    #no highlights
-                    if(highlight is None):
-                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                    #highlighted machine
-                    elif(index == highlight or machine.gid == highlight):
-                        ctx.set_source_rgb(0.9, 0.9, 0.9)
-                    #other machines
-                    else:
-                        ctx.set_source_rgb(0.4, 0.4, 0.4)
-
-                    ctx.fill_preserve()
-                    if(drawColors):
-                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                    else:
-                        ctx.set_source_rgb(0.5, 0.5, 0.5)
-                    ctx.stroke()
-
-            #Machine Centers
-                if (drawMachineCenter):
-                    ctx.set_source_rgb(0, 0, 0)
-                    ctx.arc(machine.center.x, machine.center.y, self.DOT_RADIUS, 0, 2*math.pi)
-                    ctx.fill()
-
-            #Machine Origin 
-                if (machine.origin is not None and drawOrigin):
-                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                    ctx.arc(machine.origin[0], machine.origin[1], self.DOT_RADIUS, 0, 2*math.pi)
-                    ctx.fill()
-
-        #Material Flow
-        if drawMaterialflow:
-
-            for index, row in self.materialflow_file.iterrows():
-                current_from_Machine = self.machine_dict[row['from']]
-                current_to_Machine = self.machine_dict[row['to']]
-                try:
-                    if(drawColors):
-                        ctx.set_source_rgb(*current_from_Machine.color)
-                    else:
-                        ctx.set_source_rgb(0.6, 0.6, 0.6)
-
-                    ctx.move_to(current_from_Machine.center.x, current_from_Machine.center.y)
-                    ctx.line_to(current_to_Machine.center.x, current_to_Machine.center.y)
-                    ctx.set_line_width(row["intensity_sum_norm"] * self.MAX_STROKE_WIDTH)
-                    ctx.stroke()   
-                except KeyError:
-                    print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
-                    continue
-        if(self.verboseOutput >= 3):
-            self.printTime("Maschinenpositionen gezeichnet")
-        del(ctx)
-        return surface
-    
     
 #------------------------------------------------------------------------------------------------------------  
     def drawDetailedMachines(self, surfaceIn=None, scale = 1, randomcolors = False, highlight = None):   
@@ -490,52 +376,7 @@ class FactorySim:
         return surface
 
 
- #------------------------------------------------------------------------------------------------------------
-    def drawCollisions(self, surfaceIn=None, drawColors = True, scale = 1, drawWalls=True):
 
-        #Machine Collisions
-        if(surfaceIn is None):
-            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
-        else:
-            surface = surfaceIn
-        ctx = cairo.Context(surface)
-        #ctx.scale(1.0 * scale, -1.0 * scale)
-        #ctx.translate(0.0,-self.HEIGHT)
-        if(surfaceIn is None):
-            ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
-            ctx.set_source_rgb(1.0, 1.0, 1.0)
-            ctx.fill()
-
-        #Drawing collisions between machines
-        if(drawColors):
-            ctx.set_source_rgb(1.0, 0.3, 0.0)
-        else:
-            ctx.set_source_rgb(0.7, 0.7, 0.7)
-
-        for collision in self.machineCollisionList:
-            for poly in collision.geoms:   
-                for point in poly.exterior.coords:
-                    ctx.line_to(point[0], point[1])
-            ctx.close_path()
-            ctx.fill()
-                    
-        #Drawing collisions between machines and walls
-        if(drawWalls):
-            if(drawColors):
-                ctx.set_source_rgb(1.0, 0.3, 0.0)
-            else:
-                ctx.set_source_rgb(0.7, 0.7, 0.7)
-            for collision in self.wallCollisionList:
-                for poly in collision.geoms:   
-                    for point in poly.exterior.coords:
-                        ctx.line_to(point[0], point[1])
-                ctx.close_path()
-                ctx.fill()           
-                    
-        if(self.verboseOutput >= 3):
-            self.printTime("Kollisionen gezeichnet")
-        del(ctx)
-        return surface
  #------------------------------------------------------------------------------------------------------------
  # Helpers  
  #------------------------------------------------------------------------------------------------------------
@@ -552,23 +393,16 @@ class FactorySim:
         if(s < a1): s = a1
         if(s > a2): s = a2
         return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
- #------------------------------------------------------------------------------------------------------------
- # Destructor  
- #------------------------------------------------------------------------------------------------------------
-    def __del__(self):
-        del(self.machine_dict)
-        del(self.wall_list)
-        del(self.machineCollisionList)
-        del(self.wallCollisionList)
-        del(self.materialflow_file)
 
 #------------------------------------------------------------------------------------------------------------
 def main():
+
+    img_resolution = (1280, 720)
     outputfile ="Out"
 
     #filename = "Long"
-    filename = "Basic"
-    #filename = "Simple"
+    #filename = "Basic"
+    filename = "Simple"
     #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -580,27 +414,29 @@ def main():
 
 
     file_name, _ = os.path.splitext(ifcpath)
-    materialflowpath = file_name + "_Materialflow.csv"
-    #materialflowpath = None
-    
+    #materialflowpath = file_name + "_Materialflow.csv"
+    materialflowpath = None
     demoFactory = FactorySim(ifcpath,
-    path_to_materialflow_file = materialflowpath,
-    randomMF = True,
-    randomPos = True,
-    verboseOutput=4,
-    maxMF_Elements = None,
-    objectScaling=1.0)
-    print(demoFactory.machineCollisionList)
+        path_to_materialflow_file = materialflowpath,
+        factoryConfig=baseConfigs.SMALLSQUARE,
+        randomPos=False,
+        createMachines=True,
+        verboseOutput=4,
+        maxMF_Elements = None,
+        objectScaling=1.0)
+    
+    surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
-    #machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True)
-    machinePositions = demoFactory.drawPositions(drawMaterialflow = True, drawMachineCenter = True, highlight=1)
+    draw_BG(ctx, *img_resolution)
+    ctx = drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
         "Output", 
         F"{outputfile}_machines.png")
-    machinePositions.write_to_png(path) 
+    surface.write_to_png(path) 
     demoFactory.printTime("PNG schreiben")
+    
  #------------------------------------------------------------------------------------------------------------------------------------------
     #detailed Machines Output to PNG
     # detailedMachines = demoFactory.drawDetailedMachines(surfaceIn=machinePositions, randomcolors = False, highlight=None)
@@ -624,36 +460,28 @@ def main():
     demoFactory.evaluate()
     demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
 
-    machinePositions = demoFactory.drawPositions(drawColors = True, drawMachines=True, drawMaterialflow = True, highlight=1)
+    draw_BG(ctx, *img_resolution)
+    ctx = drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
         "Output", 
         F"{outputfile}_machines_update.png")
-    machinePositions.write_to_png(path) 
+    surface.write_to_png(path) 
     demoFactory.printTime("PNG schreiben")
-
+    
     #Machine Collisions Output to PNG
-    Collisions = demoFactory.drawCollisions(scale = 1, drawColors = True, surfaceIn=machinePositions)
+    ctx = drawCollisions(ctx, demoFactory.machineCollisionList, demoFactory.wallCollisionList)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
         "Output", 
         F"{outputfile}_machine_collsions.png")
-    Collisions.write_to_png(path) 
+    surface.write_to_png(path) 
     demoFactory.printTime("PNG schreiben")
 
-    toutput = demoFactory.drawPositions(drawMaterialflow = True, drawColors = False, drawMachineCenter = False, drawOrigin = False,  highlight=1)
-    toutput = demoFactory.drawCollisions(surfaceIn = toutput, drawColors = False)
-    toutput = demoFactory.drawPositions(drawMaterialflow = True, drawMachines = False, drawColors = False, drawMachineCenter = True, drawOrigin = False)
-    path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-        "..",
-        "..",
-        "Output", 
-        F"{outputfile}test.png")
-    toutput.write_to_png(path) 
-    demoFactory.printTime("PNG schreiben")
-
+    
     ##Rate current Layout
     demoFactory.evaluate()
 
@@ -661,8 +489,6 @@ def main():
 
     
 if __name__ == "__main__":
-    from factorySim.factoryObject import FactoryObject 
     main()
-else:
-    from factorySim.factoryObject import FactoryObject
+
     

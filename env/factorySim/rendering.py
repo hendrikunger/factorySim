@@ -1,18 +1,18 @@
 import cairo
 import networkx as nx
 import numpy as np
-from shapely.ops import polylabel, unary_union
+from shapely.ops import polylabel
 
 
-def draw_BG(ctx, darkmode=True):
-    ctx.rectangle(0, 0, 100, 100)
+def draw_BG(ctx, width, height, darkmode=True):
+    ctx.rectangle(0, 0, width, height)
     if darkmode:
         ctx.set_source_rgba(0.0, 0.0, 0.0)
     else:
         ctx.set_source_rgb(1.0, 1.0, 1.0)
     ctx.fill()
 
-
+#------------------------------------------------------------------------------------------------------------
 def draw_detail_paths(ctx, G, I):
     ctx.set_source_rgba(0.3, 0.3, 0.3, 1.0)
     ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
@@ -40,7 +40,7 @@ def draw_detail_paths(ctx, G, I):
     ctx.set_dash([])
 
     return ctx
-
+#------------------------------------------------------------------------------------------------------------
 def draw_simple_paths(ctx, G, I):
     ctx.set_source_rgba(0.0, 0.0, 0.5, 0.5)
     ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
@@ -70,7 +70,7 @@ def draw_simple_paths(ctx, G, I):
         ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
     ctx.fill()
     return ctx
-
+#------------------------------------------------------------------------------------------------------------
 def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
     ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
     ctx.set_line_join(cairo.LINE_JOIN_ROUND)
@@ -97,7 +97,6 @@ def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
             ctx.fill_preserve()
             ctx.stroke()
 
-
     if text:
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
         ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
@@ -106,7 +105,7 @@ def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
         ctx.move_to(point.x - width/2, point.y - height/2)    
         ctx.show_text(text)
     return ctx
-
+#------------------------------------------------------------------------------------------------------------
 def draw_pathwidth_circles(ctx, G):
 
     for _ , data in G.nodes(data=True):
@@ -116,7 +115,7 @@ def draw_pathwidth_circles(ctx, G):
     ctx.set_source_rgba(0.0, 0.0, 0.8, 0.8)
     ctx.stroke()
     return ctx
-
+#------------------------------------------------------------------------------------------------------------
 def draw_route_lines(ctx, route_lines):
     for line in route_lines:
         ctx.move_to(line.xy[0][0], line.xy[1][0])
@@ -124,4 +123,126 @@ def draw_route_lines(ctx, route_lines):
     ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
     ctx.set_source_rgba(0.5, 0.5, 0.5, 1.0)
     ctx.stroke()
+    return ctx
+
+#------------------------------------------------------------------------------------------------------------
+def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, drawMachineCenter = False, drawOrigin = False, highlight = None):   
+
+    #Walls
+    if wall_dict:
+        ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
+        for wall in wall_dict.values():
+            #draw all walls
+            for poly in wall.poly.geoms:
+                ctx.set_source_rgb(0.1, 0.1, 0.1)
+                for point in poly.exterior.coords:  
+                    ctx.line_to(point[0], point[1])
+                ctx.close_path()
+                ctx.fill()
+            #draw all holes
+                ctx.set_source_rgb(1, 1, 1)
+                for loop in poly.interiors:
+                    for point in loop.coords:
+                        ctx.line_to(point[0], point[1])
+                    ctx.close_path()
+                ctx.fill()
+                        
+    #draw machine positions
+    if machine_dict:
+        ctx.set_fill_rule(cairo.FillRule.WINDING)
+        ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
+        for index, machine in enumerate(machine_dict.values()):
+
+            for poly in machine.poly.geoms:
+                for point in poly.exterior.coords: 
+                    ctx.line_to(point[0], point[1])
+                ctx.close_path()
+                #no highlights
+                if(highlight is None):
+                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                #highlighted machine
+                elif(index == highlight or machine.gid == highlight):
+                    ctx.set_source_rgb(0.9, 0.9, 0.9)
+                #other machines
+                else:
+                    ctx.set_source_rgb(0.4, 0.4, 0.4)
+
+                ctx.fill_preserve()
+                if(drawColors):
+                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                else:
+                    ctx.set_source_rgb(0.5, 0.5, 0.5)
+
+                ctx.stroke()
+                if drawNames:
+                    ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
+                    (x, y, width, height, dx, dy) = ctx.text_extents(machine.name)
+                    point = polylabel(poly.convex_hull, tolerance=10)
+                    ctx.move_to(point.x - width/2, point.y - height/2)    
+                    ctx.show_text(machine.name)
+
+        #Machine Centers
+            if (drawMachineCenter):
+                ctx.set_source_rgb(0, 0, 0)
+                ctx.arc(machine.center.x, machine.center.y, ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+                ctx.fill()
+
+        #Machine Origin 
+            if (machine.origin is not None and drawOrigin):
+                ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                ctx.arc(machine.origin[0], machine.origin[1], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+                ctx.fill()
+
+    #Material Flow
+    if  materialflow_file is not None:
+
+        for index, row in materialflow_file.iterrows():
+            current_from_Machine = machine_dict[row['from']]
+            current_to_Machine = machine_dict[row['to']]
+            try:
+                if(drawColors):
+                    ctx.set_source_rgba(*current_from_Machine.color, 0.7)
+                else:
+                    ctx.set_source_rgba(0.6, 0.6, 0.6)
+
+                ctx.move_to(current_from_Machine.center.x, current_from_Machine.center.y)
+                ctx.line_to(current_to_Machine.center.x, current_to_Machine.center.y)
+                ctx.set_line_width(row["intensity_sum_norm"] * ctx.device_to_user_distance(20, 30)[0])
+                ctx.stroke()   
+            except KeyError:
+                print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
+                continue
+    
+
+    return ctx
+
+#------------------------------------------------------------------------------------------------------------
+def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, drawColors = True):
+    #Drawing collisions between machines
+    if(drawColors):
+        ctx.set_source_rgb(1.0, 0.3, 0.0)
+    else:
+        ctx.set_source_rgb(0.7, 0.7, 0.7)
+
+    for collision in machineCollisionList:
+        for poly in collision.geoms:   
+            for point in poly.exterior.coords:
+                ctx.line_to(point[0], point[1])
+        ctx.close_path()
+        ctx.fill()
+                
+    #Drawing collisions between machines and walls
+    if(wallCollisionList):
+        if(drawColors):
+            ctx.set_source_rgb(1.0, 0.3, 0.0)
+        else:
+            ctx.set_source_rgb(0.7, 0.7, 0.7)
+        for collision in wallCollisionList:
+            for poly in collision.geoms:   
+                for point in poly.exterior.coords:
+                    ctx.line_to(point[0], point[1])
+            ctx.close_path()
+            ctx.fill()           
+
+
     return ctx

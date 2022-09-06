@@ -27,9 +27,8 @@ class FactoryObject:
         rotShift = r - self.rotation
         self.rotation = r
         
-        self.poly = rotate(self.poly, rotShift, origin=self.origin)
+        self.poly = rotate(self.poly, rotShift, origin=self.origin, use_radians=True)
 
-        self.center = self.poly.representative_point()
         bounds = self.poly.bounds
         self.width = bounds[2] - bounds[0]
         self.height =  bounds[3] - bounds[1]
@@ -45,12 +44,12 @@ class FactoryObject:
         self.center = self.poly.representative_point()
      
 
-    def scale_Points(self, xScale, yScale, minx, miny):    
-        translate(self.poly, minx, miny)
-        self.poly = scale(self.poly, xfact=xScale, yfact=yScale, origin=(0, 0))
+    # def scale_Points(self, xScale, yScale, minx, miny):    
+    #     translate(self.poly, minx, miny)
+    #     self.poly = scale(self.poly, xfact=xScale, yfact=yScale, origin=(0, 0))
 
-        self.origin = ((self.origin[0] + minx) * xScale, (self.origin[1] + miny) * yScale)
-        self.center = self.poly.representative_point()
+    #     self.origin = ((self.origin[0] + minx) * xScale, (self.origin[1] + miny) * yScale)
+    #     self.center = self.poly.representative_point()
 
 
     def __del__(self):

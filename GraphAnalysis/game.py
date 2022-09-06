@@ -3,21 +3,20 @@ from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 import queue
 import json
-import os
 
 import cairo
 import moderngl
 import moderngl_window as mglw
 import numpy as np
-from shapely.geometry import Point, Polygon, box, MultiPolygon
+from shapely.geometry import Point, Polygon, MultiPolygon, box
+from shapely.affinity import translate
 from paho.mqtt import client as mqtt
 
-from factorySim.routing import FactoryPath
-from factorySim.rendering import draw_simple_paths, draw_detail_paths, draw_poly, draw_pathwidth_circles, draw_route_lines, draw_BG, drawCollisions
-from factorySim.creation import FactoryCreator
-import factorySim.baseConfigs as baseConfigs
-from factorySim.factoryObject import FactoryObject
-from factorySim.kpi import FactoryRating
+from routing import FactoryPath
+from rendering import draw_simple_paths, draw_detail_paths, draw_poly, draw_pathwidth_circles, draw_route_lines
+from creation import FactoryCreator
+import baseConfigs 
+
 
 class DrawingModes(Enum):
     NONE = None
@@ -75,30 +74,15 @@ class factorySimLive(mglw.WindowConfig):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng()
         self.executor = ThreadPoolExecutor(max_workers=1)
-        self.factoryCreator = FactoryCreator(*self.factoryConfig.creationParameters())
-        self.machine_dict = self.factoryCreator.create_factory()
-        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",
-        "2",  
-        "Basic" + ".ifc")
-        #self.machine_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=True)
-        self.nextGID = len(self.machine_dict)
-        self.currentScale = self.factoryCreator.scale_factory(self.window_size[0],self.window_size[1])
-        self.factoryPath=FactoryPath(self.factoryConfig.BOUNDARYSPACING, 
-            self.factoryConfig.MINDEADENDLENGTH,
-            self.factoryConfig.MINPATHWIDTH,
-            self.factoryConfig.MINTWOWAYPATHWIDTH,
-            self.factoryConfig.SIMPLIFICATIONANGLE)
+        self.multi, self.bb = FactoryCreator(*self.factoryConfig.creationParameters()).create_factory()
+        self.currentScale = self.scale_factory()
+        self.factoryPath=FactoryPath(*self.factoryConfig.pathParameters())
         #self.factoryPath.TIMING = True
-
-        self.future = self.executor.submit(self.factoryPath.calculateAll, self.machine_dict, self.factoryCreator.bb)
+        self.future = self.executor.submit(self.factoryPath.calculateAll, self.multi, self.bb)
         
+        self.colors = [self.rng.random(size=3) for _ in self.multi.geoms]
         self.G, self.I = self.future.result()
         self.setupKeys()
-        self.recreateCairoContext()
-
         #MQTT Connection
         self.mqtt_Q = queue.Queue(maxsize=100)
         self.mqtt_client = mqtt.Client(client_id="factorySimLive")
@@ -154,9 +138,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def resize(self, width: int, height: int):
         self.window_size = (width, height)
-        self.currentScale = self.factoryCreator.scale_factory(self.window_size[0],self.window_size[1])
-        self.recreateCairoContext()
-
+        self.currentScale = self.scale_factory()
 
     def close(self):
         print("closing")
@@ -174,11 +156,9 @@ class factorySimLive(mglw.WindowConfig):
                 self.wnd.fullscreen = not self.wnd.fullscreen      
             # Zoom
             if key == 43: # +
-                self.currentScale += 0.5
-                self.recreateCairoContext()
+                self.currentScale += 0.2
             if key == keys.MINUS:
-                self.currentScale -= 0.5
-                self.recreateCairoContext()
+                self.currentScale -= 0.2
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
@@ -206,8 +186,16 @@ class factorySimLive(mglw.WindowConfig):
     def mouse_drag_event(self, x, y, dx, dy):
         if self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
             # move object  
-            self.machine_dict[self.selected].translate_Item(((x / self.currentScale)) + self.selected_offset_x,
-                ((y / self.currentScale)) + self.selected_offset_y)
+            temp = list(self.multi.geoms)
+            #Get coordinates of objects top left corner
+            temp_x = temp[self.selected].bounds[0]
+            temp_y = temp[self.selected].bounds[1] # max y for shapely, min y for pygame coordinates
+            temp[self.selected] = translate(self.multi.geoms[self.selected], 
+                xoff=((x / self.currentScale)- temp_x) + self.selected_offset_x,
+                yoff=((y / self.currentScale) - temp_y) + self.selected_offset_y
+                )            
+            self.multi = MultiPolygon(temp)
+            
             self.update_needed()
 
 
@@ -219,7 +207,9 @@ class factorySimLive(mglw.WindowConfig):
                 self.clickedPoints.append((x,y))
                 if len(self.clickedPoints) >= 2:
                     self.factory_add_rect(self.clickedPoints[0], self.clickedPoints[1], useWindowCoordinates=True)
-                    self.clickedPoints.clear()                   
+                    self.clickedPoints.clear()
+                    #self.activeModes[Modes.DRAWING] = DrawingModes.NONE
+                    self.update_needed()
 
              #Draw Polygon         
             elif self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON:
@@ -227,25 +217,34 @@ class factorySimLive(mglw.WindowConfig):
 
             #Prepare Mouse Drag
             else:
-                for key, machine in self.machine_dict.items():
+                for i, poly in enumerate(self.multi.geoms):
                     point_scaled = Point(x/self.currentScale, y/self.currentScale)
-                    if machine.poly.contains(point_scaled):
-                        self.selected = key
-                        self.selected_offset_x = machine.poly.bounds[0] - point_scaled.x
-                        self.selected_offset_y = machine.poly.bounds[1] - point_scaled.y
+                    if poly.contains(point_scaled):
+                        self.selected = i
+                        self.selected_offset_x = poly.bounds[0] - point_scaled.x
+                        self.selected_offset_y = poly.bounds[1] - point_scaled.y
+
 
         if button == 2:
             #Finish Polygon
             if self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON:
                 if len(self.clickedPoints) >= 3:
-                    self.factory_add_poly(self.clickedPoints, useWindowCoordinates = True)
+                    self.factory_add_poly(self.clickedPoints)
                     self.clickedPoints.clear()
+                    #self.activeModes[Modes.DRAWING] = DrawingModes.NONE
+                    self.update_needed()
 
         #Shift Click to delete Objects
-        if button == 1 and self.wnd.modifiers.shift and self.selected is not None :
-            self.machine_dict.pop(self.selected)
+        if button == 1 and self.wnd.modifiers.shift and self.selected is not None and len(self.multi.geoms) > 1:
+            temp = list(self.multi.geoms)
+            temp.pop(self.selected)
+            self.colors.pop(self.selected)
+            self.multi = MultiPolygon(temp)
+            
+            self.colors
             self.selected = None
             self.update_needed()
+
 
 
     def mouse_release_event(self, x: int, y: int, button: int):
@@ -266,8 +265,14 @@ class factorySimLive(mglw.WindowConfig):
 
     def render_cairo_to_texture(self):
         # Draw with cairo to surface
-        draw_BG(self.cctx, self.window_size[0], self.window_size[1], self.is_darkmode)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.window_size[0], self.window_size[1])
+        cctx = cairo.Context(surface)
         
+        cctx.scale(self.currentScale, self.currentScale)
+
+        self.draw_BG(cctx)
+        
+
         if self.is_dirty:
             if self.is_calculating:
                 if self.future.done():
@@ -281,36 +286,40 @@ class factorySimLive(mglw.WindowConfig):
                         self.update_during_calculation = False
                         self.is_dirty = True
                         self.is_calculating = True
-                        self.future = self.executor.submit(self.factoryPath.calculateAll, self.machine_dict, self.factoryCreator.bb)
+                        self.future = self.executor.submit(self.factoryPath.calculateAll, self.multi, self.bb)
             else:
-                self.future = self.executor.submit(self.factoryPath.calculateAll, self.machine_dict, self.factoryCreator.bb)
+                self.future = self.executor.submit(self.factoryPath.calculateAll, self.multi, self.bb)
                 self.is_calculating = True
 
-        if self.activeModes[Modes.MODE1]: self.cctx = draw_detail_paths(self.cctx, self.G, self.I)
-        if self.activeModes[Modes.MODE2]: self.cctx = draw_simple_paths(self.cctx, self.G, self.I)
-        if self.activeModes[Modes.MODE3]: self.cctx = draw_route_lines(self.cctx, self.factoryPath.route_lines)
-        if self.activeModes[Modes.MODE4]: self.cctx = draw_pathwidth_circles(self.cctx, self.G)
+        if self.activeModes[Modes.MODE1]:
+            cctx = draw_detail_paths(cctx, self.G, self.I)
 
+        if self.activeModes[Modes.MODE2]:
+            cctx = draw_simple_paths(cctx, self.G, self.I)
+        
+        if self.activeModes[Modes.MODE3]:
+            cctx = draw_route_lines(cctx, self.factoryPath.route_lines)
 
-        for key, machine in self.machine_dict.items():
-            self.cctx = draw_poly(self.cctx, machine.poly, machine.color, text=str(machine.gid), highlight= True if key == self.selected else False, drawHoles=True)
-       
-        if self.activeModes[Modes.MODE5]: 
-            factoryRating = FactoryRating(self.machine_dict, {})
-            factoryRating.findCollisions()
-            self.cctx = drawCollisions(self.cctx, factoryRating.machineCollisionList, factoryRating.wallCollisionList)
-            
+        if self.activeModes[Modes.MODE4]:
+            cctx = draw_pathwidth_circles(cctx, self.G)
+
+        for i, (poly, color) in enumerate(zip(self.multi.geoms, self.colors)):
+            cctx = draw_poly(cctx, poly, color, highlight= True if i == self.selected else False)
+
         if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
-            self.draw_live_rect(self.cctx, self.clickedPoints[0], self.cursorPosition)
+            self.draw_live_rect(cctx, self.clickedPoints[0], self.cursorPosition)
         if self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON and len(self.clickedPoints) > 0:
-            self.draw_live_poly(self.cctx, self.clickedPoints, self.cursorPosition)
+            self.draw_live_poly(cctx, self.clickedPoints, self.cursorPosition)
 
-        self.draw_fps(self.cctx, self.fps_counter)
+
+        self.draw_fps(cctx, self.fps_counter)
 
         # Copy surface to texture
-        texture = self.ctx.texture((self.window_size[0], self.window_size[1]), 4, data=self.surface.get_data())
+        texture = self.ctx.texture((self.window_size[0], self.window_size[1]), 4, data=surface.get_data())
         texture.swizzle = 'BGRA' # use Cairo channel order (alternatively, the shader could do the swizzle)
-
+        surface.finish()
+        del(cctx)
+        del(surface)
         return texture
 
 
@@ -320,11 +329,6 @@ class factorySimLive(mglw.WindowConfig):
         self.is_dirty = True
         if self.is_calculating:
             self.update_during_calculation = True
-
-    def recreateCairoContext(self):
-        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.window_size[0], self.window_size[1])
-        self.cctx = cairo.Context(self.surface)
-        self.cctx.scale(self.currentScale, self.currentScale)
 
     def setupKeys(self):
         keys = self.wnd.keys
@@ -355,6 +359,16 @@ class factorySimLive(mglw.WindowConfig):
             ctx.show_text(f"{fps:.0f}    {self.activeModes[Modes.DRAWING].name}")
         else:
             ctx.show_text(f"{fps:.0f}")
+
+
+    def draw_BG(self, ctx):
+        ctx.rectangle(0, 0, self.window_size[0], self.window_size[1])
+        #Color is actually BGR in Pygame
+        if self.is_darkmode:
+            ctx.set_source_rgba(0.0, 0.0, 0.0)
+        else:
+            ctx.set_source_rgb(1.0, 1.0, 1.0)
+        ctx.fill()
 
 
     def draw_live_rect(self, ctx, topleft, bottomright):
@@ -388,48 +402,39 @@ class factorySimLive(mglw.WindowConfig):
         ctx.stroke()
 
 
-    def factory_add_rect(self, topleft, bottomright, gid = None, useWindowCoordinates = False):
+    def factory_add_rect(self, topleft, bottomright, useWindowCoordinates = False):
         if useWindowCoordinates:
             newRect = box(topleft[0]/self.currentScale, topleft[1]/self.currentScale, bottomright[0]/self.currentScale, bottomright[1]/self.currentScale)
         else:
             newRect = box(topleft[0], topleft[1], bottomright[0], bottomright[1])
-        if gid:
-            gid_to_use = gid
-        else:
-            gid_to_use = self.nextGID
-            self.nextGID += 1
-        bbox = newRect.bounds
-        origin=(bbox[0],bbox[1])
-        self.machine_dict[gid_to_use] = FactoryObject(gid=gid_to_use, 
-                                            name="creative_name_" + str(gid_to_use),
-                                            origin=origin,
-                                            poly=MultiPolygon([newRect]))
 
-        self.update_needed()
+        temp = list(self.multi.geoms)
+        temp.append(newRect)
+        self.colors.append(self.rng.random(size=3))
+        self.multi = MultiPolygon(temp)
+        
 
-    def factory_add_poly(self, points, gid = None, useWindowCoordinates = False):
-
-        if useWindowCoordinates:
-            scaledPoints = np.array(points)/self.currentScale
-            newPoly = Polygon(scaledPoints)
-        else:
-            newPoly = Polygon(points)
-
+    def factory_add_poly(self, points):
+        scaledPoints = np.array(points)/self.currentScale
+        newPoly = Polygon(scaledPoints)
         if newPoly.is_valid:
-            if gid:
-                gid_to_use = gid
-            else:
-                gid_to_use = self.nextGID
-                self.nextGID += 1
-            bbox = newPoly.bounds
-            origin=(bbox[0],bbox[1])
-            self.machine_dict[gid_to_use] = FactoryObject(gid=gid_to_use, 
-                                                name="creative_name_" + str(gid_to_use),
-                                                origin=origin,
-                                                poly=MultiPolygon([newPoly]))
-            self.nextGID += 1
-            self.update_needed()
+            temp = list(self.multi.geoms)
+            temp.append(newPoly)
+            self.colors.append(self.rng.random(size=3))
+            self.multi = MultiPolygon(temp)
             
+    def scale_factory(self):
+        boundingBox = self.bb.bounds   
+        min_value_x = boundingBox[0]     
+        max_value_x = boundingBox[2]     
+        min_value_y = boundingBox[1]     
+        max_value_y = boundingBox[3]     
+
+        scale_x = self.window_size[0] / (max_value_x - min_value_x)
+        scale_y = self.window_size[1] / (max_value_y - min_value_y)
+        sugesstedscale = min(scale_x, scale_y)
+
+        return sugesstedscale
 
 
 
@@ -486,8 +491,15 @@ class factorySimLive(mglw.WindowConfig):
     def handleMQTT_Position(self, topic, payload):
         pp = json.loads(payload)
         index = self.extractID(topic)
-        if index in self.machine_dict and "x" in pp and "y" in pp:        
-            self.machine_dict[index].translate_Item(pp["x"],pp["y"])
+        if index is not None and "x" in pp and "y" in pp:
+            temp = list(self.multi.geoms)
+            temp_x = temp[index].bounds[0]
+            temp_y = temp[index].bounds[1] # max y for shapely, min y for pygame coordinates
+            temp[index] = translate(self.multi.geoms[index], 
+            xoff=(pp["x"] - temp_x),
+            yoff=(pp["y"] - temp_y)
+            )            
+            self.multi = MultiPolygon(temp)
             self.update_needed()
         else:
             print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index")
@@ -496,13 +508,10 @@ class factorySimLive(mglw.WindowConfig):
         pp = json.loads(payload)
         index = self.extractID(topic)
         if index is not None and "topleft_x" in pp and "topleft_y" in pp and "bottomright_x" in pp and "bottomright_y" in pp:
-            self.factory_add_rect((pp["topleft_x"],pp["topleft_y"]),(pp["bottomright_x"],pp["bottomright_y"]), gid=index)
-            self.update_needed()
-        elif index is not None and "points" in pp:
-            self.factory_add_poly(pp["points"], gid=index)
+            self.factory_add_rect((pp["topleft_x"],pp["topleft_y"]),(pp["bottomright_x"],pp["bottomright_y"]))
             self.update_needed()
         else:
-            print("MQTT message malformed. Needs JSON Payload containing topleft_x, topleft_y, bottomright_x, bottomright_y of rectangle or coordinates of a polygon")
+            print("MQTT message malformed. Needs JSON Payload containing topleft_x, topleft_y, bottomright_x, bottomright_y")
 
 
 
