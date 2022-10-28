@@ -22,6 +22,8 @@ RUN  apt-get update && apt-get install -y --no-install-recommends \
     && wget -nv https://s3.amazonaws.com/ifcopenshell-builds/ifcopenshell-python-38-v0.6.0-517b819-linux64.zip \
     && unzip -q ifcopenshell-python-38-v0.6.0-517b819-linux64.zip -d /usr/local/lib/python3.8/dist-packages \
     && runuser -l  ray -c '/usr/local/bin/pip3.8 --no-cache-dir install -U -r /workspace/requirements_factorySim.txt' \
+    && chown -R ray /home/ray/factorySim \ 
+    && chown -R ray /home/ray/ray_results \ 
     && apt-get clean \
     && rm ifcopenshell-python-38-v0.6.0-517b819-linux64.zip \
     && rm -rf /tmp/* \
