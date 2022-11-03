@@ -189,7 +189,10 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
 
         #Machine Origin 
             if (machine.origin is not None and drawOrigin):
-                ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                if drawColors:
+                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                else:
+                    ctx.set_source_rgb(0.5, 0.5, 0.5)
                 ctx.arc(machine.origin[0], machine.origin[1], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
                 ctx.fill()
 
@@ -246,3 +249,10 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, drawColors
 
 
     return ctx
+
+#------------------------------------------------------------------------------------------------------------
+def draw_text_topleft(ctx, text, color):
+    ctx.move_to(*ctx.device_to_user_distance(20, 20))
+    ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
+    ctx.set_source_rgba(*color)
+    ctx.show_text(text)

@@ -13,7 +13,7 @@ from shapely.geometry import Point, Polygon, box, MultiPolygon
 from paho.mqtt import client as mqtt
 
 from factorySim.routing import FactoryPath
-from factorySim.rendering import draw_simple_paths, draw_detail_paths, draw_poly, draw_pathwidth_circles, draw_route_lines, draw_BG, drawCollisions
+from factorySim.rendering import draw_simple_paths, draw_detail_paths, draw_poly, draw_pathwidth_circles, draw_route_lines, draw_BG, drawCollisions, draw_text_topleft
 from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
 from factorySim.factoryObject import FactoryObject
@@ -280,7 +280,7 @@ class factorySimLive(mglw.WindowConfig):
                 if self.future.done():
                     self.future.result()
                     self.G = self.factoryPath.fullPathGraph
-                    self.I = self.factoryPath.PathGraph
+                    self.I = self.factoryPath.ReducedPathGraph
                     self.is_dirty = False
                     self.is_calculating = False
                     #if we had changes during last calulation, recalulate
@@ -293,22 +293,22 @@ class factorySimLive(mglw.WindowConfig):
                 self.future = self.executor.submit(self.factoryPath.calculateAll, self.machine_dict, self.factoryCreator.bb)
                 self.is_calculating = True
 
-        if self.activeModes[Modes.MODE1]: self.cctx = draw_detail_paths(self.cctx, self.G, self.I)
-        if self.activeModes[Modes.MODE2]: self.cctx = draw_simple_paths(self.cctx, self.G, self.I)
-        if self.activeModes[Modes.MODE3]: self.cctx = draw_route_lines(self.cctx, self.factoryPath.route_lines)
-        if self.activeModes[Modes.MODE4]: self.cctx = draw_pathwidth_circles(self.cctx, self.G)
+        if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.G, self.I)
+        if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.G, self.I)
+        if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factoryPath.route_lines)
+        if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.G)
 
 
         for key, machine in self.machine_dict.items():
-            self.cctx = draw_poly(self.cctx, machine.poly, machine.color, text=str(machine.gid), highlight= True if key == self.selected else False, drawHoles=True)
+            draw_poly(self.cctx, machine.poly, machine.color, text=str(machine.gid), highlight= True if key == self.selected else False, drawHoles=True)
        
         if self.activeModes[Modes.MODE5]: 
             factoryRating = FactoryRating(self.machine_dict, {})
             factoryRating.findCollisions()
-            self.cctx = drawCollisions(self.cctx, factoryRating.machineCollisionList, factoryRating.wallCollisionList)
+            drawCollisions(self.cctx, factoryRating.machineCollisionList, factoryRating.wallCollisionList)
 
         for key, mobile in self.mobile_dict.items():
-            self.cctx = draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
+            draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
        
 
         if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
@@ -316,7 +316,9 @@ class factorySimLive(mglw.WindowConfig):
         if self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON and len(self.clickedPoints) > 0:
             self.draw_live_poly(self.cctx, self.clickedPoints, self.cursorPosition)
 
-        self.draw_fps(self.cctx, self.fps_counter)
+        color = (1.0, 1.0, 1.0) if self.is_darkmode else (0.0, 0.0, 0.0)
+        mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
+        draw_text_topleft(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color)
 
         # Copy surface to texture
         texture = self.ctx.texture((self.window_size[0], self.window_size[1]), 4, data=self.surface.get_data())
@@ -352,20 +354,6 @@ class factorySimLive(mglw.WindowConfig):
                         Modes.MODE9 : False,
                         Modes.DRAWING : DrawingModes.NONE
         }
-
-
-    def draw_fps(self, ctx, fps):
-
-        ctx.move_to(*ctx.device_to_user_distance(20, 20))
-        ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
-        if self.is_darkmode:
-            ctx.set_source_rgb(1.0, 1.0, 1.0)
-        else:
-            ctx.set_source_rgba(0.0, 0.0, 0.0)
-        if self.activeModes[Modes.DRAWING].value:
-            ctx.show_text(f"{fps:.0f}    {self.activeModes[Modes.DRAWING].name}")
-        else:
-            ctx.show_text(f"{fps:.0f}")
 
 
     def draw_live_rect(self, ctx, topleft, bottomright):

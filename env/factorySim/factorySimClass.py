@@ -10,19 +10,19 @@ import numpy as np
 
 import cairo
 import pandas as pd
-from shapely.geometry import  Polygon,  MultiPolygon
 
 from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions
 from factorySim.kpi import FactoryRating
+from factorySim.routing import FactoryPath
 
 
 class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randseed = None, randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None, objectScaling = 1.0):
+    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randseed = None, randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.MAXMF_ELEMENTS = maxMF_Elements
         self.factoryCreator = FactoryCreator(*factoryConfig.creationParameters())
@@ -80,6 +80,11 @@ class FactorySim:
         if(self.verboseOutput >= 1):
             self.printTime("IFCBUILDINGELEMENTPROXY geparsed")
 
+        self.factoryPath=FactoryPath(factoryConfig.BOUNDARYSPACING, 
+            factoryConfig.MINDEADENDLENGTH,
+            factoryConfig.MINPATHWIDTH,
+            factoryConfig.MINTWOWAYPATHWIDTH,
+            factoryConfig.SIMPLIFICATIONANGLE)
 
         self.machineCollisionList = []
         self.wallCollisionList = []
@@ -189,6 +194,9 @@ class FactorySim:
         output["ratingCollision"] = self.evaluateCollision()          
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
+        self.fullPathGraph, self.ReducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.factoryCreator.bb)
+        if(self.verboseOutput >= 3):
+            self.printTime("Pfadbewertung abgeschlossen")
 
 
        
@@ -422,13 +430,12 @@ def main():
         randomPos=False,
         createMachines=True,
         verboseOutput=4,
-        maxMF_Elements = None,
-        objectScaling=1.0)
+        maxMF_Elements = None)
     
     surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
     draw_BG(ctx, *img_resolution)
-    ctx = drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawColors = True, drawOrigin = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -461,7 +468,7 @@ def main():
     demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
 
     draw_BG(ctx, *img_resolution)
-    ctx = drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
@@ -472,7 +479,7 @@ def main():
     demoFactory.printTime("PNG schreiben")
     
     #Machine Collisions Output to PNG
-    ctx = drawCollisions(ctx, demoFactory.machineCollisionList, demoFactory.wallCollisionList)
+    drawCollisions(ctx, demoFactory.machineCollisionList, demoFactory.wallCollisionList)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
