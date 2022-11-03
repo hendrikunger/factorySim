@@ -84,6 +84,13 @@ class factorySimLive(mglw.WindowConfig):
         "2",  
         "Basic" + ".ifc")
         #self.machine_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=True)
+        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "Input",  
+        "FTS" + ".ifc")
+        self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
+        print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.machine_dict)
         self.currentScale = self.factoryCreator.scale_factory(self.window_size[0],self.window_size[1])
         self.factoryPath=FactoryPath(self.factoryConfig.BOUNDARYSPACING, 
@@ -299,7 +306,11 @@ class factorySimLive(mglw.WindowConfig):
             factoryRating = FactoryRating(self.machine_dict, {})
             factoryRating.findCollisions()
             self.cctx = drawCollisions(self.cctx, factoryRating.machineCollisionList, factoryRating.wallCollisionList)
-            
+
+        for key, mobile in self.mobile_dict.items():
+            self.cctx = draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
+       
+
         if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
             self.draw_live_rect(self.cctx, self.clickedPoints[0], self.cursorPosition)
         if self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON and len(self.clickedPoints) > 0:
@@ -500,6 +511,9 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
         elif index is not None and "points" in pp:
             self.factory_add_poly(pp["points"], gid=index)
+            self.update_needed()
+        elif index is not None and index in self.machine_dict and pp == []:
+            self.machine_dict.pop(index)
             self.update_needed()
         else:
             print("MQTT message malformed. Needs JSON Payload containing topleft_x, topleft_y, bottomright_x, bottomright_y of rectangle or coordinates of a polygon")

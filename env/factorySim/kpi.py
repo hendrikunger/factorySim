@@ -25,7 +25,8 @@ class FactoryRating():
         self.machineCollisionList = []       
         for a,b in combinations(self.machine_dict.values(), 2):
             if a.poly.intersects(b.poly):
-
+                if(DEBUG):
+                    print(f"Kollision Maschinen {a.name} und {b.name} gefunden.")
                 col = a.poly.intersection(b.poly)
                 if col.type != "MultiPolygon":
                     if col.type == "LineString" or col.type == "Point": continue

@@ -41,7 +41,7 @@ for i in tqdm(range(ITERATIONS)):
     totaltime = starttime
 
     rng = np.random.default_rng()
-    multi, bb = FactoryCreator(*self.factoryConfig.creationParameters()).create_factory()
+    multi, bb = FactoryCreator(*factoryConfig.creationParameters()).create_factory()
     if LOADDATA:
         multi, bb = FactoryCreator.load_pickled_factory("FigureFactory.p")
 
