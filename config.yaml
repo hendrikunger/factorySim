@@ -8,6 +8,7 @@ env_config:
   heigth: 84
   maxMF_Elements: 5
   outputScale: 10
+  objectScaling: 1.0
   rendermode: null
 model:
   custom_model: my_model

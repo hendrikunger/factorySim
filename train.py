@@ -9,13 +9,18 @@ import ray
 
 from ray.tune.logger import pretty_print
 from ray.rllib.agents import ppo
-from ray.rllib.agents.callbacks import DefaultCallbacks
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 
 from ray.rllib.models import ModelCatalog
 from factorySim.customModels import MyXceptionModel
 
 import wandb
 import yaml
+
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
+
 
 # import tracemalloc
 # from typing import Optional, Dict

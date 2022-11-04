@@ -6,7 +6,7 @@ from shapely.ops import unary_union
 import ifcopenshell
 import random
 from factorySim.factoryObject import FactoryObject
-import factorySim.baseConfigs as baseConfigs
+
 
 class FactoryCreator():
 

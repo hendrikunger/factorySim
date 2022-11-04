@@ -7,6 +7,10 @@ from shapely.strtree import STRtree
 from shapely.prepared import prep
 from shapely.ops import split,  voronoi_diagram,  unary_union, triangulate, nearest_points
 
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
+
 import numpy as np
 import networkx as nx
 

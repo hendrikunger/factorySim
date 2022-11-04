@@ -116,7 +116,7 @@ class FactorySimEnv(gym.Env):
         #draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
         drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.materialflow_file, drawColors=True)
-        draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
+        draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
         
         if mode == 'human' or self.rendermode == 'human':
             outputPath = os.path.join(self.output_path, f"{prefix}_{self.uid}_{self.stepCount:04d}.png")
@@ -201,8 +201,8 @@ def main():
     env = FactorySimEnv( env_config = env_config)
 
     prefix="test"
-    env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,200)):
+
+    for _ in tqdm(range(0,50)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         env.render(mode='human', prefix=prefix)
         if done:

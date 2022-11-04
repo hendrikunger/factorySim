@@ -2,6 +2,7 @@ ray[rllib]
 pandas
 pandas-datareader
 networkx
+ifcopenshell
 shapely
 pycairo
 gputil

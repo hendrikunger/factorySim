@@ -12,6 +12,7 @@ import numpy as np
 from shapely.geometry import Point, Polygon, box, MultiPolygon
 from paho.mqtt import client as mqtt
 
+
 from factorySim.routing import FactoryPath
 from factorySim.rendering import draw_simple_paths, draw_detail_paths, draw_poly, draw_pathwidth_circles, draw_route_lines, draw_BG, drawCollisions, draw_text_topleft
 from factorySim.creation import FactoryCreator
@@ -52,9 +53,9 @@ class factorySimLive(mglw.WindowConfig):
     title = "factorySimLive"
     lastTime = 1
     fps_counter = 30
-    #window_size = (3840, 2160)
+    window_size = (3840, 2160)
     #window_size = (1920, 1080)
-    window_size = (1280, 720)
+    #window_size = (1280, 720)
     #window_size = (1920*6, 1080)
     aspect_ratio = None
     fullscreen = False

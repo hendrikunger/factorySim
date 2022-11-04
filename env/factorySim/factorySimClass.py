@@ -28,8 +28,8 @@ class FactorySim:
         self.factoryCreator = FactoryCreator(self.FACTORYDIMENSIONS,
             factoryConfig.MAXSHAPEWIDTH,
             factoryConfig.MAXSHAPEHEIGHT, 
-            math.floor(0.8*self.MAXMF_ELEMENTS), 
-            math.ceil(0.2*self.MAXMF_ELEMENTS), 
+            math.floor(0.8*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
+            math.ceil(0.2*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTPOLY, 
             factoryConfig.MAXCORNERS
             )
         self.verboseOutput = verboseOutput
@@ -310,6 +310,7 @@ class FactorySim:
         nMachineCollisions = len(self.machineCollisionList)
         nWallCollosions = len(self.wallCollisionList)
 
+
         #If latest update leads to collision give worst rating.
         #if(self.collisionAfterLastUpdate):
         #    output = -3
@@ -412,7 +413,7 @@ class FactorySim:
 #------------------------------------------------------------------------------------------------------------
 def main():
 
-    img_resolution = (1280, 720)
+    img_resolution = (500, 500)
     outputfile ="Out"
 
     #filename = "Long"
