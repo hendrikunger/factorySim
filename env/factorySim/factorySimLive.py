@@ -92,7 +92,7 @@ class factorySimLive(mglw.WindowConfig):
         self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
         print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.machine_dict)
-        self.currentScale = self.factoryCreator.scale_factory(self.window_size[0],self.window_size[1])
+        self.currentScale = self.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
         self.factoryPath=FactoryPath(self.factoryConfig.BOUNDARYSPACING, 
             self.factoryConfig.MINDEADENDLENGTH,
             self.factoryConfig.MINPATHWIDTH,
@@ -161,7 +161,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def resize(self, width: int, height: int):
         self.window_size = (width, height)
-        self.currentScale = self.factoryCreator.scale_factory(self.window_size[0],self.window_size[1])
+        self.currentScale = self.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
         self.recreateCairoContext()
 
 

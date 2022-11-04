@@ -68,8 +68,8 @@ filename = "Basic"
 #filename = "SimpleNoCollisions"
 #filename = "LShape"
 
-#ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
-ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
+ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
+#ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2")
 
 #Import Custom Models
 ModelCatalog.register_custom_model("my_model", MyXceptionModel)
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     trainer = ppo.PPOTrainer(config=ppo_config)
     # run manual training loop and print results after each iteration
 
-    for _ in range(5000000): #args.stop_iters,
+    for _ in range(500): #args.stop_iters,
         result = trainer.train()
         print(pretty_print(result))
         # stop training of the target train steps or reward are reached

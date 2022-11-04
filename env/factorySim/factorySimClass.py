@@ -25,7 +25,13 @@ class FactorySim:
     def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randseed = None, randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.MAXMF_ELEMENTS = maxMF_Elements
-        self.factoryCreator = FactoryCreator(*factoryConfig.creationParameters())
+        self.factoryCreator = FactoryCreator(self.FACTORYDIMENSIONS,
+            factoryConfig.MAXSHAPEWIDTH,
+            factoryConfig.MAXSHAPEHEIGHT, 
+            math.floor(0.8*self.MAXMF_ELEMENTS), 
+            math.ceil(0.2*self.MAXMF_ELEMENTS), 
+            factoryConfig.MAXCORNERS
+            )
         self.verboseOutput = verboseOutput
         self.RANDSEED = randseed
         random.seed(randseed)
@@ -97,6 +103,7 @@ class FactorySim:
         self.collisionAfterLastUpdate = False # True if latest update leads to new collsions
 
         self.episodeCounter = 0
+        self.scale = 1 #Saves the scaling factor of provided factories for external access
 
         #Creating random positions
         if randomPos:
@@ -248,7 +255,7 @@ class FactorySim:
 
 
         #if(self.episodeCounter >= 3 * len(self.machine_list)):
-        if(self.episodeCounter > len(self.machine_dict)+1):
+        if(self.episodeCounter >= len(self.machine_dict)+1):
             done = True
             output["done"] = True
         else:
@@ -331,8 +338,8 @@ class FactorySim:
     def provideCairoDrawingData(self, width, height):
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         ctx = cairo.Context(surface)
-        scale = self.factoryCreator.scale_factory(width, height)
-        ctx.scale(scale, scale)
+        self.scale = self.factoryCreator.suggest_factory_view_scale(width, height)
+        ctx.scale(self.scale, self.scale)
         return surface, ctx
 
 

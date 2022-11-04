@@ -38,8 +38,18 @@ class FactoryPath():
             self.fullPathGraph = nx.Graph()
             self.ReducedPathGraph = nx.Graph()
             return self.fullPathGraph, self.ReducedPathGraph
+        
 
-        multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
+        union = unary_union([x.poly for x in machine_dict.values()])
+        if union.geom_type == "MultiPolygon":
+            multi = MultiPolygon(union)
+        elif union.geom_type == "Polygon":
+            multi = MultiPolygon([union])
+        else:
+            print("Error: No valid Polygon in Machine Dictionary")
+            return
+
+
         #Scale boundary spacing according to factory size
         scale = max(bb.bounds) / 30
 

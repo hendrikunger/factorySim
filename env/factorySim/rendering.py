@@ -197,6 +197,12 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                 ctx.fill()
 
     #Material Flow
+    drawMaterialFlow(ctx, machine_dict, materialflow_file, drawColors)
+    
+
+    return ctx
+
+def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = True):
     if  materialflow_file is not None:
 
         for index, row in materialflow_file.iterrows():
@@ -218,6 +224,8 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
     
 
     return ctx
+
+#------------------------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------------------------
 def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, drawColors = True):

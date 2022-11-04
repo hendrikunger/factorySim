@@ -23,7 +23,7 @@ class FactoryCreator():
         self.maxCorners = maxCorners
         self.bb = None
 
-    def scale_factory(self, viewport_width, viewport_height):
+    def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
         if self.bb:
             bbox = self.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
@@ -68,7 +68,14 @@ class FactoryCreator():
                 if singlePoly.area > self.maxShapeWidth*self.maxShapeWidth*0.05:
                     polygons.append(singlePoly)
 
-        multi = scale(unary_union(polygons), yfact=-1, origin=self.bb.centroid)
+        union = unary_union(polygons)
+        while union.geom_type != 'MultiPolygon':
+            corner = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeigth - self.maxShapeHeight], size=[2], endpoint=True)
+            print(corner)
+            newRect = box(corner[0],corner[1],corner[0] + self.rng.integers(1, self.maxShapeWidth+1), corner[1] + self.rng.integers(1, self.maxShapeHeight+1))
+            union = MultiPolygon([union,newRect])
+
+        multi = MultiPolygon(scale(union, yfact=-1, origin=self.bb.centroid))
 
         for i, poly in enumerate(multi.geoms):
             bbox = poly.bounds

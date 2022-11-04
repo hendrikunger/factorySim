@@ -16,15 +16,12 @@ from ray.rllib.env.multi_agent_env import make_multi_agent
 
 
 import factorySim.baseConfigs as baseConfigs
-from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text_topleft
-
-
-
+from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text_topleft, drawMaterialFlow
 
 
  
 class FactorySimEnv(gym.Env):  
-    metadata = {'render.modes': ['human', 'rgb']}
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
     def __init__(self, env_config: EnvContext):
@@ -98,6 +95,10 @@ class FactorySimEnv(gym.Env):
         maxMF_Elements = self.maxMF_Elements)
         
         self.surface, self.ctx = self.factory.provideCairoDrawingData(self.width, self.heigth)
+        self.rsurface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width * self.scale, self.heigth*self.scale)
+        self.rctx = cairo.Context(self.rsurface)
+
+        self.rctx.scale(self.scale*self.factory.scale, self.scale*self.factory.scale)
 
         self.machineCount = len(self.factory.machine_dict)
         self.stepCount = 0
@@ -109,19 +110,20 @@ class FactorySimEnv(gym.Env):
         self.factory.evaluate()
         return self._get_obs()
 
-    def render(self, mode='rgb', prefix = ""):
-        draw_BG(self.ctx, self.width, self.heigth, darkmode=False)
-        drawFactory(self.ctx, self.factory.machine_dict, self.factory.wall_dict, self.factory.materialflow_file, drawNames=False, highlight=self.currentMachine)
+    def render(self, mode='rgb_array', prefix = ""):
+        draw_BG(self.rctx, self.width, self.heigth, darkmode=False)
+        drawFactory(self.rctx, self.factory.machine_dict, self.factory.wall_dict, None, drawNames=False, highlight=self.currentMachine)
         #draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
-        drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
-        draw_text_topleft(self.ctx, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
+        drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
+        drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.materialflow_file, drawColors=True)
+        draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
         
         if mode == 'human' or self.rendermode == 'human':
             outputPath = os.path.join(self.output_path, f"{prefix}_{self.uid}_{self.stepCount:04d}.png")
-            self.surface.write_to_png(outputPath)
+            self.rsurface.write_to_png(outputPath)
             return True
-        elif mode == 'rgb':
-            buf = self.surface.get_data()
+        elif mode == 'rgb_array':
+            buf = self.rsurface.get_data()
             #bgra to rgb
             #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
             rgb = np.ndarray(shape=(self.width * self.scale, self.heigth * self.scale, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
@@ -162,6 +164,9 @@ class FactorySimEnv(gym.Env):
         self.surface.finish()
         del(self.surface)
         del(self.ctx)
+        self.rsurface.finish()
+        del(self.rsurface)
+        del(self.rctx)
 
 MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 
@@ -170,35 +175,34 @@ MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 def main():
 
     #filename = "Long"
-    #filename = "Basic"
-    filename = "Simple"
+    filename = "Basic"
+    #filename = "Simple"
     #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
         "Input",
-        "2",  
+        "1",  
         filename + ".ifc")
 
     env_config = {
         "inputfile" : ifcpath,
         "obs_type" : 'image',
         "Loglevel" : 1,
-        "width" : 840,
-        "heigth" : 840,
-        "maxMF_Elements" : 5,
-        "outputScale" : 4,
+        "width" : 84,
+        "heigth" : 84,
+        "maxMF_Elements" : 10,
+        "outputScale" : 10,
         "objectScaling" : 1.0,
         "rendermode": "human",
             }
         
     env = FactorySimEnv( env_config = env_config)
-    env.reset()
 
     prefix="test"
     env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,5)):
+    for _ in tqdm(range(0,200)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         env.render(mode='human', prefix=prefix)
         if done:
