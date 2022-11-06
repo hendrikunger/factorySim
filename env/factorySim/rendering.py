@@ -177,10 +177,10 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                 ctx.stroke()
                 if drawNames:
                     ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
-                    (x, y, width, height, dx, dy) = ctx.text_extents(machine.name)
+                    (x, y, width, height, dx, dy) = ctx.text_extents(str(machine.gid))
                     point = polylabel(poly.convex_hull, tolerance=10)
                     ctx.move_to(point.x - width/2, point.y - height/2)    
-                    ctx.show_text(machine.name)
+                    ctx.show_text(str(machine.gid))
 
         #Machine Centers
             if (drawMachineCenter):
@@ -265,3 +265,13 @@ def draw_text_topleft(ctx, text, color):
     ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
     ctx.set_source_rgba(*color)
     ctx.show_text(text)
+
+def draw_text_topleft2(ctx, text, color):
+    ctx.move_to(*ctx.device_to_user_distance(20, 40))
+    ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
+    ctx.set_source_rgba(*color)
+    ctx.show_text(text)
+
+
+
+

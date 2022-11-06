@@ -115,7 +115,7 @@ class FactorySimEnv(gym.Env):
         drawFactory(self.rctx, self.factory.machine_dict, self.factory.wall_dict, None, drawNames=False, highlight=self.currentMachine)
         #draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
         drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
-        drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.materialflow_file, drawColors=True)
+        drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
         draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
         
         if mode == 'human' or self.rendermode == 'human':
@@ -153,7 +153,7 @@ class FactorySimEnv(gym.Env):
         #separate Image for Materialflow
         draw_BG(self.ctx, self.width, self.heigth, darkmode=False)
         draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
-        drawFactory(self.ctx, self.factory.machine_dict, None, self.factory.materialflow_file, drawColors = False, drawNames=False, highlight=self.currentMachine)
+        drawFactory(self.ctx, self.factory.machine_dict, None, self.factory.dfMF, drawColors = False, drawNames=False, highlight=self.currentMachine)
         
         buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]

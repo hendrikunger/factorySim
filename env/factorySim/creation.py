@@ -11,7 +11,7 @@ from factorySim.factoryObject import FactoryObject
 class FactoryCreator():
 
 
-    def __init__(self, factoryDimensions=(31,18), maxShapeWidth=3, maxShapeHeight=2, amountRect=20, amountPoly=5, maxCorners=3):
+    def __init__(self, factoryDimensions=(32,18), maxShapeWidth=3, maxShapeHeight=2, amountRect=20, amountPoly=5, maxCorners=3):
         self.rng = np.random.default_rng()
 
         self.factoryWidth = factoryDimensions[0]
@@ -22,7 +22,7 @@ class FactoryCreator():
         self.amountPoly = amountPoly
         self.maxCorners = maxCorners
         self.bb = None
-
+       
     def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
         if self.bb:

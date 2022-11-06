@@ -39,21 +39,26 @@ class FactorySim:
         self.timezero = time()
         self.lasttime = 0        
 
-        if(self.verboseOutput >= 1):
-            self.printTime("IFCWALL geparsed")
-
-        if(os.path.isdir(path_to_ifc_file)):
-            
-            self.ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x and "LIB" not in x])
-            self.ifc_file = os.path.join(path_to_ifc_file, self.ifc_file)
-        else:
-            self.ifc_file = path_to_ifc_file
-            
-        if(self.verboseOutput >= 2):
-            print("Lade: ", self.ifc_file)
 
         #Importing Walls
-        self.wall_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True) 
+        if path_to_ifc_file:
+            if(os.path.isdir(path_to_ifc_file)):
+                
+                self.ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x and "LIB" not in x])
+                self.ifc_file = os.path.join(path_to_ifc_file, self.ifc_file)
+            else:
+                self.ifc_file = path_to_ifc_file
+
+            if(self.verboseOutput >= 2):
+                print("Lade: ", self.ifc_file)
+                
+            self.wall_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True)
+
+        else:
+            self.wall_dict = {}
+
+        if(self.verboseOutput >= 1):
+            self.printTime("IFCWALL geparsed")
 
         #Create Random Machines
         if createMachines:
@@ -119,31 +124,32 @@ class FactorySim:
         
         #Import Materialflow from Excel
         if path_to_materialflow_file:
-            self.materialflow_file = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
+            self.dfMF = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
             #Rename Colums
-            indexes = self.materialflow_file.columns.tolist()
-            self.materialflow_file.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
+            indexes = self.dfMF.columns.tolist()
+            self.dfMF.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
         else:
             #Create Random Materialflow
             names = []
-            for _ in range(0,len(self.machine_dict) * 2):
+            for _ in range(0,len(self.machine_dict)):
                 samples = random.sample(list(self.machine_dict.values()), k=2)
                 names.append([samples[0].name, samples[1].name]) 
-            self.materialflow_file = pd.DataFrame(data=names, columns=["from", "to"])
-            self.materialflow_file['intensity'] = np.random.randint(1,100, size=len(self.materialflow_file))
+            self.dfMF = pd.DataFrame(data=names, columns=["from", "to"])
+            self.dfMF['intensity'] = np.random.randint(1,100, size=len(self.dfMF))
 
         #Group by from and two, add up intensity of all duplicates in intensity_sum
-        self.materialflow_file['intensity_sum'] = self.materialflow_file.groupby(by=['from', 'to'])['intensity'].transform('sum')
+        self.dfMF['intensity_sum'] = self.dfMF.groupby(by=['from', 'to'])['intensity'].transform('sum')
         #drop the duplicates and refresh index
-        self.materialflow_file = self.materialflow_file.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
+        self.dfMF = self.dfMF.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
         #normalise intensity sum 
-        self.materialflow_file['intensity_sum_norm'] = self.materialflow_file['intensity_sum'] / self.materialflow_file.max()["intensity_sum"]
+        self.dfMF['intensity_sum_norm'] = self.dfMF['intensity_sum'] / self.dfMF.max()["intensity_sum"]
         #use machine index as sink and source for materialflow
         #Replace Machine Names in Material flow (From Sketchup Import) with machine dict key
         machine_dict = {machine.name: key for key, machine in self.machine_dict.items()}
-        self.materialflow_file[['from','to']] = self.materialflow_file[['from','to']].replace(machine_dict)
+        self.dfMF[['from','to']] = self.dfMF[['from','to']].replace(machine_dict)
         #set initial values for costs
-        self.materialflow_file['costs'] = 0
+        self.dfMF['costs'] = 0
+
     
         if(self.verboseOutput >= 3):
             self.printTime("Materialfluss geladen")
@@ -281,13 +287,13 @@ class FactorySim:
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF(self):
-        self.materialflow_file['distance'] = self.materialflow_file.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
+        self.dfMF['distance'] = self.dfMF.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
         #sum of all costs /  maximum intensity (intensity sum norm * 1) 
         #find longest distance possible in factory
         maxDistance = max(self.factoryCreator.bb.bounds[2],  self.factoryCreator.bb.bounds[3])
-        self.materialflow_file['distance_norm'] = self.materialflow_file['distance'] / maxDistance
-        self.materialflow_file['costs'] = self.materialflow_file['distance_norm'] * self.materialflow_file['intensity_sum_norm']
-        output = 1 - (math.pow(self.materialflow_file['costs'].sum(),2) / self.materialflow_file['intensity_sum_norm'].sum())
+        self.dfMF['distance_norm'] = self.dfMF['distance'] / maxDistance
+        self.dfMF['costs'] = self.dfMF['distance_norm'] * self.dfMF['intensity_sum_norm']
+        output = 1 - (math.pow(self.dfMF['costs'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
         if(output < 0): output = 0
 
         return output
@@ -443,7 +449,7 @@ def main():
     surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
     draw_BG(ctx, *img_resolution)
-    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawColors = True, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawColors = True, drawOrigin = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -476,7 +482,7 @@ def main():
     demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
 
     draw_BG(ctx, *img_resolution)
-    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.materialflow_file, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
