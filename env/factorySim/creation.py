@@ -114,7 +114,7 @@ class FactoryCreator():
 
     def load_ifc_factory(self, ifc_file_path, elementName, randomMF=None, recalculate_bb=False):
         ifc_file = ifcopenshell.open(ifc_file_path)
-        elementlist = {}
+        element_dict = {}
         elements = []
         if(randomMF):
             elements = random.choices(ifc_file.by_type(elementName), k=random.randint(2, randomMF))
@@ -175,14 +175,14 @@ class FactoryCreator():
             singleElement = rotate(singleElement, rotation, origin=(origin[0], origin[1]), use_radians=True)
             #create Factory Object       
             
-            elementlist[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
+            element_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
                                                             name=element.Name + my_uuid,
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement)
 
 
         if recalculate_bb:
-            bbox = unary_union([x.poly for x in elementlist.values()])
+            bbox = unary_union([x.poly for x in element_dict.values()])
             #Prevent error due to single element in IFC File
             if bbox.type == "MultiPolygon":
                 bbox = bbox.bounds
@@ -192,10 +192,10 @@ class FactoryCreator():
             self.factoryWidth = bbox[2]
             self.factoryHeight = bbox[3]
 
-        for element in elementlist.values():
+        for element in element_dict.values():
             element.poly = scale(element.poly, yfact=-1, origin=self.bb.centroid)
             polybbox = element.poly.bounds
             element.origin = (polybbox[0], polybbox[1])
             element.center = element.poly.representative_point()
 
-        return elementlist
+        return element_dict
