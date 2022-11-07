@@ -53,6 +53,7 @@ class factorySimLive(mglw.WindowConfig):
     title = "factorySimLive"
     lastTime = 1
     fps_counter = 30
+    #window_size = (3840, 4320)
     #window_size = (3840, 2160)
     window_size = (1920, 1080)
     #window_size = (1280, 720)
@@ -67,8 +68,8 @@ class factorySimLive(mglw.WindowConfig):
     is_calculating = False
     update_during_calculation = False
     clickedPoints = []
-    factoryPath = None
-    factoryConfig = baseConfigs.SMALL
+    #factoryConfig = baseConfigs.SMALL
+    factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
       
 
@@ -78,7 +79,7 @@ class factorySimLive(mglw.WindowConfig):
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.factoryCreator = FactoryCreator(*self.factoryConfig.creationParameters())
 
-        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
         "Input",
@@ -86,12 +87,7 @@ class factorySimLive(mglw.WindowConfig):
         "Basic" + ".ifc")
         #self.machine_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=True)
 
-        self.factory = FactorySim(None,
-                path_to_materialflow_file = None,
-                factoryConfig=self.factoryConfig,
-                randomPos=False,
-                createMachines=True
-                )
+        self.create_factory()
 
 
         self.factoryCreator.bb = self.factory.factoryCreator.bb
@@ -104,15 +100,8 @@ class factorySimLive(mglw.WindowConfig):
         print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.factory.machine_dict)
         self.currentScale = self.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
-        self.factoryPath=FactoryPath(self.factoryConfig.BOUNDARYSPACING, 
-            self.factoryConfig.MINDEADENDLENGTH,
-            self.factoryConfig.MINPATHWIDTH,
-            self.factoryConfig.MINTWOWAYPATHWIDTH,
-            self.factoryConfig.SIMPLIFICATIONANGLE)
-        #self.factoryPath.TIMING = True
 
-        self.future = self.executor.submit(self.factory.evaluate)
-        _, _ , self.rating, _ = self.future.result()
+
         self.setupKeys()
         self.recreateCairoContext()
 
@@ -122,7 +111,8 @@ class factorySimLive(mglw.WindowConfig):
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
-        self.mqtt_client.connect("broker.hivemq.com", 1883)
+        #self.mqtt_client.connect("broker.hivemq.com", 1883)
+        self.mqtt_client.connect("10.54.129.47", 1883)
         self.mqtt_client.loop_start()
         
         
@@ -202,6 +192,9 @@ class factorySimLive(mglw.WindowConfig):
             # Toggle mouse exclusivity
             if key == keys.M:
                 self.wnd.mouse_exclusivity = not self.wnd.mouse_exclusivity
+            #Restart
+            if key == keys.N:
+                self.create_factory()
             # End Drawing Mode
             if key == keys.ESCAPE:
                 self.clickedPoints.clear()
@@ -306,7 +299,7 @@ class factorySimLive(mglw.WindowConfig):
 
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
-        if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factoryPath.route_lines)
+        if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
         if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
 
 
@@ -443,6 +436,15 @@ class factorySimLive(mglw.WindowConfig):
             self.nextGID += 1
             self.update_needed()
             
+    def create_factory(self):
+        self.factory = FactorySim(None,
+        path_to_materialflow_file = None,
+        factoryConfig=self.factoryConfig,
+        randomPos=False,
+        createMachines=True
+        )
+        self.future = self.executor.submit(self.factory.evaluate)
+        _, _ , self.rating, _ = self.future.result()
 
 
 
@@ -450,7 +452,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def on_connect(self, client, userdata, flags, rc):
         print("Connected with result code "+str(rc))
-        client.subscribe("EDF/#")
+        client.subscribe("EDF/BP/#")
 
     def on_disconnect(self, client, userdata, rc):
         print("Disconnected with result code "+str(rc))
@@ -469,15 +471,15 @@ class factorySimLive(mglw.WindowConfig):
             except queue.Empty:
                 print("Tried reading from empty Queue.")
                 return
-            if topic == "EDF/bg":
+            if topic == "EDF/BP/bg":
                 if payload == b"True":
                     self.is_darkmode = True
                 elif payload == b"False":
                     self.is_darkmode = False
                 else:
-                    print("Unknown payload for EDF/bg: " + payload)
+                    print("Unknown payload for EDF/BP/bg: " + payload)
 
-            if topic.startswith("EDF/machines/"):
+            if topic.startswith("EDF/BP/machines/"):
                 if topic.endswith("/pos"):
                     self.handleMQTT_Position(topic, payload)
                 if topic.endswith("/geom"):
@@ -487,13 +489,9 @@ class factorySimLive(mglw.WindowConfig):
     def extractID(self, topic):
         index = topic.split("/")
         #safeguard against misformed topics
-        if len(index) >=2:
-            try:
-                index = int(index[2])
-                return index
-            except ValueError:
-                print("Not an integer: ", index[2])
-                return None
+        if len(index) >=3:
+            return index[3]
+   
 
 
     def handleMQTT_Position(self, topic, payload):
@@ -502,6 +500,8 @@ class factorySimLive(mglw.WindowConfig):
         if index in self.factory.machine_dict and "x" in pp and "y" in pp:        
             self.factory.machine_dict[index].translate_Item(pp["x"],pp["y"])
             self.update_needed()
+        elif index in self.mobile_dict and "x" in pp and "y" in pp:
+            self.mobile_dict[index].translate_Item(pp["x"],pp["y"]) 
         else:
             print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index")
     
