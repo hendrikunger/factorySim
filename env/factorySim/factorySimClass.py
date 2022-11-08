@@ -131,9 +131,12 @@ class FactorySim:
         else:
             #Create Random Materialflow
             names = []
-            for _ in range(0,len(self.machine_dict)):
-                samples = random.sample(list(self.machine_dict.values()), k=2)
-                names.append([samples[0].name, samples[1].name]) 
+            for start in self.machine_dict.values():
+                sample = random.choice(list(self.machine_dict.values()))
+                names.append([start.name, sample.name]) 
+                if random.random() >= 0.9:
+                    sample = random.choice(list(self.machine_dict.values()))
+                    names.append([start.name, sample.name])                 
             self.dfMF = pd.DataFrame(data=names, columns=["from", "to"])
             self.dfMF['intensity'] = np.random.randint(1,100, size=len(self.dfMF))
 
