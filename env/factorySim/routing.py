@@ -19,7 +19,7 @@ DETAILPLOT = False
 class FactoryPath():
 
     fullPathGraph = None
-    ReducedPathGraph = None
+    reducedPathGraph = None
     TIMING = False
     PLOTTING = False
 
@@ -40,8 +40,8 @@ class FactoryPath():
         #Check if we have enough machines to make a path
         if len(machine_dict) <= 1:
             self.fullPathGraph = nx.Graph()
-            self.ReducedPathGraph = nx.Graph()
-            return self.fullPathGraph, self.ReducedPathGraph
+            self.reducedPathGraph = nx.Graph()
+            return self.fullPathGraph, self.reducedPathGraph
         
 
         union = unary_union([x.poly for x in machine_dict.values()])
@@ -158,7 +158,7 @@ class FactoryPath():
             memory, memory_distance = second, second_distance
 
             #edge width is minimum path width of the nodes making up the edge
-            smallestPathwidth = min(first_distance, second_distance)
+            smallestPathwidth = min(first_distance, second_distance) * 2
 
 
         #This is replaced by the version below. Delete Line Filtering below as well 
@@ -243,7 +243,7 @@ class FactoryPath():
 
         # Simpicification and Path Generation ------------------------------------------------------------------------------------
 
-        self.ReducedPathGraph = nx.Graph()
+        self.reducedPathGraph = nx.Graph()
 
         visited = set() # Set to keep track of visited nodes.
         tempPath = [] # List to keep track of visited nodes in current path.
@@ -307,9 +307,9 @@ class FactoryPath():
                         if minpath > self.minTwoWayPathWidth: pathtype = "twoway"
 
 
-                        self.ReducedPathGraph.add_node(currentOuterNode, pos=pos[currentOuterNode])
-                        self.ReducedPathGraph.add_node(currentInnerNode, pos=pos[currentInnerNode])
-                        self.ReducedPathGraph.add_edge(currentOuterNode, 
+                        self.reducedPathGraph.add_node(currentOuterNode, pos=pos[currentOuterNode])
+                        self.reducedPathGraph.add_node(currentInnerNode, pos=pos[currentInnerNode])
+                        self.reducedPathGraph.add_edge(currentOuterNode, 
                             currentInnerNode, 
                             weight=totalweight,
                             pathwidth=minpath, 
@@ -338,7 +338,7 @@ class FactoryPath():
             self.timelog("Network Path Generation")
             print(f"Algorithm Total: {self.nextTime - self.totalTime}")
 
-        return self.fullPathGraph, self.ReducedPathGraph
+        return self.fullPathGraph, self.reducedPathGraph
 
     def calculateNodeAngles(self, G, cutoff=45):
 
@@ -566,7 +566,7 @@ if __name__ == "__main__":
 
             pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.inter_unfilteredGraph,'pathwidth').values())))
 
-            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="silver", width=pathwidth * 50, alpha=0.6)
+            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="silver", width=pathwidth * 10, alpha=0.6)
             nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="red", width=2, alpha=1)
             nx.draw_networkx_edges(factoryPath.inter_filteredGraph, pos=pos, ax=ax, edge_color="lime", width=2, alpha=1)
             nx.draw_networkx_edges(factoryPath.fullPathGraph, pos=pos, ax=ax, edge_color="dimgrey", width=5, alpha=1)
@@ -580,7 +580,7 @@ if __name__ == "__main__":
             if SAVEPLOT: plt.savefig(f"{i+1}_3_Pruning.{SAVEFORMAT}", format=SAVEFORMAT)
             
             plt.show()
-
+            
             #  Clean Plot -----------------------------------------------------------------------------------------------------------------
 
             fig, ax = plt.subplots(1, figsize=(16, 16))
@@ -595,12 +595,12 @@ if __name__ == "__main__":
                     ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
 
-            for u,v,data in factoryPath.ReducedPathGraph.edges(data=True):
+            for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
                 temp = [pos[x] for x in data['nodelist']]
-                ax.plot(*zip(*temp), color="dimgray", linewidth=data['pathwidth'] * 9, alpha=1.0, solid_capstyle='round')
+                ax.plot(*zip(*temp), color="dimgray", linewidth=data['pathwidth'] * 6, alpha=1.0, solid_capstyle='round')
 
 
-            for u,v,data in factoryPath.ReducedPathGraph.edges(data=True):
+            for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
                 temp = [pos[x] for x in data['nodelist']]
                 if data['pathtype'] =="twoway":
                     ax.plot(*zip(*temp), color="white", linewidth=3, alpha=0.5, solid_capstyle='round', linestyle='dashed')
@@ -620,7 +620,7 @@ if __name__ == "__main__":
             plt.ylim(0,bb.bounds[3])
             plt.autoscale(False)
 
-            for u,v,a in factoryPath.ReducedPathGraph.edges(data=True):
+            for u,v,a in factoryPath.reducedPathGraph.edges(data=True):
                 linecolor = rng.random(size=3)
                 temp = [pos[x] for x in data['nodelist']]
                 for i, node in enumerate(temp[1:]):
@@ -634,24 +634,21 @@ if __name__ == "__main__":
                     ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
 
-            min_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.ReducedPathGraph,'pathwidth').values())))
-            max_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.ReducedPathGraph,'max_pathwidth').values())))
-
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, node_size=20, node_color='black')
-            nx.draw_networkx_nodes(factoryPath.ReducedPathGraph, pos=pos, ax=ax, node_size=120, node_color='red')
+            nx.draw_networkx_nodes(factoryPath.reducedPathGraph, pos=pos, ax=ax, node_size=120, node_color='red')
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.support, node_size=120, node_color='green')
             #old simplification
             #nx.draw_networkx_edges(factoryPath.PathGraph, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey")
             #nx.draw_networkx_edges(factoryPath.PathGraph, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
             nx.draw_networkx_edges(factoryPath.fullPathGraph, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
 
-            min_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.ReducedPathGraph,'pathwidth').values())))
-            max_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.ReducedPathGraph,'max_pathwidth').values())))
+            min_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.reducedPathGraph,'pathwidth').values())))
+            max_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.reducedPathGraph,'max_pathwidth').values())))
 
-            nx.draw_networkx_edges(factoryPath.ReducedPathGraph, pos=pos, ax=ax, edge_color="yellow", width=4)
-            nx.draw_networkx_edges(factoryPath.ReducedPathGraph, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey", alpha=0.7)
-            nx.draw_networkx_edges(factoryPath.ReducedPathGraph, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
-
+            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, edge_color="yellow", width=4)
+            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=max_pathwidth * 6, edge_color="dimgrey", alpha=0.7)
+            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=min_pathwidth * 6, edge_color="blue", alpha=0.5)
+            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, edge_color="yellow", width=4)
 
             if SAVEPLOT: plt.savefig(f"{i+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
             plt.show()
@@ -701,7 +698,7 @@ if __name__ == "__main__":
 
             nx.draw(factoryPath.fullPathGraph, pos=pos, ax=ax, node_size=80, node_color='black')
 
-            for u,v,data in factoryPath.ReducedPathGraph.edges(data=True):
+            for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
                 temp = [pos[x] for x in data['nodelist']]
                 linecolor = rng.random(size=3)
                 ax.plot(*zip(*temp), color=linecolor, linewidth=5)

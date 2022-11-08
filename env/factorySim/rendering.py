@@ -14,22 +14,25 @@ def draw_BG(ctx, width, height, darkmode=True):
     ctx.fill()
 
 #------------------------------------------------------------------------------------------------------------
-def draw_detail_paths(ctx, G, I):
+def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
     ctx.set_source_rgba(0.3, 0.3, 0.3, 1.0)
-    ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
+    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
     ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-    pos=nx.get_node_attributes(G,'pos')
+    pos=nx.get_node_attributes(fullPathGraph,'pos')
 
-    for u,v,data in I.edges(data=True):
+ 
+    modifer = 0.5 if asStreets else 1.0
+
+    for u,v,data in reducedPathGraph.edges(data=True):
         temp = [pos[x] for x in data['nodelist']]
-        ctx.set_line_width(data['pathwidth'])
+        ctx.set_line_width(data['pathwidth']*modifer)
         ctx.move_to(*temp[0])
         for node in temp[1:]:
             ctx.line_to(*node)
         ctx.stroke()
     ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
 
-    for u,v,data in I.edges(data=True):
+    for u,v,data in reducedPathGraph.edges(data=True):
         temp = [pos[x] for x in data['nodelist']]
         if data['pathtype'] =="twoway":
             ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
@@ -42,22 +45,22 @@ def draw_detail_paths(ctx, G, I):
 
     return ctx
 #------------------------------------------------------------------------------------------------------------
-def draw_simple_paths(ctx, G, I):
+def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
     ctx.set_source_rgba(0.0, 0.0, 0.5, 0.5)
     ctx.set_line_join(cairo.LINE_JOIN_BEVEL)
     ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-    pos=nx.get_node_attributes(G,'pos')
+    pos=nx.get_node_attributes(fullPathGraph,'pos')
 
-    for u,v in I.edges():
+    for u,v in reducedPathGraph.edges():
         ctx.set_line_width(ctx.device_to_user_distance(10, 10)[0])
         ctx.move_to(*pos[u])
         ctx.line_to(*pos[v])
-        ctx.stroke()
+    ctx.stroke()
     
     #crossroads = list(nx.get_node_attributes(G, "isCrossroads").keys())
 
-    endpoints=[node for node, degree in G.degree() if degree == 1]
-    crossroads= [node for node, degree in G.degree() if degree >= 3]
+    endpoints=[node for node, degree in fullPathGraph.degree() if degree == 1]
+    crossroads= [node for node, degree in fullPathGraph.degree() if degree >= 3]
 
     ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
     for point in crossroads:
@@ -81,7 +84,7 @@ def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
         if highlight:
             ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
         else:
-            ctx.set_source_rgba(*color, 0.8)
+            ctx.set_source_rgba(*color, 1.0)
         ctx.move_to(*subpoly.exterior.coords[0])
         for x,y in subpoly.exterior.coords[1:]:
             ctx.line_to(x,y)
@@ -107,11 +110,20 @@ def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
         ctx.show_text(text)
     return ctx
 #------------------------------------------------------------------------------------------------------------
-def draw_pathwidth_circles(ctx, G):
+def draw_pathwidth_circles(ctx, fullPathGraph):
+    for _ , data in fullPathGraph.nodes(data=True):
+        ctx.move_to(data['pos'][0] + data['pathwidth']/2, data['pos'][1])
+        ctx.arc(*data['pos'], data['pathwidth']/2, 0, 2*np.pi)
+    ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
+    ctx.set_source_rgba(0.0, 0.0, 0.8, 0.8)
+    ctx.stroke()
+    return ctx
 
-    for _ , data in G.nodes(data=True):
-        ctx.move_to(data['pos'][0] + data['pathwidth'], data['pos'][1])
-        ctx.arc(*data['pos'], data['pathwidth'], 0, 2*np.pi)
+def draw_pathwidth_circles2(ctx, fullPathGraph, reducedPathGraph):
+    pathwidth = (nx.get_node_attributes(fullPathGraph,'pathwidth'))
+    for node , data in reducedPathGraph.nodes(data=True):
+        ctx.move_to(data['pos'][0] + pathwidth[node]/2, data['pos'][1])
+        ctx.arc(*data['pos'], pathwidth[node]/2, 0, 2*np.pi)
     ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
     ctx.set_source_rgba(0.0, 0.0, 0.8, 0.8)
     ctx.stroke()
@@ -272,6 +284,14 @@ def draw_text_topleft2(ctx, text, color):
     ctx.set_source_rgba(*color)
     ctx.show_text(text)
 
+def draw_text_pos(ctx, text, color, pos):
+    ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
+    (x, y, width, height, dx, dy) = ctx.text_extents(text)
+    mousepos = ctx.device_to_user_distance(*pos)
+    ctx.move_to(mousepos[0] - width/2, mousepos[1] + ctx.device_to_user_distance(30, 30)[0])
+    
+    ctx.set_source_rgba(*color)
+    ctx.show_text(text)
 
 
 

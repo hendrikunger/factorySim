@@ -152,7 +152,7 @@ class FactorySimEnv(gym.Env):
 
         #separate Image for Materialflow
         draw_BG(self.ctx, self.width, self.heigth, darkmode=False)
-        draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
+        draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
         drawFactory(self.ctx, self.factory.machine_dict, None, self.factory.dfMF, drawColors = False, drawNames=False, highlight=self.currentMachine)
         
         buf = self.surface.get_data()

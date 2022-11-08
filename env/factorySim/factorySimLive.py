@@ -58,6 +58,8 @@ class factorySimLive(mglw.WindowConfig):
     window_size = (1920, 1080)
     #window_size = (1280, 720)
     #window_size = (1920*6, 1080)
+    mqtt_broker = "broker.hivemq.com"
+    #mqtt_broker = "10.54.129.47"
     aspect_ratio = None
     fullscreen = False
     resizable = True
@@ -71,6 +73,7 @@ class factorySimLive(mglw.WindowConfig):
     #factoryConfig = baseConfigs.SMALL
     factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
+    cursorPosition = None
       
 
     def __init__(self, **kwargs):
@@ -111,8 +114,7 @@ class factorySimLive(mglw.WindowConfig):
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = self.on_disconnect
         self.mqtt_client.on_message = self.on_message
-        #self.mqtt_client.connect("broker.hivemq.com", 1883)
-        self.mqtt_client.connect("10.54.129.47", 1883)
+        self.mqtt_client.connect(self.mqtt_broker, 1883)
         self.mqtt_client.loop_start()
         
         
@@ -214,6 +216,7 @@ class factorySimLive(mglw.WindowConfig):
         self.cursorPosition = (x, y)
 
     def mouse_drag_event(self, x, y, dx, dy):
+        self.cursorPosition = (x, y)
         if self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
             # move object  
             self.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale)) + self.selected_offset_x,
@@ -284,7 +287,6 @@ class factorySimLive(mglw.WindowConfig):
             if self.is_calculating:
                 if self.future.done():
                     _, _ , self.rating, _ = self.future.result()
-                    print(self.future.result())
                     self.is_dirty = False
                     self.is_calculating = False
                     #if we had changes during last calulation, recalulate
@@ -297,10 +299,11 @@ class factorySimLive(mglw.WindowConfig):
                 self.future = self.executor.submit(self.factory.evaluate)
                 self.is_calculating = True
 
-        if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
-        if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
+        if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
+        if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
         if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
         if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
+        if self.activeModes[Modes.MODE9]: draw_pathwidth_circles2(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
 
 
         for key, machine in self.factory.machine_dict.items():
@@ -326,7 +329,10 @@ class factorySimLive(mglw.WindowConfig):
         color = (1.0, 1.0, 1.0) if self.is_darkmode else (0.0, 0.0, 0.0)
         mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
         draw_text_topleft(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color)
-        draw_text_topleft2(self.cctx,(f"Reward: {self.rating['TotalRating']:1.2f} |  MF: {self.rating['ratingMF']:1.2f}  |  COLL: {self.rating['ratingCollision']:1.2f}"), color)
+        draw_text_topleft2(self.cctx, self.factory.generateRatingText(), color)
+        if self.cursorPosition and self.selected: 
+            draw_text_pos(self.cctx, self.factory.generateRatingText(), color, (self.cursorPosition))
+        
         # Copy surface to texture
         texture = self.ctx.texture((self.window_size[0], self.window_size[1]), 4, data=self.surface.get_data())
         texture.swizzle = 'BGRA' # use Cairo channel order (alternatively, the shader could do the swizzle)

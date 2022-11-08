@@ -38,7 +38,7 @@ class FactorySim:
             
         self.timezero = time()
         self.lasttime = 0        
-
+        self.RatingDict = {}
 
         #Importing Walls
         if path_to_ifc_file:
@@ -200,14 +200,13 @@ class FactorySim:
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
-        output = {}
-        output["ratingMF"] = self.evaluateMF()          
+        self.RatingDict["ratingMF"] = self.evaluateMF()          
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Materialfluss abgeschlossen")
-        output["ratingCollision"] = self.evaluateCollision()          
+        self.RatingDict["ratingCollision"] = self.evaluateCollision()          
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
-        self.fullPathGraph, self.ReducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.factoryCreator.bb)
+        self.fullPathGraph, self.reducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.factoryCreator.bb)
         if(self.verboseOutput >= 3):
             self.printTime("Pfadbewertung abgeschlossen")
 
@@ -217,8 +216,8 @@ class FactorySim:
         #    self.currentRating = 0
         #el
 
-        if(output["ratingCollision"] == 1):
-            self.currentRating = math.pow(output["ratingMF"],3)
+        if(self.RatingDict["ratingCollision"] == 1):
+            self.currentRating = math.pow(self.RatingDict["ratingMF"],3)
         else: 
             self.currentRating = -1
             #if(output["ratingCollision"] >= 0.5):
@@ -251,7 +250,7 @@ class FactorySim:
 
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-        self.currentMappedRating = output["TotalRating"]= self.currentRating
+        self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating
 
         #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
         #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
@@ -263,7 +262,7 @@ class FactorySim:
         #if(self.episodeCounter >= 3 * len(self.machine_list)):
         if(self.episodeCounter >= len(self.machine_dict)+1):
             done = True
-            output["done"] = True
+            self.RatingDict["done"] = True
         else:
             done = False     
         #done = False      
@@ -274,10 +273,13 @@ class FactorySim:
         if(self.verboseOutput >= 1):
             print(f"Total Rating: {self.currentMappedRating:1.2f}\n"
                 f"Raw Rating: {self.currentRating:1.2f}\n"
-                f"MaterialFlow: {output['ratingMF']:1.2f}\n"
-                f"Kollisionen: {output['ratingCollision']:1.2f}")
+                f"MaterialFlow: {self.RatingDict['ratingMF']:1.2f}\n"
+                f"Kollisionen: {self.RatingDict['ratingCollision']:1.2f}")
 
-        return self.currentMappedRating, self.currentRating, output, done
+        return self.currentMappedRating, self.currentRating, self.RatingDict, done
+
+    def generateRatingText(self):
+        return f"Reward: {self.RatingDict['TotalRating']:1.2f} |  MF: {self.RatingDict['ratingMF']:1.2f}  |  COLL: {self.RatingDict['ratingCollision']:1.2f}"
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF_Helper(self, source, sink): 
