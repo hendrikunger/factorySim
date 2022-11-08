@@ -116,11 +116,7 @@ class FactorySim:
                 self.update(key,
                     xPosition = random.uniform(-1,1),
                     yPosition = random.uniform(-1,1),
-                    rotation = random.uniform(-1,1),
-                    massUpdate = True)
-
-        #Find Collisions
-        self.findCollisions()
+                    rotation = random.uniform(-1,1))
         
         #Import Materialflow from Excel
         if path_to_materialflow_file:
@@ -162,7 +158,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
-    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0, massUpdate = False):
+    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0):
         if type(machineIndex) == int:
             if machineIndex< len(self.machine_dict):
                 machineIndex = list(self.machine_dict)[machineIndex]
@@ -170,7 +166,7 @@ class FactorySim:
                 print("Machine Index not found")
                 return
 
-        if not massUpdate: self.episodeCounter += 1
+        self.episodeCounter += 1
         if(skip < 0.8):
             self.lastUpdatedMachine = self.machine_dict[machineIndex].gid
 
@@ -189,8 +185,7 @@ class FactorySim:
             #mappedYPos = self.mapRange(yPosition, (-1,1), (0,bbox[3]))
 
             self.machine_dict[machineIndex].translate_Item(mappedXPos, mappedYPos)
-            if not massUpdate:
-                self.findCollisions()
+
             if(self.verboseOutput >= 3):
                 self.printTime(f"{self.machine_dict[machineIndex].name} geupdated")
         else:
@@ -305,6 +300,13 @@ class FactorySim:
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateCollision(self):
+
+        factoryRating = FactoryRating(self.machine_dict, self.wall_dict)
+        self.collisionAfterLastUpdate = factoryRating.findCollisions(self.lastUpdatedMachine)
+        self.machineCollisionList = factoryRating.machineCollisionList
+        self.wallCollisionList = factoryRating.wallCollisionList                    
+        if(self.verboseOutput >= 3):
+            self.printTime("Kollisionen berechnen abgeschlossen")        
         
         #machineCollisionArea = 0
         #wallCollisionArea = 0
@@ -322,6 +324,7 @@ class FactorySim:
         nWallCollosions = len(self.wallCollisionList)
 
 
+
         #If latest update leads to collision give worst rating.
         #if(self.collisionAfterLastUpdate):
         #    output = -3
@@ -333,16 +336,6 @@ class FactorySim:
         return output
 
 
- #------------------------------------------------------------------------------------------------------------
- # Collision Detection
- #------------------------------------------------------------------------------------------------------------
-    def findCollisions(self):
-        factoryRating = FactoryRating(self.machine_dict, self.wall_dict)
-        self.collisionAfterLastUpdate = factoryRating.findCollisions(self.lastUpdatedMachine)
-        self.machineCollisionList = factoryRating.machineCollisionList
-        self.wallCollisionList = factoryRating.wallCollisionList                    
-        if(self.verboseOutput >= 3):
-            self.printTime("Kollisionen berechnen abgeschlossen")
 
  #------------------------------------------------------------------------------------------------------------
  # Drawing
