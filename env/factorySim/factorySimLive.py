@@ -319,8 +319,8 @@ class factorySimLive(mglw.WindowConfig):
             drawCollisions(self.cctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
 
 
-        # for key, mobile in self.mobile_dict.items():
-        #     draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
+        for key, mobile in self.mobile_dict.items():
+            draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
        
 
         if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
