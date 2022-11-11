@@ -488,6 +488,16 @@ if __name__ == "__main__":
         multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
         bb = box(*multi.bounds) 
 
+        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+            "..",
+            "..",
+            "Input",
+            "2",  
+            "Simple" + ".ifc")
+        wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
+
+        bb = factoryCreator.bb
+
         machine_colors = [rng.random(size=3) for _ in multi.geoms]
         factoryPath = FactoryPath()
         factoryPath.TIMING = True

@@ -27,7 +27,7 @@ COPY . .
 
 
 WORKDIR $HOME/factorySim/env
-RUN $HOME/anaconda3/bin/pip install -e .
+RUN $HOME/anaconda3/bin/pip install .
 USER ray
 WORKDIR $HOME/factorySim
 

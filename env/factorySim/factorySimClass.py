@@ -40,6 +40,7 @@ class FactorySim:
         self.lasttime = 0        
         self.RatingDict = {}
 
+
         #Importing Walls
         if path_to_ifc_file:
             if(os.path.isdir(path_to_ifc_file)):

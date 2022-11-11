@@ -87,8 +87,7 @@ class factorySimLive(mglw.WindowConfig):
         "..",
         "Input",
         "2",  
-        "Basic" + ".ifc")
-        #self.machine_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=True)
+        "Simple" + ".ifc")
 
         self.create_factory()
 
@@ -102,7 +101,7 @@ class factorySimLive(mglw.WindowConfig):
         self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
         print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.factory.machine_dict)
-        self.currentScale = self.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+        self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
 
 
         self.setupKeys()
@@ -298,6 +297,8 @@ class factorySimLive(mglw.WindowConfig):
             else:
                 self.future = self.executor.submit(self.factory.evaluate)
                 self.is_calculating = True
+        color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
+        drawFactory(self.cctx, self.factory.machine_dict,self.factory.wall_dict, drawColors=True, highlight=self.selected, drawNames=True, wallInteriorColor = color)
 
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
@@ -306,9 +307,10 @@ class factorySimLive(mglw.WindowConfig):
         if self.activeModes[Modes.MODE9]: draw_pathwidth_circles2(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
 
 
-        for key, machine in self.factory.machine_dict.items():
-            draw_poly(self.cctx, machine.poly, machine.color, text=str(machine.gid), highlight= True if key == self.selected else False, drawHoles=True)
+        # for key, machine in self.factory.machine_dict.items():
+        #     draw_poly(self.cctx, machine.poly, machine.color, text=str(machine.gid), highlight= True if key == self.selected else False, drawHoles=True)
         
+
         if self.activeModes[Modes.MODE6]: drawMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
 
         if self.activeModes[Modes.MODE5]: 
@@ -443,11 +445,12 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
     def create_factory(self):
-        self.factory = FactorySim(None,
+        self.factory = FactorySim(self.ifcpath,
         path_to_materialflow_file = None,
         factoryConfig=self.factoryConfig,
         randomPos=False,
-        createMachines=True
+        createMachines=True,
+        verboseOutput=5
         )
         self.future = self.executor.submit(self.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()

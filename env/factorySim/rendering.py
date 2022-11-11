@@ -139,46 +139,54 @@ def draw_route_lines(ctx, route_lines):
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
-def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, drawMachineCenter = False, drawOrigin = False, highlight = None):   
+def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawMachineCenter = False, drawOrigin = False, highlight = None):   
 
     #Walls
     if wall_dict:
         ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
         for wall in wall_dict.values():
             #draw all walls
-            for poly in wall.poly.geoms:
-                ctx.set_source_rgb(0.1, 0.1, 0.1)
-                for point in poly.exterior.coords:  
+            for  poly in wall.poly.geoms:
+                ctx.set_source_rgb((0.2), 0.2, 0.2)
+                ctx.move_to(*poly.exterior.coords[0])
+                for point in poly.exterior.coords[1:]:  
                     ctx.line_to(point[0], point[1])
                 ctx.close_path()
                 ctx.fill()
             #draw all holes
-                ctx.set_source_rgb(1, 1, 1)
+                ctx.set_source_rgb(*wallInteriorColor)
                 for loop in poly.interiors:
-                    for point in loop.coords:
+                    ctx.move_to(*loop.coords[0])
+                    for point in loop.coords[1:]:
                         ctx.line_to(point[0], point[1])
                     ctx.close_path()
-                ctx.fill()
+                    ctx.fill()
                         
     #draw machine positions
     if machine_dict:
         ctx.set_fill_rule(cairo.FillRule.WINDING)
         ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
         for index, machine in enumerate(machine_dict.values()):
-
             for poly in machine.poly.geoms:
-                for point in poly.exterior.coords: 
+                ctx.move_to(*poly.exterior.coords[0])
+                for point in poly.exterior.coords[1:]: 
                     ctx.line_to(point[0], point[1])
                 ctx.close_path()
-                #no highlights
-                if(highlight is None):
-                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                #highlighted machine
-                elif(index == highlight or machine.gid == highlight):
-                    ctx.set_source_rgb(0.9, 0.9, 0.9)
-                #other machines
+                if drawColors:
+                    #highlighted machine
+                    if(index == highlight or machine.gid == highlight):
+                        ctx.set_source_rgb(0.9, 0.9, 0.9)
+                    #other machines
+                    else:
+                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                    #other machines
                 else:
-                    ctx.set_source_rgb(0.4, 0.4, 0.4)
+                    #highlighted machine
+                    if(index == highlight or machine.gid == highlight):
+                        ctx.set_source_rgb(0.9, 0.9, 0.9)
+                    #other machines
+                    else:
+                        ctx.set_source_rgb(0.4, 0.4, 0.4)                         
 
                 ctx.fill_preserve()
                 if(drawColors):
@@ -188,6 +196,7 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
 
                 ctx.stroke()
                 if drawNames:
+                    ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
                     ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
                     (x, y, width, height, dx, dy) = ctx.text_extents(str(machine.gid))
                     point = polylabel(poly.convex_hull, tolerance=10)
