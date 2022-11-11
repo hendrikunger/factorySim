@@ -70,8 +70,8 @@ class factorySimLive(mglw.WindowConfig):
     is_calculating = False
     update_during_calculation = False
     clickedPoints = []
-    #factoryConfig = baseConfigs.SMALL
-    factoryConfig = baseConfigs.EDF
+    factoryConfig = baseConfigs.SMALL
+    #factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
@@ -93,6 +93,7 @@ class factorySimLive(mglw.WindowConfig):
 
 
         self.factoryCreator.bb = self.factory.factoryCreator.bb
+        print(self.factory.factoryCreator.bb)
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
@@ -182,10 +183,10 @@ class factorySimLive(mglw.WindowConfig):
                 self.wnd.fullscreen = not self.wnd.fullscreen      
             # Zoom
             if key == 43: # +
-                self.currentScale += 0.5
+                self.currentScale += 0.005
                 self.recreateCairoContext()
             if key == keys.MINUS:
-                self.currentScale -= 0.5
+                self.currentScale -= 0.005
                 self.recreateCairoContext()
             # Darkmode
             if key == keys.B:
@@ -298,6 +299,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.future = self.executor.submit(self.factory.evaluate)
                 self.is_calculating = True
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
+        
         drawFactory(self.cctx, self.factory.machine_dict,self.factory.wall_dict, drawColors=True, highlight=self.selected, drawNames=True, wallInteriorColor = color)
 
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
@@ -314,13 +316,11 @@ class factorySimLive(mglw.WindowConfig):
         if self.activeModes[Modes.MODE6]: drawMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
 
         if self.activeModes[Modes.MODE5]: 
-            factoryRating = FactoryRating(self.factory.machine_dict, {})
-            factoryRating.findCollisions()
-            drawCollisions(self.cctx, factoryRating.machineCollisionList, factoryRating.wallCollisionList)
+            drawCollisions(self.cctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
 
-       
-        for key, mobile in self.mobile_dict.items():
-            draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
+
+        # for key, mobile in self.mobile_dict.items():
+        #     draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
        
 
         if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
@@ -450,7 +450,7 @@ class factorySimLive(mglw.WindowConfig):
         factoryConfig=self.factoryConfig,
         randomPos=False,
         createMachines=True,
-        verboseOutput=5
+        verboseOutput=0
         )
         self.future = self.executor.submit(self.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()

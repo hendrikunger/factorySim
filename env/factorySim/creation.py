@@ -11,11 +11,10 @@ from factorySim.factoryObject import FactoryObject
 class FactoryCreator():
 
 
-    def __init__(self, factoryDimensions=(32,18), maxShapeWidth=3, maxShapeHeight=2, amountRect=20, amountPoly=5, maxCorners=3):
+    def __init__(self, factoryDimensions=(32000,18000), maxShapeWidth=3000, maxShapeHeight=2000, amountRect=20, amountPoly=5, maxCorners=3):
         self.rng = np.random.default_rng()
-
         self.factoryWidth = factoryDimensions[0]
-        self.factoryHeigth = factoryDimensions[1]
+        self.factoryHeight = factoryDimensions[1]
         self.maxShapeWidth = maxShapeWidth
         self.maxShapeHeight = maxShapeHeight
         self.amountRect = amountRect
@@ -41,15 +40,15 @@ class FactoryCreator():
         polygons = []
         elementlist = {}
 
-        self.bb = box(0,0,self.factoryWidth,self.factoryHeigth)
+        self.bb = box(0,0,self.factoryWidth,self.factoryHeight)
 
-        topLeftCornersRect = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeigth - self.maxShapeHeight], size=[self.amountRect,2], endpoint=True)
-        topLeftCornersPoly = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeigth - self.maxShapeWidth], size=[self.amountPoly,2], endpoint=True)
+        topLeftCornersRect = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeHeight], size=[self.amountRect,2], endpoint=True)
+        topLeftCornersPoly = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeWidth], size=[self.amountPoly,2], endpoint=True)
 
         
         #Create Recangles
         for x,y in topLeftCornersRect:
-            singlePoly = box(x,y,x + self.rng.integers(1, self.maxShapeWidth+1), y + self.rng.integers(1, self.maxShapeHeight+1))
+            singlePoly = box(x,y,x + self.rng.integers(self.maxShapeWidth*0.2, self.maxShapeWidth+1), y + self.rng.integers(self.maxShapeHeight*0.2, self.maxShapeHeight+1))
             singlePoly= rotate(singlePoly, self.rng.choice([0,90,180,270]))  
             polygons.append(singlePoly)
 
@@ -58,7 +57,7 @@ class FactoryCreator():
             corners = []
             corners.append([x,y]) # First Corner
             for _ in range(self.rng.integers(2,self.maxCorners+1)):
-                corners.append([x + self.rng.integers(0, self.maxShapeWidth+1), y + self.rng.integers(0, self.maxShapeWidth+1)])
+                corners.append([x + self.rng.integers(self.maxShapeWidth*0.2, self.maxShapeWidth+1), y + self.rng.integers(self.maxShapeWidth*0.2, self.maxShapeWidth+1)])
 
             singlePoly = MultiPoint(corners).minimum_rotated_rectangle
             singlePoly= rotate(singlePoly, self.rng.integers(0,361))  
@@ -70,7 +69,7 @@ class FactoryCreator():
 
         union = unary_union(polygons)
         while union.geom_type != 'MultiPolygon':
-            corner = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeigth - self.maxShapeHeight], size=[2], endpoint=True)
+            corner = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeHeight], size=[2], endpoint=True)
             print(corner)
             newRect = box(corner[0],corner[1],corner[0] + self.rng.integers(1, self.maxShapeWidth+1), corner[1] + self.rng.integers(1, self.maxShapeHeight+1))
             union = MultiPolygon([union,newRect])
@@ -197,5 +196,6 @@ class FactoryCreator():
             polybbox = element.poly.bounds
             element.origin = (polybbox[0], polybbox[1])
             element.center = element.poly.representative_point()
+
 
         return element_dict

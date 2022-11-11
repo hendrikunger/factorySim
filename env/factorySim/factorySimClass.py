@@ -205,7 +205,7 @@ class FactorySim:
         self.RatingDict["ratingCollision"] = self.evaluateCollision()          
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
-        self.fullPathGraph, self.reducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.factoryCreator.bb)
+        self.fullPathGraph, self.reducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
         if(self.verboseOutput >= 3):
             self.printTime("Pfadbewertung abgeschlossen")
 

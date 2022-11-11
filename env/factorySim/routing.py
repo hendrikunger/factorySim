@@ -23,7 +23,7 @@ class FactoryPath():
     TIMING = False
     PLOTTING = False
 
-    def __init__(self, boundarySpacing=1.5, minDeadEndLength=2.0, minPathWidth=1.0, minTwoWayPathWidth=2.0, simplificationAngle=35):
+    def __init__(self, boundarySpacing=150, minDeadEndLength=2000, minPathWidth=1000, minTwoWayPathWidth=2000, simplificationAngle=35):
 
         self.minDeadEndLength = minDeadEndLength # If Deadends are shorter than this, they are deleted
         self.minPathWidth = minPathWidth  # Minimum Width of a Road to keep
@@ -36,15 +36,15 @@ class FactoryPath():
         print(f"{text} {self.nextTime - self.startTime}")
         self.startTime = self.nextTime
 
-    def calculateAll(self, machine_dict, bb):
+    def calculateAll(self, machine_dict, wall_dict, bb):
         #Check if we have enough machines to make a path
         if len(machine_dict) <= 1:
             self.fullPathGraph = nx.Graph()
             self.reducedPathGraph = nx.Graph()
             return self.fullPathGraph, self.reducedPathGraph
         
-
-        union = unary_union([x.poly for x in machine_dict.values()])
+        machinelist = [x.poly for x in machine_dict.values()]
+        union = unary_union(machinelist)
         if union.geom_type == "MultiPolygon":
             multi = MultiPolygon(union)
         elif union.geom_type == "Polygon":
@@ -52,16 +52,28 @@ class FactoryPath():
         else:
             print("Error: No valid Polygon in Machine Dictionary")
             return
+        walllist = [x.poly for x in wall_dict.values()]
+        union = unary_union(walllist)
+        if union.geom_type == "MultiPolygon":
+            walls = MultiPolygon(union)
+        elif union.geom_type == "Polygon":
+            walls = MultiPolygon([union])
+        else:
+            print("Error: No valid Polygon in Machine Dictionary")
+            return
 
 
         #Scale boundary spacing according to factory size
-        scale = max(bb.bounds) / 30
+        bbox = bb.bounds
+        scale = max((bbox[2]-bbox[0]),(bbox[3]-bbox[1])) / 30
+        scale = 1
 
         if self.TIMING:
             self.startTime = time.perf_counter()
             self.totalTime = self.startTime
 
-        walkableArea = bb.difference(unary_union(multi))
+        machinesAndwalls = unary_union(machinelist + walllist)
+        walkableArea = bb.difference(machinesAndwalls)
         if walkableArea.geom_type ==  'MultiPolygon':
             walkableArea = walkableArea.geoms[0]
 
@@ -69,12 +81,12 @@ class FactoryPath():
         #   Create Voronoi -----------------------------------------------------------------------------------------------------------------
         #Points around boundary
 
-        distances = np.arange(0,  bb.boundary.length, self.boundarySpacing * scale)
-        points = [ bb.boundary.interpolate(distance) for distance in distances]
+        distances = np.arange(0,  walls.boundary.length, self.boundarySpacing * scale)
+        points = [walls.boundary.interpolate(distance) for distance in distances]
 
         #Points on Machines
         distances = np.arange(0,  multi.boundary.length, self.boundarySpacing * scale)
-        points.extend([ multi.boundary.interpolate(distance) for distance in distances])
+        points.extend([multi.boundary.interpolate(distance) for distance in distances])
         bb_points = unary_union(points) 
 
         if self.TIMING: self.timelog("Boundary generation")
@@ -88,11 +100,11 @@ class FactoryPath():
         self.lines_to_machines = []
 
         processed_multi = prep(multi)
-        processed_bb = prep(bb)
+        processed_machinesAndwalls = prep(machinesAndwalls)
 
         for line in voronoiArea.geoms[0].geoms:
             #find routes close to machines
-            if not (processed_multi.intersects(line) or processed_bb.crosses(line)): 
+            if not (processed_machinesAndwalls.intersects(line)): 
                 self.route_lines.append(line)
             else:
                 self.lines_touching_machines.append(line)
@@ -478,15 +490,12 @@ if __name__ == "__main__":
     DETAILPLOT = True
     PLOT = True
     ITERATIONS = 1
+    LINESCALER = 13
 
     rng = np.random.default_rng()
 
     for i in tqdm(range(ITERATIONS)):
         factoryCreator = FactoryCreator(*baseConfigs.SMALLSQUARE.creationParameters())
-        machine_dict = factoryCreator.create_factory()
-
-        multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
-        bb = box(*multi.bounds) 
 
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
             "..",
@@ -495,14 +504,15 @@ if __name__ == "__main__":
             "2",  
             "Simple" + ".ifc")
         wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
-
         bb = factoryCreator.bb
+        machine_dict = factoryCreator.create_factory()
+        multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
 
         machine_colors = [rng.random(size=3) for _ in multi.geoms]
-        factoryPath = FactoryPath()
+        factoryPath = FactoryPath(boundarySpacing=500, minDeadEndLength=2000, minPathWidth=1000, minTwoWayPathWidth=2000, simplificationAngle=35)
         factoryPath.TIMING = True
         factoryPath.PLOTTING = True
-        factoryPath.calculateAll(machine_dict, bb)
+        factoryPath.calculateAll(machine_dict, wall_dict, bb)
         pos=nx.get_node_attributes(factoryPath.inter_unfilteredGraph,'pos')
 
         if PLOT:
@@ -514,6 +524,8 @@ if __name__ == "__main__":
                 plt.ylim(0,bb.bounds[3])
                 plt.autoscale(False)
 
+                for wall in wall_dict.values():
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="black", ec='#000000', alpha=0.5))
 
                 if multi.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -576,7 +588,7 @@ if __name__ == "__main__":
 
             pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.inter_unfilteredGraph,'pathwidth').values())))
 
-            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="silver", width=pathwidth * 10, alpha=0.6)
+            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="silver", width=pathwidth/LINESCALER, alpha=0.6)
             nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="red", width=2, alpha=1)
             nx.draw_networkx_edges(factoryPath.inter_filteredGraph, pos=pos, ax=ax, edge_color="lime", width=2, alpha=1)
             nx.draw_networkx_edges(factoryPath.fullPathGraph, pos=pos, ax=ax, edge_color="dimgrey", width=5, alpha=1)
@@ -607,7 +619,7 @@ if __name__ == "__main__":
 
             for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
                 temp = [pos[x] for x in data['nodelist']]
-                ax.plot(*zip(*temp), color="dimgray", linewidth=data['pathwidth'] * 6, alpha=1.0, solid_capstyle='round')
+                ax.plot(*zip(*temp), color="dimgray", linewidth=data['pathwidth']/LINESCALER, alpha=1.0, solid_capstyle='round')
 
 
             for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
@@ -656,8 +668,8 @@ if __name__ == "__main__":
             max_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.reducedPathGraph,'max_pathwidth').values())))
 
             nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, edge_color="yellow", width=4)
-            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=max_pathwidth * 6, edge_color="dimgrey", alpha=0.7)
-            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=min_pathwidth * 6, edge_color="blue", alpha=0.5)
+            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=max_pathwidth/LINESCALER, edge_color="dimgrey", alpha=0.7)
+            nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=min_pathwidth/LINESCALER, edge_color="blue", alpha=0.5)
             nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, edge_color="yellow", width=4)
 
             if SAVEPLOT: plt.savefig(f"{i+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
@@ -756,6 +768,7 @@ if __name__ == "__main__":
 # 4 - Intensität	                    Anzahl der Transporte
 # 5 - Wegekonzept	                    Auslegung Wegbreite
 # 	                                    Sackgassen
+
 
 
 

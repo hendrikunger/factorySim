@@ -6,7 +6,7 @@ from shapely.ops import polylabel
 
 
 def draw_BG(ctx, width, height, darkmode=True):
-    ctx.rectangle(0, 0, width, height)
+    ctx.rectangle(0, 0, *ctx.device_to_user_distance(width,height))
     if darkmode:
         ctx.set_source_rgba(0.0, 0.0, 0.0)
     else:
@@ -76,9 +76,6 @@ def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
     return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
-    ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
-    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
-    ctx.set_line_cap(cairo.LINE_CAP_ROUND)
     
     for subpoly in poly.geoms:
         if highlight:
@@ -89,8 +86,8 @@ def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
         for x,y in subpoly.exterior.coords[1:]:
             ctx.line_to(x,y)
         ctx.close_path()
-        ctx.fill_preserve()
-        ctx.stroke()
+        ctx.fill()
+
         if drawHoles:
             for loop in subpoly.interiors:
                 ctx.move_to(*loop.coords[0])
@@ -98,14 +95,14 @@ def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
                     ctx.line_to(x,y)
             ctx.set_source_rgba(*color, 1.0)
             ctx.close_path()
-            ctx.fill_preserve()
-            ctx.stroke()
+            ctx.fill()
+
 
     if text:
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
         ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
         (x, y, width, height, dx, dy) = ctx.text_extents(text)
-        point = polylabel(poly.convex_hull, tolerance=10)
+        point = polylabel(poly.convex_hull, tolerance=1000)
         ctx.move_to(point.x - width/2, point.y - height/2)    
         ctx.show_text(text)
     return ctx
@@ -187,19 +184,13 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                     #other machines
                     else:
                         ctx.set_source_rgb(0.4, 0.4, 0.4)                         
+                ctx.fill()
 
-                ctx.fill_preserve()
-                if(drawColors):
-                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                else:
-                    ctx.set_source_rgb(0.5, 0.5, 0.5)
-
-                ctx.stroke()
                 if drawNames:
                     ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
                     ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
                     (x, y, width, height, dx, dy) = ctx.text_extents(str(machine.gid))
-                    point = polylabel(poly.convex_hull, tolerance=10)
+                    point = polylabel(poly.convex_hull, tolerance=1000)
                     ctx.move_to(point.x - width/2, point.y - height/2)    
                     ctx.show_text(str(machine.gid))
 

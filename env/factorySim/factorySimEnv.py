@@ -175,15 +175,15 @@ MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 def main():
 
     #filename = "Long"
-    filename = "Basic"
-    #filename = "Simple"
+    #filename = "Basic"
+    filename = "Simple"
     #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
         "Input",
-        "1",  
+        "2",  
         filename + ".ifc")
 
     env_config = {
