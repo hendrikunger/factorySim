@@ -241,7 +241,7 @@ class FactoryPath():
                 if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
             if endpoints_to_prune:
-                nodes_to_prune = self.pruneAlongPath(self.fullPathGraph, starts=endpoints_to_prune, ends=self.crossroads, min_length=5 * self.minDeadEndLength)
+                nodes_to_prune = self.pruneAlongPath(self.fullPathGraph, starts=endpoints_to_prune, ends=self.crossroads, min_length=3 * self.minDeadEndLength)
                 if nodes_to_prune: self.fullPathGraph.remove_nodes_from(nodes_to_prune)
 
 

@@ -89,6 +89,12 @@ class factorySimLive(mglw.WindowConfig):
         "2",  
         "Simple" + ".ifc")
 
+        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "Input",
+        "2")
+
         self.create_factory()
 
 
@@ -191,12 +197,11 @@ class factorySimLive(mglw.WindowConfig):
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
-            # Toggle mouse exclusivity
-            if key == keys.M:
-                self.wnd.mouse_exclusivity = not self.wnd.mouse_exclusivity
             #Restart
             if key == keys.N:
                 self.create_factory()
+                self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+                self.recreateCairoContext()
             # End Drawing Mode
             if key == keys.ESCAPE:
                 self.clickedPoints.clear()
@@ -332,7 +337,7 @@ class factorySimLive(mglw.WindowConfig):
         mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
         draw_text_topleft(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color)
         draw_text_topleft2(self.cctx, self.factory.generateRatingText(), color)
-        if self.cursorPosition and self.selected: 
+        if self.cursorPosition and self.selected != None: 
             draw_text_pos(self.cctx, self.factory.generateRatingText(), color, (self.cursorPosition))
         
         # Copy surface to texture

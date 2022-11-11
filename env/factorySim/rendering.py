@@ -172,7 +172,7 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                 if drawColors:
                     #highlighted machine
                     if(index == highlight or machine.gid == highlight):
-                        ctx.set_source_rgb(0.9, 0.9, 0.9)
+                        ctx.set_source_rgb(1.0, 0.0, 0.0)
                     #other machines
                     else:
                         ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])

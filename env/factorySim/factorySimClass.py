@@ -129,7 +129,9 @@ class FactorySim:
             #Create Random Materialflow
             names = []
             for start in self.machine_dict.values():
-                sample = random.choice(list(self.machine_dict.values()))
+                sample = start
+                while sample == start:
+                    sample = random.choice(list(self.machine_dict.values()))
                 names.append([start.name, sample.name]) 
                 if random.random() >= 0.9:
                     sample = random.choice(list(self.machine_dict.values()))
@@ -288,16 +290,19 @@ class FactorySim:
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF(self):
-        self.dfMF['distance'] = self.dfMF.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
-        #sum of all costs /  maximum intensity (intensity sum norm * 1) 
-        #find longest distance possible in factory
-        maxDistance = max(self.factoryCreator.bb.bounds[2],  self.factoryCreator.bb.bounds[3])
-        self.dfMF['distance_norm'] = self.dfMF['distance'] / maxDistance
-        self.dfMF['costs'] = self.dfMF['distance_norm'] * self.dfMF['intensity_sum_norm']
-        output = 1 - (math.pow(self.dfMF['costs'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
-        if(output < 0): output = 0
+        if len(self.dfMF.index) > 0:
+            self.dfMF['distance'] = self.dfMF.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
+            #sum of all costs /  maximum intensity (intensity sum norm * 1) 
+            #find longest distance possible in factory
+            maxDistance = max(self.factoryCreator.bb.bounds[2],  self.factoryCreator.bb.bounds[3])
+            self.dfMF['distance_norm'] = self.dfMF['distance'] / maxDistance
+            self.dfMF['costs'] = self.dfMF['distance_norm'] * self.dfMF['intensity_sum_norm']
+            output = 1 - (math.pow(self.dfMF['costs'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
+            if(output < 0): output = 0
 
-        return output
+            return output
+        else:
+            return 0
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateCollision(self):
