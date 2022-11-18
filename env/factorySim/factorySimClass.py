@@ -40,7 +40,6 @@ class FactorySim:
         self.timezero = time()
         self.lasttime = 0        
         self.RatingDict = {}
-        logging.error("Hello World")
 
         #Importing Walls
         if path_to_ifc_file:
@@ -51,7 +50,7 @@ class FactorySim:
             else:
                 self.ifc_file = path_to_ifc_file
 
-            logging.error("Lade: ", self.ifc_file)
+            logging.info(f"Lade: {self.ifc_file}")
                 
             self.wall_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True)
 

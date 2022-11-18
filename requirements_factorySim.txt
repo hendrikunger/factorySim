@@ -7,3 +7,4 @@ shapely
 pycairo
 gputil
 wandb
+tensorboardx

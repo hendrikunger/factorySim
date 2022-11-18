@@ -8,8 +8,8 @@ import ray
 
 from ray.tune.logger import pretty_print
 from ray.rllib.agents import ppo
-from ray import air, tune
-
+from ray.air.config import RunConfig, ScalingConfig
+from ray.train.rl import RLTrainer
 
 from ray.rllib.models import ModelCatalog
 from factorySim.customModels import MyXceptionModel
@@ -47,33 +47,22 @@ config['env_config']['inputfile'] = ifcpath
 
 
 if __name__ == "__main__":
+    #args = parser.parse_args()
     ray.init(num_gpus=1, local_mode=False, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+    ppo_config = ppo.DEFAULT_CONFIG.copy()
+    ppo_config.update(config)
 
 
+    ppotrainer = ppo.PPOTrainer(config=ppo_config)
+    # run manual training loop and print results after each iteration
 
-
-
-    stop = {
-    "training_iteration": 500,
-    "timesteps_total": 50000,
-    "episode_reward_mean": 3,
-    }
-
-    tuner = tune.Tuner(
-            "PPO",
-            param_space=config,
-            run_config=air.RunConfig(stop=stop),
-        )
-    results = tuner.fit()
+    trainer = RLTrainer(
+        run_config=RunConfig(stop={"training_iteration": 5}),
+        scaling_config=ScalingConfig(num_workers=2, use_gpu=False),
+        algorithm=ppotrainer,
+        config=config
+    )
+    result = trainer.fit()
     ray.shutdown()
 
 
-    # for _ in range(500): #args.stop_iters,
-    #     result = trainer.train()
-    #     print(pretty_print(result))
-    #     # stop training of the target train steps or reward are reached
-    #     if (
-    #         result["timesteps_total"] >= 2000000#args.stop_timesteps
-    #         or result["episode_reward_mean"] >= 50000 #args.stop_reward
-    #     ):
-    #         break

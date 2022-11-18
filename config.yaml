@@ -44,7 +44,7 @@ model:
 
 
 # Evaluate once per training iteration.
-evaluation_interval: 2
+evaluation_interval: 10
 # Run evaluation on (at least) ten episodes
 evaluation_duration: 10
 # ... using one evaluation worker (setting this to 0 will cause
@@ -75,7 +75,7 @@ framework: tf2
 eager_tracing: true
 # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
 num_gpus: 1  #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
-num_workers: 12  # parallelism  #12
+num_workers: 20  # parallelism  #12
 num_envs_per_worker: 1
 
 # Should be one of DEBUG, INFO, WARN, or ERROR
@@ -87,10 +87,9 @@ log_level: ERROR
 # If True, the `ignore_worker_failures` setting will be ignored.
 recreate_failed_workers: true
 restart_failed_sub_environments: true
-reuse_actors: True  # do not reoinitialize workers
 
 rollout_fragment_length: 200
-train_batch_size:  2400
+train_batch_size:  3000
 sgd_minibatch_size: 100
 num_sgd_iter: 4
 gamma: 0.99
