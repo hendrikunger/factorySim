@@ -1,5 +1,6 @@
 import os
 import random
+import yaml
 
 
 import gym
@@ -36,14 +37,14 @@ class FactorySimEnv(gym.Env):
         self.heigth = env_config["heigth"]
         self.maxMF_Elements = env_config["maxMF_Elements"]
         self.scale = env_config["outputScale"]
-        self.objectScaling = env_config["objectScaling"]
         if env_config["inputfile"] is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
             exit("No inputfile given.")
         self.inputfile = env_config["inputfile"]
         self.materialflowpath = None #file_name + "_Materialflow.csv"
-        self.rendermode= env_config["rendermode"]
+        self.rendermode = env_config["rendermode"]
+        self.factoryConfig = baseConfigs.BaseFactoryConf.byStringName(env_config["factoryconfig"])
         
 
         self.info = {}
@@ -88,7 +89,7 @@ class FactorySimEnv(gym.Env):
         del(self.factory)
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
-        factoryConfig=baseConfigs.SMALLSQUARE,
+        factoryConfig=self.factoryConfig,
         randomPos=False,
         createMachines=True,
         verboseOutput=self.Loglevel,
@@ -111,9 +112,9 @@ class FactorySimEnv(gym.Env):
         return self._get_obs()
 
     def render(self, mode='rgb_array', prefix = ""):
-        draw_BG(self.rctx, self.width, self.heigth, darkmode=False)
+        draw_BG(self.rctx, *self.factory.FACTORYDIMENSIONS, darkmode=False)
         drawFactory(self.rctx, self.factory.machine_dict, self.factory.wall_dict, None, drawNames=False, highlight=self.currentMachine)
-        #draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.ReducedPathGraph)
+        draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
         draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
@@ -186,23 +187,30 @@ def main():
         "2",  
         filename + ".ifc")
 
-    env_config = {
-        "inputfile" : ifcpath,
-        "obs_type" : 'image',
-        "Loglevel" : 1,
-        "width" : 84,
-        "heigth" : 84,
-        "maxMF_Elements" : 10,
-        "outputScale" : 10,
-        "objectScaling" : 1.0,
-        "rendermode": "human",
-            }
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+    "..",
+    "..",
+    "Input",
+    "2")
+
+    
+    configpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "config.yaml")
+
+    with open(configpath, 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    config['env_config']['inputfile'] = ifcpath
+    config['env_config']['Loglevel'] = 0
+    config['env_config']['rendermode'] = "human"
+
         
-    env = FactorySimEnv( env_config = env_config)
+    env = FactorySimEnv( env_config = config['env_config'])
 
     prefix="test"
 
-    for _ in tqdm(range(0,50)):
+    for _ in tqdm(range(0,5000)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         env.render(mode='human', prefix=prefix)
         if done:

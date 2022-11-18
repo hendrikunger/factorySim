@@ -70,7 +70,7 @@ class factorySimLive(mglw.WindowConfig):
     is_calculating = False
     update_during_calculation = False
     clickedPoints = []
-    factoryConfig = baseConfigs.SMALL
+    factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None

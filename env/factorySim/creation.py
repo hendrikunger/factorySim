@@ -21,7 +21,7 @@ class FactoryCreator():
         self.amountPoly = amountPoly
         self.maxCorners = maxCorners
         self.bb = None
-       
+        
     def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
         if self.bb:
@@ -70,7 +70,6 @@ class FactoryCreator():
         union = unary_union(polygons)
         while union.geom_type != 'MultiPolygon':
             corner = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeHeight], size=[2], endpoint=True)
-            print(corner)
             newRect = box(corner[0],corner[1],corner[0] + self.rng.integers(1, self.maxShapeWidth+1), corner[1] + self.rng.integers(1, self.maxShapeHeight+1))
             union = MultiPolygon([union,newRect])
 

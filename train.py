@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import os
 
 from factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
@@ -22,50 +21,6 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
 
 
-# import tracemalloc
-# from typing import Optional, Dict
-# from ray.rllib.evaluation import MultiAgentEpisode
-# from ray.rllib import BaseEnv
-# from ray.rllib.utils.typing import PolicyID
-# from email.policy import Policy
-# import psutil
-
-# class TraceMallocCallback(DefaultCallbacks):
-
-#     def __init__(self):
-#         super().__init__()
-
-#         tracemalloc.start(10)
-
-#     def on_episode_end(self, *, worker: "RolloutWorker", base_env: BaseEnv, policies: Dict[PolicyID, Policy],
-#                        episode: MultiAgentEpisode, env_index: Optional[int] = None, **kwargs) -> None:
-#         snapshot = tracemalloc.take_snapshot()
-#         top_stats = snapshot.statistics('lineno')
-
-#         for stat in top_stats[:5]:
-#             count = stat.count
-#             size = stat.size
-
-#             trace = str(stat.traceback)
-
-#             episode.custom_metrics[f'tracemalloc/{trace}/size'] = size
-#             episode.custom_metrics[f'tracemalloc/{trace}/count'] = count
-
-#         process = psutil.Process(os.getpid())
-#         worker_rss = process.memory_info().rss
-#         worker_data = process.memory_info().data
-#         worker_vms = process.memory_info().vms
-#         episode.custom_metrics[f'tracemalloc/worker/rss'] = worker_rss
-#         episode.custom_metrics[f'tracemalloc/worker/data'] = worker_data
-#         episode.custom_metrics[f'tracemalloc/worker/vms'] = worker_vms
-
-
-
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument("--stop-iters", type=int, default=200)
-# parser.add_argument("--num-cpus", type=int, default=10)
-
 #filename = "Overlapp"
 filename = "Basic"
 #filename = "EP_v23_S1_clean"
@@ -73,8 +28,8 @@ filename = "Basic"
 #filename = "SimpleNoCollisions"
 #filename = "LShape"
 
-ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
-#ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2")
+#ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
+ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2")
 
 #Import Custom Models
 ModelCatalog.register_custom_model("my_model", MyXceptionModel)

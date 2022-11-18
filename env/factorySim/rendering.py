@@ -6,7 +6,7 @@ from shapely.ops import polylabel
 
 
 def draw_BG(ctx, width, height, darkmode=True):
-    ctx.rectangle(0, 0, *ctx.device_to_user_distance(width,height))
+    ctx.rectangle(0,0, *ctx.device_to_user_distance(width,height))
     if darkmode:
         ctx.set_source_rgba(0.0, 0.0, 0.0)
     else:

@@ -21,6 +21,19 @@ class BaseFactoryConf():
     def pathParameters(cls):
         return cls.BOUNDARYSPACING, cls.MINDEADENDLENGTH, cls.MINPATHWIDTH, cls.MINTWOWAYPATHWIDTH, cls.SIMPLIFICATIONANGLE
 
+    @classmethod
+    def byStringName(cls, name):
+        if name == "BIG":
+            return BIG
+        elif name == "SMALL":
+            return SMALL
+        elif name == "SMALLSQUARE":
+            return SMALLSQUARE
+        elif name == "EDF":
+            return EDF
+        else:
+            raise ValueError("Unknown Factory Configuration")     
+
 class BIG(BaseFactoryConf):
     WIDTH = 128000
     HEIGHT = 70000
@@ -38,7 +51,7 @@ class SMALL(BaseFactoryConf):
     HEIGHT = 18000
     MAXSHAPEWIDTH = 2500
     MAXSHAPEHEIGHT = 1500
-    AMOUNTRECT = 4
+    AMOUNTRECT = 10
     AMOUNTPOLY = 0
     MAXCORNERS = 3
 
@@ -47,7 +60,7 @@ class SMALLSQUARE(BaseFactoryConf):
     HEIGHT = 10000
     MAXSHAPEWIDTH = 2000
     MAXSHAPEHEIGHT = 2000
-    AMOUNTRECT = 10
+    AMOUNTRECT = 4
     AMOUNTPOLY = 0
     MAXCORNERS = 3
 

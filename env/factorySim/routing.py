@@ -448,7 +448,8 @@ class FactoryPath():
 
             #Follow path from endnode to next crossroads, track length of path
             while True:
-                
+
+                nextNode = None
                 for neighbor in F.neighbors(currentNode):
                     #Identifying next node (there will at most be two edges connected to every node)
                     if (neighbor == lastNode):
@@ -459,12 +460,13 @@ class FactoryPath():
                         nextNode = neighbor
                         break
                 # keep track of route length
-                total_length += F.edges[currentNode, nextNode]["weight"]
+                if nextNode:
+                    total_length += F.edges[currentNode, nextNode]["weight"]
                 #Stop if route is longer than min_length
                 if total_length > min_length:
                     break
 
-                if nextNode in ends:
+                if nextNode in ends or nextNode is None:
                     tempDeadEnds.append(currentNode)
                     shortDeadEnds.extend(tempDeadEnds)
                     break 
