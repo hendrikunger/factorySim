@@ -54,13 +54,16 @@ if __name__ == "__main__":
 
 
     stop = {
-    "training_iteration": 500,
-    "timesteps_total": 50000,
-    "episode_reward_mean": 3,
+    "training_iteration": 50000,
+    "timesteps_total": 4000000,
+    "episode_reward_mean": 5,
     }
 
+    agent = ppo.PPOTrainer(config=config, env=MultiFactorySimEnv)
+    agent.restore("/root/ray_results/PPO/PPO_MultiEnv_2fa55_00000_0_2022-11-19_10-08-59/checkpoint_000667/")
+
     tuner = tune.Tuner(
-            "PPO",
+            "PPO"
             param_space=config,
             run_config=air.RunConfig(stop=stop, checkpoint_config=2),
         )
