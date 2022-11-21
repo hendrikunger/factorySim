@@ -89,7 +89,7 @@ recreate_failed_workers: true
 restart_failed_sub_environments: true
 
 rollout_fragment_length: 200
-train_batch_size:  3000
+train_batch_size:  4000
 sgd_minibatch_size: 100
 num_sgd_iter: 4
 gamma: 0.99
