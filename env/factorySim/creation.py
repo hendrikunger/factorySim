@@ -177,7 +177,7 @@ class FactoryCreator():
                                                             name=element.Name + my_uuid,
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement)
-
+        del(ifc_file)  #Hopefully fixes memory leak
 
         if recalculate_bb:
             bbox = unary_union([x.poly for x in element_dict.values()])
