@@ -62,7 +62,7 @@ if __name__ == "__main__":
     tuner = tune.Tuner(
             "PPO",
             param_space=config,
-            run_config=air.RunConfig(stop=stop),
+            run_config=air.RunConfig(stop=stop, checkpoint_config=2),
         )
     results = tuner.fit()
     ray.shutdown()
