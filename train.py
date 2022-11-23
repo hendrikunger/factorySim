@@ -21,7 +21,7 @@ from shapely.errors import ShapelyDeprecationWarning
 warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
 
 
-RESUME = False
+RESUME = True
 
 #filename = "Overlapp"
 filename = "Basic"
@@ -66,16 +66,18 @@ if __name__ == "__main__":
 
         tuner = tune.Tuner(ppo.PPO,
                 param_space=config,
-                run_config=air.RunConfig(stop=stop, checkpoint_config=air.CheckpointConfig(checkpoint_at_end=True, checkpoint_frequency=100, checkpoint_score_attribute="episode_reward_mean", num_to_keep=10 ))
+                run_config=air.RunConfig(stop=stop, checkpoint_config=air.CheckpointConfig(checkpoint_at_end=True, checkpoint_frequency=10, checkpoint_score_order="max", checkpoint_score_attribute="episode_reward_mean", num_to_keep=10 ))
                 )
         results = tuner.fit()
 
     else:
     #Continuing training
+        config['env_config']['prefix'] = 4
+
 
         stop = {
-        "training_iteration": 50000,
-        "timesteps_total": 4000000,
+        "training_iteration": 100000,
+        "timesteps_total": 9500000,
         "episode_reward_mean": 5,
         }
 
@@ -84,9 +86,9 @@ if __name__ == "__main__":
                     stop=stop, 
                     reuse_actors=True, 
                     checkpoint_freq=10,
-                    keep_checkpoints_num=100,
+                    keep_checkpoints_num=10,
                     checkpoint_score_attr="episode_reward_mean", 
-                    restore="/root/ray_results/PPO/PPO_MultiEnv_2fa55_00000_0_2022-11-19_10-08-59/checkpoint_000667/")
+                    restore="/root/ray_results/PPO_2022-11-22_21-45-00/PPO_MultiEnv_ea0fc_00000_0_2022-11-22_21-45-00/checkpoint_002450/")
 
 
     #Loading for Evaluation

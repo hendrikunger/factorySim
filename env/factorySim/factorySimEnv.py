@@ -45,6 +45,9 @@ class FactorySimEnv(gym.Env):
         self.materialflowpath = None #file_name + "_Materialflow.csv"
         self.rendermode = env_config["rendermode"]
         self.factoryConfig = baseConfigs.BaseFactoryConf.byStringName(env_config["factoryconfig"])
+        self.surface = None
+        self.rsurface = None
+        self.prefix = env_config.get("prefix", "0")
         
 
         self.info = {}
@@ -94,7 +97,12 @@ class FactorySimEnv(gym.Env):
         createMachines=True,
         verboseOutput=self.Loglevel,
         maxMF_Elements = self.maxMF_Elements)
-        
+        if self.surface:
+            self.surface.finish()
+            del(self.surface)
+        if self.rsurface:
+            self.rsurface.finish()
+            del(self.rsurface)
         self.surface, self.ctx = self.factory.provideCairoDrawingData(self.width, self.heigth)
         self.rsurface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width * self.scale, self.heigth*self.scale)
         self.rctx = cairo.Context(self.rsurface)
@@ -111,7 +119,7 @@ class FactorySimEnv(gym.Env):
         self.factory.evaluate()
         return self._get_obs()
 
-    def render(self, mode='rgb_array', prefix = ""):
+    def render(self, mode='rgb_array'):
         draw_BG(self.rctx, *self.factory.FACTORYDIMENSIONS, darkmode=False)
         drawFactory(self.rctx, self.factory.machine_dict, self.factory.wall_dict, None, drawNames=False, highlight=self.currentMachine)
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
@@ -120,7 +128,7 @@ class FactorySimEnv(gym.Env):
         draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
         
         if mode == 'human' or self.rendermode == 'human':
-            outputPath = os.path.join(self.output_path, f"{prefix}_{self.uid}_{self.stepCount:04d}.png")
+            outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
             self.rsurface.write_to_png(outputPath)
             return True
         elif mode == 'rgb_array':
@@ -208,14 +216,14 @@ def main():
         
     env = FactorySimEnv( env_config = config['env_config'])
 
-    prefix="test"
+    #env.prefix="test"
 
-    for _ in tqdm(range(0,5000)):
+    for _ in tqdm(range(0,5)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
-        env.render(mode='human', prefix=prefix)
+        env.render(mode='human')
         if done:
             env.reset()
-            env.render(mode='human', prefix=prefix)
+            env.render(mode='human')
 
 
 
