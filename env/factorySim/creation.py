@@ -3,6 +3,7 @@ import numpy as np
 from shapely.geometry import box, MultiPoint, Polygon, MultiPolygon
 from shapely.affinity import rotate, scale, translate
 from shapely.ops import unary_union
+from shapely.prepared import prep
 import ifcopenshell
 import random
 from factorySim.factoryObject import FactoryObject
@@ -21,6 +22,7 @@ class FactoryCreator():
         self.amountPoly = amountPoly
         self.maxCorners = maxCorners
         self.bb = None
+        self.prep_bb = None
         
     def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
@@ -41,6 +43,7 @@ class FactoryCreator():
         elementlist = {}
 
         self.bb = box(0,0,self.factoryWidth,self.factoryHeight)
+        self.prep_bb = prep(self.bb)
 
         topLeftCornersRect = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeHeight], size=[self.amountRect,2], endpoint=True)
         topLeftCornersPoly = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeWidth], size=[self.amountPoly,2], endpoint=True)
@@ -73,8 +76,10 @@ class FactoryCreator():
             newRect = box(corner[0],corner[1],corner[0] + self.rng.integers(1, self.maxShapeWidth+1), corner[1] + self.rng.integers(1, self.maxShapeHeight+1))
             union = MultiPolygon([union,newRect])
 
+        #origin is lower left corner in shapely
+        # Flip on y because Pygames origin is in the top left corner
         multi = MultiPolygon(scale(union, yfact=-1, origin=self.bb.centroid))
-
+        
         for i, poly in enumerate(multi.geoms):
             bbox = poly.bounds
             poly = MultiPolygon([poly])
@@ -83,7 +88,7 @@ class FactoryCreator():
                                             name="creative_name_" + str(i),
                                             origin=(bbox[0],bbox[1]),
                                             poly=poly)
-        # Flip on y because Pygames origin is in the top left corner
+        
         
 
         return elementlist
@@ -92,6 +97,7 @@ class FactoryCreator():
         import pickle
         loaddata = pickle.load( open( filename, "rb" ) )
         self.bb = loaddata["bounding_box"]
+        self.prep_bb = prep(self.bb)
         self.multi = loaddata["machines"]
 
         return self.multi, self.bb
@@ -105,6 +111,7 @@ class FactoryCreator():
         #find maximum width and height of factory
         bounds = self.multi.bounds
         self.bb = box(0,0,bounds[2],bounds[3])
+        self.prep_bb = prep(self.bb)
 
         return self.multi, self.bb
 
@@ -187,6 +194,7 @@ class FactoryCreator():
             else:
                 bbox = MultiPolygon([bbox]).bounds
             self.bb = box(0,0,bbox[2],bbox[3])
+            self.prep_bb = prep(self.bb)
             self.factoryWidth = bbox[2]
             self.factoryHeight = bbox[3]
 

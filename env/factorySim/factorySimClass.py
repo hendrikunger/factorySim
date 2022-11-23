@@ -97,8 +97,6 @@ class FactorySim:
             factoryConfig.MINTWOWAYPATHWIDTH,
             factoryConfig.SIMPLIFICATIONANGLE)
 
-        self.machineCollisionList = []
-        self.wallCollisionList = []
 
         self.lastRating = 0
         self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
@@ -181,7 +179,7 @@ class FactorySim:
 
             bbox = self.factoryCreator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
-            #also Clips Position to Output Range
+            #np.interp also Clips Position to Output Range
                     
             mappedXPos = np.interp(xPosition, (-1.0, 1.0), (0, bbox[2] - self.machine_dict[machineIndex].width))  
             mappedYPos = np.interp(yPosition, (-1.0, 1.0), (0, bbox[3] - self.machine_dict[machineIndex].height)) 
@@ -307,27 +305,19 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def evaluateCollision(self):
 
-        factoryRating = FactoryRating(self.machine_dict, self.wall_dict)
-        self.collisionAfterLastUpdate = factoryRating.findCollisions(self.lastUpdatedMachine)
-        self.machineCollisionList = factoryRating.machineCollisionList
-        self.wallCollisionList = factoryRating.wallCollisionList                    
+        factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, prepped_bb=self.factoryCreator.prep_bb)
+        self.collisionAfterLastUpdate = factoryRating.findCollisions(self.lastUpdatedMachine)                 
         if(self.verboseOutput >= 3):
-            self.printTime("Kollisionen berechnen abgeschlossen")        
-        
-        #machineCollisionArea = 0
-        #wallCollisionArea = 0
-        #totalMachineArea = 0
-        # 
-        #for collision in self.machineCollisionList:
-        #    machineCollisionArea += collision.area()
-        #for collision in self.wallCollisionList:
-        #   wallCollisionArea += collision.area() 
-        #for machine in self.machine_list.values():      
-        #    totalMachineArea += machine.hull.area()
+            self.printTime("Kollisionen berechnen abgeschlossen")      
+
+        self.machineCollisionList = factoryRating.machineCollisionList
+        self.wallCollisionList = factoryRating.wallCollisionList
+        self.outsiderList = factoryRating.outsiderList
 
         #print(len(list(combinations(self.machine_list.values(), 2))))
-        nMachineCollisions = len(self.machineCollisionList)
-        nWallCollosions = len(self.wallCollisionList)
+        nMachineCollisions = len(factoryRating.machineCollisionList)
+        nWallCollosions = len(factoryRating.wallCollisionList)
+        nOutsiders = len(factoryRating.outsiderList)
 
 
 
@@ -337,7 +327,7 @@ class FactorySim:
         #else:
         #    output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
     
-        output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions)
+        output = 1 - (0.5 * nMachineCollisions) - (0.5 * nWallCollosions) - (0.5 * nOutsiders)
         
         return output
 
@@ -420,9 +410,9 @@ def main():
     img_resolution = (500, 500)
     outputfile ="Out"
 
-    #filename = "Long"
+    filename = "Long"
     #filename = "Basic"
-    filename = "Simple"
+    #filename = "Simple"
     #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -438,11 +428,11 @@ def main():
     materialflowpath = None
     demoFactory = FactorySim(ifcpath,
         path_to_materialflow_file = materialflowpath,
-        factoryConfig=baseConfigs.SMALLSQUARE,
+        factoryConfig=baseConfigs.SMALL,
         randomPos=False,
         createMachines=True,
         verboseOutput=4,
-        maxMF_Elements = None)
+        maxMF_Elements = 3)
     
     surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
@@ -473,11 +463,13 @@ def main():
 
     #Change machine
     #demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
-    demoFactory.update(0,0.8 ,-0.2 , 1)
+    #demoFactory.update(0,0.8 ,-0.2 , 1)
+    #demoFactory.evaluate()
+    #demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
+    #demoFactory.evaluate()
+    demoFactory.update(1,-1 ,-1 , 0.2)
+    ##Rate current Layout
     demoFactory.evaluate()
-    demoFactory.update(1,1 ,-1 , 1)
-    demoFactory.evaluate()
-    demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
 
     draw_BG(ctx, *img_resolution)
     drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
@@ -501,8 +493,7 @@ def main():
     demoFactory.printTime("PNG schreiben")
 
     
-    ##Rate current Layout
-    demoFactory.evaluate()
+
 
     print(f"Total runtime: {round((time() - demoFactory.timezero) * 1000, 2)}")
 

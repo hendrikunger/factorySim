@@ -241,7 +241,7 @@ def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = Tr
 #------------------------------------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------------------------------------
-def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, drawColors = True):
+def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderList=None, drawColors = True):
     #Drawing collisions between machines
     if(drawColors):
         ctx.set_source_rgb(1.0, 0.3, 0.0)
@@ -266,7 +266,19 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, drawColors
                 for point in poly.exterior.coords:
                     ctx.line_to(point[0], point[1])
             ctx.close_path()
-            ctx.fill()           
+            ctx.fill()     
+        #Drawing collisions between machines and walls
+    if(outsiderList):
+        if(drawColors):
+            ctx.set_source_rgb(1.0, 0.3, 0.0)
+        else:
+            ctx.set_source_rgb(0.7, 0.7, 0.7)
+        for outsider in outsiderList:
+            for poly in outsider.geoms:   
+                for point in poly.exterior.coords:
+                    ctx.line_to(point[0], point[1])
+            ctx.close_path()
+            ctx.fill()       
 
 
     return ctx

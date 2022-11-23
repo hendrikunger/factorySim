@@ -7,12 +7,13 @@ from shapely.geometry import  Polygon,  MultiPolygon
 DEBUG = False
 class FactoryRating():
 
-    def __init__(self, machine_dict=None, wall_dict=None, fullPathGraph=None, PathGraph=None):
+    def __init__(self, machine_dict=None, wall_dict=None, fullPathGraph=None, PathGraph=None, prepped_bb=None):
 
         self.machine_dict = machine_dict
         self.wall_dict = wall_dict
         self.fullPathGraph = fullPathGraph
         self.PathGraph = PathGraph
+        self.prepped_bb = prepped_bb
 
     def PathWideVariance(self):
         min_pathwidth = np.array(list((nx.get_edge_attributes(self.PathGraph,'pathwidth').values())))
@@ -46,5 +47,10 @@ class FactoryRating():
                         col = MultiPolygon([col])
                     self.wallCollisionList.append(col)
                     if(b.gid == lastUpdatedMachine): collisionAfterLastUpdate = True
+
+        #Find machines just outside the factory (rewardgaming)
+        self.outsiderList = list(filter(self.prepped_bb.touches, [x.poly for x in self.machine_dict.values()]))
+        self.outsiderList.extend(list(filter(self.prepped_bb.disjoint, [x.poly for x in self.machine_dict.values()])))
+
         return collisionAfterLastUpdate
             

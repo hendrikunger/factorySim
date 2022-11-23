@@ -13,12 +13,11 @@ from shapely.geometry import Point, Polygon, box, MultiPolygon
 from paho.mqtt import client as mqtt
 
 from factorySim.factorySimClass import FactorySim
-from factorySim.routing import FactoryPath
 from factorySim.rendering import *
 from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
 from factorySim.factoryObject import FactoryObject
-from factorySim.kpi import FactoryRating
+
 
 class DrawingModes(Enum):
     NONE = None
@@ -314,14 +313,14 @@ class factorySimLive(mglw.WindowConfig):
         if self.activeModes[Modes.MODE9]: draw_pathwidth_circles2(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
 
 
-        # for key, machine in self.factory.machine_dict.items():
+        # for key, machine in self.factory.machine_dict.items():5
         #     draw_poly(self.cctx, machine.poly, machine.color, text=str(machine.gid), highlight= True if key == self.selected else False, drawHoles=True)
         
 
         if self.activeModes[Modes.MODE6]: drawMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
 
         if self.activeModes[Modes.MODE5]: 
-            drawCollisions(self.cctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
+            drawCollisions(self.cctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
 
         for key, mobile in self.mobile_dict.items():
