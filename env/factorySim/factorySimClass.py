@@ -176,15 +176,16 @@ class FactorySim:
                 print(f"Update: {self.machine_dict[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
             if (rotation is not None):
-                mappedRot = self.mapRange(np.clip(rotation,-1.0, 1.0), (-1,1), (0, 2*math.pi))
+                mappedRot = np.interp(rotation, (-1.0, 1.0), (0, 2*math.pi))
                 self.machine_dict[machineIndex].rotate_Item(mappedRot)
 
             bbox = self.factoryCreator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
-            mappedXPos = self.mapRange(np.clip(xPosition,-1.0, 1.0), (-1,1), (0,bbox[2] - self.machine_dict[machineIndex].width))
-            mappedYPos = self.mapRange(np.clip(yPosition,-1.0, 1.0), (-1,1), (0,bbox[3] - self.machine_dict[machineIndex].height))
-            #mappedXPos = self.mapRange(xPosition, (-1,1), (0,bbox[2]))
-            #mappedYPos = self.mapRange(yPosition, (-1,1), (0,bbox[3]))
+            #also Clips Position to Output Range
+                    
+            mappedXPos = np.interp(xPosition, (-1.0, 1.0), (0, bbox[2] - self.machine_dict[machineIndex].width))  
+            mappedYPos = np.interp(yPosition, (-1.0, 1.0), (0, bbox[3] - self.machine_dict[machineIndex].height)) 
+
 
             self.machine_dict[machineIndex].translate_Item(mappedXPos, mappedYPos)
 
@@ -412,12 +413,6 @@ class FactorySim:
         number = round(number * 1000, 2)
         print(f"{number:6.2f} - {text}")
 
-  #------------------------------------------------------------------------------------------------------------  
-    def mapRange(self,s , a, b):
-        (a1, a2), (b1, b2) = a, b
-        if(s < a1): s = a1
-        if(s > a2): s = a2
-        return  b1 + ((s - a1) * (b2 - b1) / (a2 - a1))
 
 #------------------------------------------------------------------------------------------------------------
 def main():
