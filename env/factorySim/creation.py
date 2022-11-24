@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import pandas as pd
 from shapely.geometry import box, MultiPoint, Polygon, MultiPolygon
 from shapely.affinity import rotate, scale, translate
 from shapely.ops import unary_union
@@ -23,7 +24,8 @@ class FactoryCreator():
         self.maxCorners = maxCorners
         self.bb = None
         self.prep_bb = None
-        
+        self.machine_dict = {}
+
     def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
         if self.bb:
@@ -40,7 +42,7 @@ class FactoryCreator():
     def create_factory(self):
         
         polygons = []
-        elementlist = {}
+        self.machine_dict = {}
 
         self.bb = box(0,0,self.factoryWidth,self.factoryHeight)
         self.prep_bb = prep(self.bb)
@@ -84,24 +86,26 @@ class FactoryCreator():
             bbox = poly.bounds
             poly = MultiPolygon([poly])
             #origin is lower left corner
-            elementlist[i] = FactoryObject(gid=i, 
+            self.machine_dict[i] = FactoryObject(gid=i, 
                                             name="creative_name_" + str(i),
                                             origin=(bbox[0],bbox[1]),
                                             poly=poly)
         
         
 
-        return elementlist
+        return self.machine_dict
 
     def load_pickled_factory(self, filename):
+        # Broken TODO
         import pickle
         loaddata = pickle.load( open( filename, "rb" ) )
         self.bb = loaddata["bounding_box"]
         self.prep_bb = prep(self.bb)
-        self.multi = loaddata["machines"]
+        self.machine_dict = loaddata["machines"]
 
         return self.multi, self.bb
     def load_dxf_factory(self, filename):
+        # Broken TODO
         import ezdxf
         from ezdxf.addons import geo
         from shapely.geometry import shape
@@ -180,14 +184,14 @@ class FactoryCreator():
             singleElement = rotate(singleElement, rotation, origin=(origin[0], origin[1]), use_radians=True)
             #create Factory Object       
             
-            element_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
+            self.machine_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
                                                             name=element.Name + my_uuid,
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement)
         del(ifc_file)  #Hopefully fixes memory leak
 
         if recalculate_bb:
-            bbox = unary_union([x.poly for x in element_dict.values()])
+            bbox = unary_union([x.poly for x in self.machine_dict.values()])
             #Prevent error due to single element in IFC File
             if bbox.type == "MultiPolygon":
                 bbox = bbox.bounds
@@ -198,11 +202,36 @@ class FactoryCreator():
             self.factoryWidth = bbox[2]
             self.factoryHeight = bbox[3]
 
-        for element in element_dict.values():
+        for element in self.machine_dict.values():
             element.poly = scale(element.poly, yfact=-1, origin=self.bb.centroid)
             polybbox = element.poly.bounds
             element.origin = (polybbox[0], polybbox[1])
             element.center = element.poly.representative_point()
 
 
-        return element_dict
+        return self.machine_dict
+
+
+
+    def createRandomMaterialFlow(self, machine_dict = None):
+        names = []
+
+        if machine_dict is None:
+            machine_dict = self.machine_dict
+
+        for start in machine_dict.values():
+            sample = start
+            while sample == start:
+                sample = random.choice(list(self.machine_dict.values()))
+            names.append([start.name, sample.name]) 
+            if random.random() >= 0.9:
+                sample = random.choice(list(self.machine_dict.values()))
+                names.append([start.name, sample.name])                 
+        self.dfMF = pd.DataFrame(data=names, columns=["from", "to"])
+        self.dfMF['intensity'] = np.random.randint(1,100, size=len(self.dfMF))
+
+        return self.dfMF
+
+
+
+

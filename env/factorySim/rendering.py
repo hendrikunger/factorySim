@@ -162,7 +162,8 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
     #draw machine positions
     if machine_dict:
         ctx.set_fill_rule(cairo.FillRule.WINDING)
-        ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
+        ctx.set_line_width(ctx.device_to_user_distance(5, 5)[0])
+        ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
         for index, machine in enumerate(machine_dict.values()):
             for poly in machine.poly.geoms:
                 ctx.move_to(*poly.exterior.coords[0])
@@ -171,7 +172,9 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                 ctx.close_path()
                 if drawColors:
                     #highlighted machine
-                    if(index == highlight or machine.gid == highlight):
+                    if(machine.gid == highlight):
+                        ctx.set_source_rgb(0.5, 0.5, 0.5)
+                        ctx.stroke_preserve()
                         ctx.set_source_rgb(1.0, 0.0, 0.0)
                     #other machines
                     else:
@@ -268,7 +271,7 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
             ctx.close_path()
             ctx.fill()     
         #Drawing collisions between machines and walls
-    if(outsiderList):
+    if(outsiderList): 
         if(drawColors):
             ctx.set_source_rgb(1.0, 0.3, 0.0)
         else:
@@ -299,8 +302,7 @@ def draw_text_topleft2(ctx, text, color):
 def draw_text_pos(ctx, text, color, pos):
     ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
     (x, y, width, height, dx, dy) = ctx.text_extents(text)
-    mousepos = ctx.device_to_user_distance(*pos)
-    ctx.move_to(mousepos[0] - width/2, mousepos[1] + ctx.device_to_user_distance(30, 30)[0])
+    ctx.move_to(pos[0] - width/2, pos[1] + ctx.device_to_user_distance(30, 30)[0])
     
     ctx.set_source_rgba(*color)
     ctx.show_text(text)

@@ -218,7 +218,7 @@ def main():
 
     #env.prefix="test"
 
-    for _ in tqdm(range(0,5)):
+    for _ in tqdm(range(0,10)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         env.render(mode='human')
         if done:

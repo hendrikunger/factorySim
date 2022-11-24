@@ -124,18 +124,23 @@ class FactorySim:
             self.dfMF.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
         else:
             #Create Random Materialflow
-            names = []
-            for start in self.machine_dict.values():
-                sample = start
-                while sample == start:
-                    sample = random.choice(list(self.machine_dict.values()))
-                names.append([start.name, sample.name]) 
-                if random.random() >= 0.9:
-                    sample = random.choice(list(self.machine_dict.values()))
-                    names.append([start.name, sample.name])                 
-            self.dfMF = pd.DataFrame(data=names, columns=["from", "to"])
-            self.dfMF['intensity'] = np.random.randint(1,100, size=len(self.dfMF))
+            self.dfMF = self.factoryCreator.createRandomMaterialFlow()
+    
+        self.cleanMaterialFLow()
+    
+        if(self.verboseOutput >= 3):
+            self.printTime("Materialfluss geladen")
+ #------------------------------------------------------------------------------------------------------------
+ # Update Materialflow
+ #------------------------------------------------------------------------------------------------------------
+    def addMaterialFlow(self, fromMachine, toMachine, intensity):
+        #Add new Materialflow
+        #self.dfMF = self.dfMF.concat({'from': fromMachine, 'to': toMachine, 'intensity': intensity}, ignore_index=True)
+        newDF = pd.DataFrame({'from': [fromMachine], 'to': [toMachine], 'intensity': [intensity]})
+        self.dfMF = pd.concat([self.dfMF, newDF], ignore_index=True)
+        self.cleanMaterialFLow()
 
+    def cleanMaterialFLow(self):
         #Group by from and two, add up intensity of all duplicates in intensity_sum
         self.dfMF['intensity_sum'] = self.dfMF.groupby(by=['from', 'to'])['intensity'].transform('sum')
         #drop the duplicates and refresh index
@@ -148,12 +153,6 @@ class FactorySim:
         self.dfMF[['from','to']] = self.dfMF[['from','to']].replace(machine_dict)
         #set initial values for costs
         self.dfMF['costs'] = 0
-
-    
-        if(self.verboseOutput >= 3):
-            self.printTime("Materialfluss geladen")
-
-
         
  #------------------------------------------------------------------------------------------------------------
  # Update Machines

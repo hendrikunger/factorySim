@@ -98,7 +98,6 @@ class factorySimLive(mglw.WindowConfig):
 
 
         self.factoryCreator.bb = self.factory.factoryCreator.bb
-        print(self.factory.factoryCreator.bb)
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
@@ -201,11 +200,17 @@ class factorySimLive(mglw.WindowConfig):
                 self.create_factory()
                 self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
                 self.recreateCairoContext()
+                self.nextGID = len(self.factory.machine_dict)
+                self.selected = None
             # End Drawing Mode
             if key == keys.ESCAPE:
                 self.clickedPoints.clear()
                 self.activeModes[Modes.DRAWING] = DrawingModes.NONE
                 self.wnd.exit_key = keys.ESCAPE
+            # Del to delete
+            if key == keys.DELETE:
+                self.factory_delete_item(self.selected)
+                self.selected = None
 
             if(Modes.has_value(key)):
                 self.activeModes[Modes(key)] = not self.activeModes[Modes(key)]
@@ -221,7 +226,8 @@ class factorySimLive(mglw.WindowConfig):
 
     def mouse_drag_event(self, x, y, dx, dy):
         self.cursorPosition = (x, y)
-        if self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
+
+        if self.wnd.mouse_states.left == True and self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
             # move object  
             self.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale)) + self.selected_offset_x,
                 ((y / self.currentScale)) + self.selected_offset_y)
@@ -244,12 +250,16 @@ class factorySimLive(mglw.WindowConfig):
 
             #Prepare Mouse Drag
             else:
-                for key, machine in self.factory.machine_dict.items():
+                for key, machine in reversed(self.factory.machine_dict.items()):
                     point_scaled = Point(x/self.currentScale, y/self.currentScale)
                     if machine.poly.contains(point_scaled):
                         self.selected = key
                         self.selected_offset_x = machine.poly.bounds[0] - point_scaled.x
                         self.selected_offset_y = machine.poly.bounds[1] - point_scaled.y
+                        break
+                    else:
+                        self.selected = None
+
 
         if button == 2:
             #Finish Polygon
@@ -258,18 +268,28 @@ class factorySimLive(mglw.WindowConfig):
                     self.factory_add_poly(self.clickedPoints, useWindowCoordinates = True)
                     self.clickedPoints.clear()
 
+            #Add Materialflow
+            elif self.selected is not None:
+                for key, machine in reversed(self.factory.machine_dict.items()):
+                    point_scaled = Point(x/self.currentScale, y/self.currentScale)
+                    if machine.poly.contains(point_scaled) and key is not self.selected:
+                        self.factory.addMaterialFlow(self.selected, key, np.random.randint(1,100))
+                        self.update_needed()
+                        break
+
         #Shift Click to delete Objects
         if button == 1 and self.wnd.modifiers.shift and self.selected is not None :
-            self.factory.machine_dict.pop(self.selected)
-            indexNames = self.factory.dfMF[ (self.factory.dfMF['from'] == self.selected) | (self.factory.dfMF['to'] == self.selected) ].index
-            self.factory.dfMF.drop(indexNames , inplace=True)
+            self.factory_delete_item(self.selected)
             self.selected = None
-            self.update_needed()
+
+
+                
 
 
     def mouse_release_event(self, x: int, y: int, button: int):
         if button == 1:
-            self.selected = None
+            #self.selected = None
+            pass
 
     def render(self, time, frame_time):
         if time > self.lastTime + 0.5:
@@ -336,8 +356,13 @@ class factorySimLive(mglw.WindowConfig):
         mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
         draw_text_topleft(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color)
         draw_text_topleft2(self.cctx, self.factory.generateRatingText(), color)
-        if self.cursorPosition and self.selected != None: 
-            draw_text_pos(self.cctx, self.factory.generateRatingText(), color, (self.cursorPosition))
+        if self.selected != None: 
+            #Calculate the position of bottom center of selected objectsv bounding box
+            bbox = self.factory.machine_dict[self.selected].poly.bounds
+            x = (bbox[0] + bbox[2])/2
+            y = bbox[3]
+
+            draw_text_pos(self.cctx, self.factory.generateRatingText(), color, (x,y))
         
         # Copy surface to texture
         texture = self.ctx.texture((self.window_size[0], self.window_size[1]), 4, data=self.surface.get_data())
@@ -351,7 +376,7 @@ class factorySimLive(mglw.WindowConfig):
     def update_needed(self):            
         self.is_dirty = True
         if self.is_calculating:
-            self.update_during_calculation = True
+            self.update_during_calculation = True 
 
     def recreateCairoContext(self):
         self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.window_size[0], self.window_size[1])
@@ -445,7 +470,12 @@ class factorySimLive(mglw.WindowConfig):
                                                 name="creative_name_" + str(gid_to_use),
                                                 origin=origin,
                                                 poly=MultiPolygon([newPoly]))
-            self.nextGID += 1
+            self.update_needed()
+
+    def factory_delete_item(self, index):
+            self.factory.machine_dict.pop(index)
+            indexNames = self.factory.dfMF[ (self.factory.dfMF['from'] == index) | (self.factory.dfMF['to'] == index) ].index
+            self.factory.dfMF.drop(indexNames , inplace=True)
             self.update_needed()
             
     def create_factory(self):
