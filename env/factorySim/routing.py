@@ -519,8 +519,8 @@ if __name__ == "__main__":
 
         wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
         bb = factoryCreator.bb  
-        #machine_dict = factoryCreator.create_factory()
-        machine_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
+        machine_dict = factoryCreator.create_factory()
+        #machine_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
 
         multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
 
