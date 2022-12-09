@@ -94,6 +94,13 @@ class factorySimLive(mglw.WindowConfig):
         "Input",
         "2")
 
+        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        # "..",
+        # "..",
+        # "Input",
+        # "2",  
+        # "TestCaseZigZag" + ".ifc")
+
         self.create_factory()
 
 
@@ -484,7 +491,8 @@ class factorySimLive(mglw.WindowConfig):
         factoryConfig=self.factoryConfig,
         randomPos=False,
         createMachines=True,
-        verboseOutput=0
+        verboseOutput=0,
+        maxMF_Elements=None
         )
         self.future = self.executor.submit(self.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()

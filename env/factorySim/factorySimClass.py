@@ -67,16 +67,11 @@ class FactorySim:
         else:
             #Import up to MAXMF_ELEMENTS from File
             if(self.MAXMF_ELEMENTS):
-                path = os.path.join(os.path.dirname(self.ifc_file), "MFO_LIB.ifc")
-                if(os.path.exists(path)):
-                    mfo_ifc_file_path = path
-                else:
-                    mfo_ifc_file_path = self.ifc_file
 
                 if(self.verboseOutput >= 2):
-                    print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {mfo_ifc_file_path} geladen.")
+                    print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {self.ifc_file} geladen.")
                 #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
-                self.machine_dict = self.factoryCreator.load_ifc_factory(mfo_ifc_file_path, "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
+                self.machine_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
             else:
                 #Import full file
                 if(self.verboseOutput >= 2):

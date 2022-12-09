@@ -24,20 +24,18 @@ def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
     modifer = 0.5 if asStreets else 1.0
 
     for u,v,data in reducedPathGraph.edges(data=True):
-        temp = [pos[x] for x in data['nodelist']]
         ctx.set_line_width(data['pathwidth']*modifer)
-        ctx.move_to(*temp[0])
-        for node in temp[1:]:
+        ctx.move_to(*data['nodelist'][0])
+        for node in data['nodelist'][1:]:
             ctx.line_to(*node)
         ctx.stroke()
     ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
 
     for u,v,data in reducedPathGraph.edges(data=True):
-        temp = [pos[x] for x in data['nodelist']]
         if data['pathtype'] =="twoway":
             ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
-            ctx.move_to(*temp[0])
-            for node in temp[1:]:
+            ctx.move_to(*data['nodelist'][0])
+            for node in data['nodelist'][1:]:
                 ctx.line_to(*node)
     ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
     ctx.stroke()
@@ -128,8 +126,9 @@ def draw_pathwidth_circles2(ctx, fullPathGraph, reducedPathGraph):
 #------------------------------------------------------------------------------------------------------------
 def draw_route_lines(ctx, route_lines):
     for line in route_lines:
-        ctx.move_to(line.xy[0][0], line.xy[1][0])
-        ctx.line_to(line.xy[0][1], line.xy[1][1])
+        ctx.move_to(*line.coords[0])
+        for x,y in line.coords[1:]:
+            ctx.line_to(x,y)
     ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
     ctx.set_source_rgba(0.5, 0.5, 0.5, 1.0)
     ctx.stroke()
@@ -211,6 +210,7 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                     ctx.set_source_rgb(0.5, 0.5, 0.5)
                 ctx.arc(machine.origin[0], machine.origin[1], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
                 ctx.fill()
+    ctx.set_dash([])
 
     #Material Flow
     drawMaterialFlow(ctx, machine_dict, materialflow_file, drawColors)

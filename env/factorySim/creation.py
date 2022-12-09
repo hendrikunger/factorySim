@@ -25,6 +25,7 @@ class FactoryCreator():
         self.bb = None
         self.prep_bb = None
         self.machine_dict = {}
+        self.wall_dict = {}
 
     def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
@@ -184,14 +185,14 @@ class FactoryCreator():
             singleElement = rotate(singleElement, rotation, origin=(origin[0], origin[1]), use_radians=True)
             #create Factory Object       
             
-            self.machine_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
+            element_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
                                                             name=element.Name + my_uuid,
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement)
         del(ifc_file)  #Hopefully fixes memory leak
 
         if recalculate_bb:
-            bbox = unary_union([x.poly for x in self.machine_dict.values()])
+            bbox = unary_union([x.poly for x in element_dict.values()])
             #Prevent error due to single element in IFC File
             if bbox.type == "MultiPolygon":
                 bbox = bbox.bounds
@@ -202,14 +203,19 @@ class FactoryCreator():
             self.factoryWidth = bbox[2]
             self.factoryHeight = bbox[3]
 
-        for element in self.machine_dict.values():
+        for element in element_dict.values():
             element.poly = scale(element.poly, yfact=-1, origin=self.bb.centroid)
             polybbox = element.poly.bounds
             element.origin = (polybbox[0], polybbox[1])
             element.center = element.poly.representative_point()
+        
+        if elementName == "IFCBUILDINGELEMENTPROXY":
+            self.machine_dict = element_dict
+        elif elementName == "IFCWALL":
+            self.wall_dict = element_dict
 
 
-        return self.machine_dict
+        return element_dict
 
 
 

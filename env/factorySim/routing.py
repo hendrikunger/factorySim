@@ -1,11 +1,11 @@
 #%%
 import time
 
-from shapely.geometry import Point, MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, box, shape
+from shapely.geometry import Point, MultiPoint, MultiPolygon, MultiLineString, GeometryCollection, LineString
 from shapely.affinity import translate, rotate
 from shapely.strtree import STRtree
 from shapely.prepared import prep
-from shapely.ops import split,  voronoi_diagram,  unary_union, triangulate, nearest_points
+from shapely.ops import split, voronoi_diagram,  unary_union, linemerge, nearest_points
 
 import warnings
 from shapely.errors import ShapelyDeprecationWarning
@@ -128,6 +128,11 @@ class FactoryPath():
 
             if self.TIMING: self.timelog("Line Filtering")
 
+        #Simplify Lines
+        self.route_lines = linemerge(self.route_lines)
+        #self.simple_route_lines = self.route_lines.simplify(self.boundarySpacing/2, preserve_topology=False)
+
+
 
         # Find closest points in voronoi cells
         if walkableArea.geom_type ==  'MultiPolygon':
@@ -143,49 +148,47 @@ class FactoryPath():
 
         # Create Graph -----------------------------------------------------------------------------------------------------------------
         self.fullPathGraph = nx.Graph()
+        for index, line in enumerate(self.route_lines):
+            lastPoint = None
+            currentPath = [] 
+            for currentPoint in line.coords:
+                currentPoint = Point(currentPoint)
+                if lastPoint:
+                    currentBoundaryPoint = self.hit_tree.nearest_geom(currentPoint)
+                    currentPathWidth = currentPoint.distance(currentBoundaryPoint) * 2
 
-        memory = None
-        memomry_distance = None
+                    lastPointTuple = (lastPoint.x, lastPoint.y)
+                    lastPoint_str = str(lastPointTuple)
 
-        for line in self.route_lines:
+                    currentPointTuple = (currentPoint.x, currentPoint.y)
+                    currentPoint_str = str(currentPointTuple)
 
-            first = line.boundary.geoms[0]
-            firstTuple = (first.x, first.y)
-            first_str = str(firstTuple)
-            #find closest next point in boundary for path width calculation
-            if memory == first:
-                first_distance = memory_distance
-            else:
-                nearest_point_first = self.hit_tree.nearest_geom(first)
-                first_distance = first.distance(nearest_point_first)
+                    self.fullPathGraph.add_node(
+                        currentPoint_str,
+                        pos=currentPointTuple,
+                        pathwidth=currentPathWidth,
+                        routeIndex=index
+                        )
+                    self.fullPathGraph.add_edge(
+                        lastPoint_str,
+                        currentPoint_str,
+                        weight=currentPoint.distance(lastPoint),
+                        pathwidth=min(currentPathWidth, lastPathWidth),
+                        routeIndex=index
+                        )
+                    currentPath.append((lastPoint_str,currentPoint_str,currentPoint.distance(lastPoint)))
+                    lastPoint = currentPoint
+                    lastBoundaryPoint = currentBoundaryPoint
+                    lastPathWidth = currentPathWidth
+                else:
+                    lastPoint = currentPoint
+                    lastBoundaryPoint = self.hit_tree.nearest_geom(currentPoint)
+                    lastPathWidth = currentPoint.distance(lastBoundaryPoint) * 2
+                    lastPointTuple = (lastPoint.x, lastPoint.y)
+                    lastPoint_str = str(lastPointTuple)
 
-
-            second = line.boundary.geoms[1]
-            secondTuple = (second.x, second.y)
-            second_str = str(secondTuple)
-            #find closest next point in boundary for path width calculation
-            nearest_point_second = self.hit_tree.nearest_geom(second)
-            second_distance = second.distance(nearest_point_second)
-
-            memory, memory_distance = second, second_distance
-
-            #edge width is minimum path width of the nodes making up the edge
-            smallestPathwidth = min(first_distance, second_distance) * 2
-
-
-        #This is replaced by the version below. Delete Line Filtering below as well 
-            self.fullPathGraph.add_node(first_str, pos=firstTuple, pathwidth=first_distance)
-            self.fullPathGraph.add_node(second_str, pos=secondTuple, pathwidth=second_distance)
-            self.fullPathGraph.add_edge(first_str, second_str, weight=first.distance(second), pathwidth=smallestPathwidth)
-
-
-        #For later --------------------------
-            # if smallestPathwidth < MINPATHWIDTH:
-            #     continue
-            # else:
-            #     self.G.add_node(first_str, pos=firstTuple, pathwidth=smallestPathwidth)
-            #     self.G.add_node(second_str, pos=secondTuple, pathwidth=smallestPathwidth)
-            #     self.G.add_edge(first_str, second_str, weight=first.distance(second), pathwidth=smallestPathwidth)
+                    self.fullPathGraph.add_node(lastPoint_str, pos=lastPointTuple, pathwidth=lastPathWidth, routeIndex=index)
+                    continue
 
         if self.TIMING: self.timelog("Network generation")
 
@@ -263,7 +266,7 @@ class FactoryPath():
 
         ep = self.endpoints
         cross = self.crossroads
-        stoppers = set(ep + cross +  self.support)
+        stoppers = set(ep + cross + self.support)
 
         if ep: 
             nodes_to_visit = [ep[0]]
@@ -295,7 +298,7 @@ class FactoryPath():
 
                 lastNode = currentOuterNode
                 currentInnerNode = outerNeighbor
-                tempPath.append(currentOuterNode)
+                tempPath.append(pos[currentOuterNode])
 
                 while True:
                     #check if next node is deadend or crossroad
@@ -307,7 +310,8 @@ class FactoryPath():
 
                     if currentInnerNode in stoppers:
                         #found a crossroad or deadend
-                        tempPath.append(currentInnerNode)
+                        tempPath.append(pos[currentInnerNode])
+                        tempPath = self.filterZigZag(tempPath)
                         paths.append(tempPath)
                         
                         #Prevent going back and forth between direct connected crossroads 
@@ -333,7 +337,7 @@ class FactoryPath():
                         break 
                     else:
                         #going along path
-                        tempPath.append(currentInnerNode)
+                        tempPath.append(pos[currentInnerNode])
 
                     for innerNeighbor in self.fullPathGraph.neighbors(currentInnerNode):
                         #Identifying next node (there will at most be two edges connected to every node)
@@ -478,6 +482,11 @@ class FactoryPath():
         return shortDeadEnds
 
 
+    def filterZigZag(self, inputpaths):
+        temp = LineString(inputpaths).simplify(self.boundarySpacing/2, preserve_topology=False)
+        return list(temp.coords)
+
+
 #%% TESTS
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -496,7 +505,7 @@ if __name__ == "__main__":
 
     rng = np.random.default_rng()
 
-    for i in tqdm(range(ITERATIONS)):
+    for runs in tqdm(range(ITERATIONS)):
         factoryCreator = FactoryCreator(*baseConfigs.SMALLSQUARE.creationParameters())
 
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -504,10 +513,15 @@ if __name__ == "__main__":
             "..",
             "Input",
             "2",  
-            "Simple" + ".ifc")
+            "TestCaseZigZag" + ".ifc")
+   
+        
+
         wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
-        bb = factoryCreator.bb
-        machine_dict = factoryCreator.create_factory()
+        bb = factoryCreator.bb  
+        #machine_dict = factoryCreator.create_factory()
+        machine_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
+
         multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
 
         machine_colors = [rng.random(size=3) for _ in multi.geoms]
@@ -524,6 +538,7 @@ if __name__ == "__main__":
                 fig, ax = plt.subplots(1,figsize=(16, 16))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
+                plt.gca().invert_yaxis()
                 plt.autoscale(False)
 
                 for wall in wall_dict.values():
@@ -535,7 +550,7 @@ if __name__ == "__main__":
                     for j, poly in enumerate(multi.geoms):
                         ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
                 for line in factoryPath.route_lines:
-                    ax.plot(line.xy[0], line.xy[1], color='dimgray', linewidth=3)
+                    ax.plot(line.xy[0], line.xy[1], color='dimgrey', linewidth=3)
                 for line in factoryPath.lines_touching_machines:
                     ax.plot(line.xy[0], line.xy[1], color='green', alpha=0.5)
                 for line in factoryPath.lines_to_machines:
@@ -544,7 +559,7 @@ if __name__ == "__main__":
                 # for point in bb_points:
                 #     ax.scatter(point.xy[0], point.xy[1], color='red')
                 #ax.add_patch(descartes.PolygonPatch(allEdges, fc='blue', ec='#000000', alpha=0.5))  
-                if SAVEPLOT: plt.savefig(f"{i+1}_1_Filtered_Lines.{SAVEFORMAT}", format=SAVEFORMAT)
+                if SAVEPLOT: plt.savefig(f"{runs+1}_1_Filtered_Lines.{SAVEFORMAT}", format=SAVEFORMAT)
                 plt.show()
 
             # Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
@@ -552,19 +567,21 @@ if __name__ == "__main__":
                 fig, ax = plt.subplots(1,figsize=(16, 16))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
+                plt.gca().invert_yaxis()
                 plt.autoscale(False)
 
                 for point in factoryPath.hitpoints:
                     ax.scatter(point.x, point.y, color='red')
 
+                nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="dimgrey", width=2)
                 for line in factoryPath.route_lines:
-                    ax.plot(line.xy[0], line.xy[1], color='black')
-                    # Plot Circle for every line Endpoint, since Startpoint is likely connected to other line segment
-                    point = line.boundary.geoms[0]
-                    nearest_point = factoryPath.hit_tree.nearest_geom(point)
-                    #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
-                    ax.add_patch(plt.Circle((point.x, point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.6))
-                    #ax.add_patch(descartes.PolygonPatch(line.buffer(1), fc="black", ec='#000000', alpha=0.5))
+                    for point in line.coords[::2]:
+                        point = Point(point)
+                        # Plot Circle for every line Endpoint, since Startpoint is likely connected to other line segment
+                        nearest_point = factoryPath.hit_tree.nearest_geom(point)
+                        #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
+                        ax.add_patch(plt.Circle((point.x , point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.6))
+                        #ax.add_patch(descartes.PolygonPatch(line.buffer(1), fc="black", ec='#000000', alpha=0.5))
                 
                 if multi.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -572,7 +589,7 @@ if __name__ == "__main__":
                     for j, poly in enumerate(multi.geoms):
                         ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.8))           
 
-                if SAVEPLOT: plt.savefig(f"{i+1}_2_Pathwidth_Calculation.{SAVEFORMAT}", format=SAVEFORMAT)
+                if SAVEPLOT: plt.savefig(f"{runs+1}_2_Pathwidth_Calculation.{SAVEFORMAT}", format=SAVEFORMAT)
                 plt.show()
 
             #  Filtering Plot -----------------------------------------------------------------------------------------------------------------
@@ -580,6 +597,7 @@ if __name__ == "__main__":
             fig, ax = plt.subplots(1, figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
+            plt.gca().invert_yaxis()
             plt.autoscale(False)
 
             if multi.geom_type ==  'Polygon':
@@ -601,7 +619,7 @@ if __name__ == "__main__":
             nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, nodelist=factoryPath.old_endpoints, node_size=150, node_color='green')
             nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, nodelist=factoryPath.old_crossroads, node_size=150, node_color='white', alpha=0.6, linewidths=4, edgecolors='red')
 
-            if SAVEPLOT: plt.savefig(f"{i+1}_3_Pruning.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_3_Pruning.{SAVEFORMAT}", format=SAVEFORMAT)
             
             plt.show()
             
@@ -610,6 +628,7 @@ if __name__ == "__main__":
             fig, ax = plt.subplots(1, figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
+            plt.gca().invert_yaxis()
             plt.autoscale(False)
 
             if multi.geom_type ==  'Polygon':
@@ -620,20 +639,18 @@ if __name__ == "__main__":
 
 
             for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
-                temp = [pos[x] for x in data['nodelist']]
-                ax.plot(*zip(*temp), color="dimgray", linewidth=data['pathwidth']/LINESCALER, alpha=1.0, solid_capstyle='round')
+                ax.plot(*zip(*data['nodelist']), color="dimgray", linewidth=data['pathwidth']/LINESCALER, alpha=1.0, solid_capstyle='round')
 
 
             for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
-                temp = [pos[x] for x in data['nodelist']]
                 if data['pathtype'] =="twoway":
-                    ax.plot(*zip(*temp), color="white", linewidth=3, alpha=0.5, solid_capstyle='round', linestyle='dashed')
+                    ax.plot(*zip(*data['nodelist']), color="white", linewidth=3, alpha=0.5, solid_capstyle='round', linestyle='dashed')
 
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.crossroads, node_size=120, node_color='red')
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.endpoints, node_size=120, node_color='blue')
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.support, node_size=120, node_color='green')
 
-            if SAVEPLOT: plt.savefig(f"{i+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT)
 
             plt.show()
 
@@ -642,14 +659,17 @@ if __name__ == "__main__":
             fig, ax = plt.subplots(1,figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
+            plt.gca().invert_yaxis()
             plt.autoscale(False)
 
-            for u,v,a in factoryPath.reducedPathGraph.edges(data=True):
-                linecolor = rng.random(size=3)
-                temp = [pos[x] for x in data['nodelist']]
-                for i, node in enumerate(temp[1:]):
-                    ax.plot(*temp[i-1], *node, color=linecolor, linewidth=50)
+            # for u,v,a in factoryPath.reducedPathGraph.edges(data=True):
+            #     linecolor = rng.random(size=3)
+            #     for i, node in enumerate(data['nodelist'][1:]):
+            #         ax.plot(*data['nodelist'][i-1], *node, color=linecolor, linewidth=50)
 
+            for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
+                linecolor = rng.random(size=3)
+                ax.plot(*zip(*data['nodelist']), color=linecolor, linewidth=5)
 
             if multi.geom_type ==  'Polygon':
                 ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -674,7 +694,7 @@ if __name__ == "__main__":
             nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=min_pathwidth/LINESCALER, edge_color="blue", alpha=0.5)
             nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, edge_color="yellow", width=4)
 
-            if SAVEPLOT: plt.savefig(f"{i+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
             plt.show()
 
             #  Closest Edge Plot -----------------------------------------------------------------------------------------------------------------
@@ -683,6 +703,7 @@ if __name__ == "__main__":
                 fig, ax = plt.subplots(1,figsize=(16, 16))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
+                plt.gca().invert_yaxis()
                 plt.autoscale(False)
 
                 if multi.geom_type ==  'Polygon':
@@ -711,21 +732,21 @@ if __name__ == "__main__":
                     if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
 
-                if SAVEPLOT: plt.savefig(f"{i+1}_5_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT)
+                if SAVEPLOT: plt.savefig(f"{runs+1}_5_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT)
                 plt.show()
 
             #  Path Plot --------------------------------------------------------------------------------------------------------
             fig, ax = plt.subplots(1,figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
+            plt.gca().invert_yaxis()
             plt.autoscale(False)
 
             nx.draw(factoryPath.fullPathGraph, pos=pos, ax=ax, node_size=80, node_color='black')
 
             for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
-                temp = [pos[x] for x in data['nodelist']]
                 linecolor = rng.random(size=3)
-                ax.plot(*zip(*temp), color=linecolor, linewidth=5)
+                ax.plot(*zip(*data['nodelist']), color=linecolor, linewidth=5)
 
 
             if multi.geom_type ==  'Polygon':
@@ -734,7 +755,7 @@ if __name__ == "__main__":
                 for j, poly in enumerate(multi.geoms):
                     ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
-            if SAVEPLOT: plt.savefig(f"{i+1}_6_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_6_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT)
             plt.show()
             print("Fertsch")
 
