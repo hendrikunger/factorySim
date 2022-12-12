@@ -5,8 +5,8 @@ from shapely.ops import polylabel
 
 
 
-def draw_BG(ctx, width, height, darkmode=True):
-    ctx.rectangle(0,0, *ctx.device_to_user_distance(width,height))
+def draw_BG(ctx, startpos, width, height, darkmode=True):
+    ctx.rectangle(*ctx.device_to_user_distance(*startpos), *ctx.device_to_user_distance(width,height))
     if darkmode:
         ctx.set_source_rgba(0.0, 0.0, 0.0)
     else:
@@ -135,7 +135,7 @@ def draw_route_lines(ctx, route_lines):
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
-def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawMachineCenter = False, drawOrigin = False, highlight = None):   
+def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
 
     #Walls
     if wall_dict:
@@ -213,12 +213,11 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
     ctx.set_dash([])
 
     #Material Flow
-    drawMaterialFlow(ctx, machine_dict, materialflow_file, drawColors)
+    drawMaterialFlow(ctx, machine_dict, materialflow_file, drawColors, isObs=isObs)
     
-
     return ctx
 
-def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = True):
+def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = True, isObs=False):
     if  materialflow_file is not None:
 
         for index, row in materialflow_file.iterrows():
@@ -232,7 +231,11 @@ def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = Tr
 
                 ctx.move_to(current_from_Machine.center.x, current_from_Machine.center.y)
                 ctx.line_to(current_to_Machine.center.x, current_to_Machine.center.y)
-                ctx.set_line_width(row["intensity_sum_norm"] * ctx.device_to_user_distance(20, 30)[0])
+                if isObs:
+                    modifer = 3.0
+                else:
+                    modifer = 20.0
+                ctx.set_line_width(ctx.device_to_user_distance(row["intensity_sum_norm"] * modifer, 0)[0] )
                 ctx.stroke()   
             except KeyError:
                 print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")

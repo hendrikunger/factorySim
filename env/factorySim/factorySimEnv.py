@@ -108,6 +108,7 @@ class FactorySimEnv(gym.Env):
         self.rctx = cairo.Context(self.rsurface)
 
         self.rctx.scale(self.scale*self.factory.scale, self.scale*self.factory.scale)
+        self.rctx.translate(-self.factory.factoryCreator.bb.bounds[0], -self.factory.factoryCreator.bb.bounds[1])
 
         self.machineCount = len(self.factory.machine_dict)
         self.stepCount = 0
@@ -120,7 +121,7 @@ class FactorySimEnv(gym.Env):
         return self._get_obs()
 
     def render(self, mode='rgb_array'):
-        draw_BG(self.rctx, *self.factory.FACTORYDIMENSIONS, darkmode=False)
+        draw_BG(self.rctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, darkmode=False)
         drawFactory(self.rctx, self.factory.machine_dict, self.factory.wall_dict, None, drawNames=False, highlight=self.currentMachine)
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
@@ -152,23 +153,25 @@ class FactorySimEnv(gym.Env):
 
         #new Version greyscale
 
-        draw_BG(self.ctx, self.width, self.heigth, darkmode=False)
-        drawFactory(self.ctx, self.factory.machine_dict, self.factory.wall_dict, None, drawColors = False, drawNames=False, highlight=self.currentMachine)
+        draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
+        drawFactory(self.ctx, self.factory.machine_dict, self.factory.wall_dict, None, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
         drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
 
         buf = self.surface.get_data()
         machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
-        draw_BG(self.ctx, self.width, self.heigth, darkmode=False)
+        draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
         draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        drawFactory(self.ctx, self.factory.machine_dict, None, self.factory.dfMF, drawColors = False, drawNames=False, highlight=self.currentMachine)
+        drawFactory(self.ctx, self.factory.machine_dict, None, self.factory.dfMF, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
         
         buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
 
         return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) 
-
+  
     def close(self):
         self.surface.finish()
         del(self.surface)
@@ -185,7 +188,8 @@ def main():
 
     #filename = "Long"
     #filename = "Basic"
-    filename = "Simple"
+    #filename = "Simple"
+    filename = "EDF"
     #filename = "SimpleNoCollisions"
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -195,11 +199,11 @@ def main():
         "2",  
         filename + ".ifc")
 
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-    "..",
-    "..",
-    "Input",
-    "2")
+    # ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+    # "..",
+    # "..",
+    # "Input",
+    # "2")
 
     
     configpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 

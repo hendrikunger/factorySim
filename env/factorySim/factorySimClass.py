@@ -25,6 +25,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randseed = None, randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
+        self.DRAWINGORIGIN = (0,0)
         self.MAXMF_ELEMENTS = maxMF_Elements
         self.factoryCreator = FactoryCreator(self.FACTORYDIMENSIONS,
             factoryConfig.MAXSHAPEWIDTH,
@@ -85,6 +86,10 @@ class FactorySim:
 
         if(self.verboseOutput >= 1):
             self.printTime("IFCBUILDINGELEMENTPROXY geparsed")
+            
+        #Update Dimensions after Loading
+        self.FACTORYDIMENSIONS = (self.factoryCreator.factoryWidth, self.factoryCreator.factoryHeight)
+        self.DRAWINGORIGIN = (self.factoryCreator.bb.bounds[0], self.factoryCreator.bb.bounds[1])
 
         self.factoryPath=FactoryPath(factoryConfig.BOUNDARYSPACING, 
             factoryConfig.MINDEADENDLENGTH,
@@ -330,11 +335,18 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Drawing
  #------------------------------------------------------------------------------------------------------------
-    def provideCairoDrawingData(self, width, height):
+    def provideCairoDrawingData(self, width, height, scale=None):
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         ctx = cairo.Context(surface)
-        self.scale = self.factoryCreator.suggest_factory_view_scale(width, height)
+        if scale:
+            self.scale = scale
+        else:
+            self.scale = self.factoryCreator.suggest_factory_view_scale(width, height)
+
         ctx.scale(self.scale, self.scale)
+        ctx.translate(-self.factoryCreator.bb.bounds[0], -self.factoryCreator.bb.bounds[1])
+        
+        
         return surface, ctx
 
 

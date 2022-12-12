@@ -31,8 +31,8 @@ class FactoryCreator():
 
         if self.bb:
             bbox = self.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
-            scale_x = viewport_width / (bbox[2])
-            scale_y = viewport_height / (bbox[3])
+            scale_x = viewport_width / (bbox[2] - bbox[0])
+            scale_y = viewport_height / (bbox[3] - bbox[1])
             sugesstedscale = min(scale_x, scale_y)
             return sugesstedscale
         else:
@@ -44,9 +44,9 @@ class FactoryCreator():
         
         polygons = []
         self.machine_dict = {}
-
-        self.bb = box(0,0,self.factoryWidth,self.factoryHeight)
-        self.prep_bb = prep(self.bb)
+        if not self.bb:
+            self.bb = box(0,0,self.factoryWidth,self.factoryHeight)
+            self.prep_bb = prep(self.bb)
 
         topLeftCornersRect = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeHeight], size=[self.amountRect,2], endpoint=True)
         topLeftCornersPoly = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeWidth], size=[self.amountPoly,2], endpoint=True)
@@ -198,10 +198,10 @@ class FactoryCreator():
                 bbox = bbox.bounds
             else:
                 bbox = MultiPolygon([bbox]).bounds
-            self.bb = box(0,0,bbox[2],bbox[3])
+            self.bb = box(bbox[0], bbox[1], bbox[2], bbox[3])
             self.prep_bb = prep(self.bb)
-            self.factoryWidth = bbox[2]
-            self.factoryHeight = bbox[3]
+            self.factoryWidth = bbox[2] - bbox[0]
+            self.factoryHeight = bbox[3] - bbox[1]
 
         for element in element_dict.values():
             element.poly = scale(element.poly, yfact=-1, origin=self.bb.centroid)
