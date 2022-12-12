@@ -74,36 +74,36 @@ def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
     return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
-    
-    for subpoly in poly.geoms:
-        if highlight:
-            ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
-        else:
-            ctx.set_source_rgba(*color, 1.0)
-        ctx.move_to(*subpoly.exterior.coords[0])
-        for x,y in subpoly.exterior.coords[1:]:
-            ctx.line_to(x,y)
-        ctx.close_path()
-        ctx.fill()
-
-        if drawHoles:
-            for loop in subpoly.interiors:
-                ctx.move_to(*loop.coords[0])
-                for x,y in loop.coords[1:]:
-                    ctx.line_to(x,y)
-            ctx.set_source_rgba(*color, 1.0)
+    if poly:
+        for subpoly in poly.geoms:
+            if highlight:
+                ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+            else:
+                ctx.set_source_rgba(*color, 1.0)
+            ctx.move_to(*subpoly.exterior.coords[0])
+            for x,y in subpoly.exterior.coords[1:]:
+                ctx.line_to(x,y)
             ctx.close_path()
             ctx.fill()
 
+            if drawHoles:
+                for loop in subpoly.interiors:
+                    ctx.move_to(*loop.coords[0])
+                    for x,y in loop.coords[1:]:
+                        ctx.line_to(x,y)
+                ctx.set_source_rgba(*color, 1.0)
+                ctx.close_path()
+                ctx.fill()
 
-    if text:
-        ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-        ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
-        (x, y, width, height, dx, dy) = ctx.text_extents(text)
-        point = polylabel(poly.convex_hull, tolerance=1000)
-        ctx.move_to(point.x - width/2, point.y - height/2)    
-        ctx.show_text(text)
-    return ctx
+
+        if text:
+            ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+            ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
+            (x, y, width, height, dx, dy) = ctx.text_extents(text)
+            point = polylabel(poly.convex_hull, tolerance=1000)
+            ctx.move_to(point.x - width/2, point.y - height/2)    
+            ctx.show_text(text)
+        return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_pathwidth_circles(ctx, fullPathGraph):
     for _ , data in fullPathGraph.nodes(data=True):

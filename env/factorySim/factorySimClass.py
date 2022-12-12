@@ -36,6 +36,7 @@ class FactorySim:
             )
         self.verboseOutput = verboseOutput
         self.RANDSEED = randseed
+        self.pathPolygon = None
         random.seed(randseed)
             
         self.timezero = time()
@@ -86,7 +87,7 @@ class FactorySim:
 
         if(self.verboseOutput >= 1):
             self.printTime("IFCBUILDINGELEMENTPROXY geparsed")
-            
+
         #Update Dimensions after Loading
         self.FACTORYDIMENSIONS = (self.factoryCreator.factoryWidth, self.factoryCreator.factoryHeight)
         self.DRAWINGORIGIN = (self.factoryCreator.bb.bounds[0], self.factoryCreator.bb.bounds[1])
@@ -198,22 +199,30 @@ class FactorySim:
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
-        self.RatingDict["ratingMF"] = self.evaluateMF()          
-        if(self.verboseOutput >= 3):
-            self.printTime("Bewertung des Materialfluss abgeschlossen")
-        self.RatingDict["ratingCollision"] = self.evaluateCollision()          
-        if(self.verboseOutput >= 3):
-            self.printTime("Kollisionsbewertung abgeschlossen")
+        
         self.fullPathGraph, self.reducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
         if(self.verboseOutput >= 3):
             self.printTime("Pfadbewertung abgeschlossen")
 
+        self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.factoryCreator.prep_bb)
+
+        self.RatingDict["ratingCollision"] = self.evaluateCollision()          
+        if(self.verboseOutput >= 3):
+            self.printTime("Kollisionsbewertung abgeschlossen")
+
+        self.RatingDict["ratingMF"] = self.evaluateMF()          
+        if(self.verboseOutput >= 3):
+            self.printTime("Bewertung des Materialfluss abgeschlossen")
+
+        self.pathPolygon = self.factoryRating.PathPolygon()
+
+        
 
        
         #if(self.episodeCounter < len(self.machine_list)):
         #    self.currentRating = 0
         #el
-
+## Total Rating Calculation 
         if(self.RatingDict["ratingCollision"] == 1):
             self.currentRating = math.pow(self.RatingDict["ratingMF"],3)
         else: 
@@ -249,13 +258,6 @@ class FactorySim:
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
         self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating
-
-        #print(f"walls: {len(self.wallCollisionList)}, machines: {len(self.machineCollisionList)}, count m: {len(self.machine_list)}")
-        #if(len(self.wallCollisionList) + len(self.machineCollisionList) >=len(self.machine_list)):
-        #    done = True
-        #else:
-        #    done = False
-
 
         #if(self.episodeCounter >= 3 * len(self.machine_list)):
         if(self.episodeCounter >= len(self.machine_dict)+1):
@@ -303,21 +305,20 @@ class FactorySim:
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateCollision(self):
-
-        factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, prepped_bb=self.factoryCreator.prep_bb)
-        self.collisionAfterLastUpdate = factoryRating.findCollisions(self.lastUpdatedMachine)                 
+        
+        self.collisionAfterLastUpdate = self.factoryRating.findCollisions(self.lastUpdatedMachine)                 
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionen berechnen abgeschlossen")      
 
-        self.machineCollisionList = factoryRating.machineCollisionList
-        self.wallCollisionList = factoryRating.wallCollisionList
-        self.outsiderList = factoryRating.outsiderList
+        self.machineCollisionList = self.factoryRating.machineCollisionList
+        self.wallCollisionList = self.factoryRating.wallCollisionList
+        self.outsiderList = self.factoryRating.outsiderList
 
         #print(len(list(combinations(self.machine_list.values(), 2))))
-        nMachineCollisions = len(factoryRating.machineCollisionList)
-        nWallCollosions = len(factoryRating.wallCollisionList)
-        nOutsiders = len(factoryRating.outsiderList)
-
+        nMachineCollisions = len(self.factoryRating.machineCollisionList)
+        nWallCollosions = len(self.factoryRating.wallCollisionList)
+        nOutsiders = len(self.factoryRating.outsiderList)
+        
 
 
         #If latest update leads to collision give worst rating.
@@ -442,7 +443,7 @@ def main():
     
     surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
-    draw_BG(ctx, *img_resolution)
+    draw_BG(ctx, demoFactory.DRAWINGORIGIN, *img_resolution)
     drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawColors = True, drawOrigin = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
@@ -477,7 +478,7 @@ def main():
     ##Rate current Layout
     demoFactory.evaluate()
 
-    draw_BG(ctx, *img_resolution)
+    draw_BG(ctx, demoFactory.DRAWINGORIGIN, *img_resolution)
     drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),

@@ -499,6 +499,7 @@ if __name__ == "__main__":
     import descartes
     from tqdm import tqdm
     from factorySim.creation import FactoryCreator
+    from factorySim.kpi import FactoryRating
     import factorySim.baseConfigs as baseConfigs
 
     SAVEPLOT = True
@@ -535,6 +536,10 @@ if __name__ == "__main__":
         factoryPath.PLOTTING = True
         factoryPath.calculateAll(machine_dict, wall_dict, bb)
         pos=nx.get_node_attributes(factoryPath.inter_unfilteredGraph,'pos')
+
+           
+        factoryRating = FactoryRating(machine_dict=factoryCreator.machine_dict, wall_dict=factoryCreator.wall_dict, fullPathGraph=factoryPath.fullPathGraph, reducedPathGraph=factoryPath.reducedPathGraph, prepped_bb=factoryCreator.prep_bb)
+        pathPoly = factoryRating.PathPolygon()
 
         if PLOT:
     #  Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
@@ -654,6 +659,8 @@ if __name__ == "__main__":
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.crossroads, node_size=120, node_color='red')
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.endpoints, node_size=120, node_color='blue')
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.support, node_size=120, node_color='green')
+            
+            ax.add_patch(descartes.PolygonPatch(pathPoly, fc='red', ec='#000000', alpha=0.9))
 
             if SAVEPLOT: plt.savefig(f"{runs+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT)
 
@@ -765,7 +772,6 @@ if __name__ == "__main__":
             print("Fertsch")
 
 
-        
 
 
 # 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
@@ -796,8 +802,6 @@ if __name__ == "__main__":
 # 4 - Intensität	                    Anzahl der Transporte
 # 5 - Wegekonzept	                    Auslegung Wegbreite
 # 	                                    Sackgassen
-
-
 
 
 

@@ -341,13 +341,15 @@ class factorySimLive(mglw.WindowConfig):
                 self.is_calculating = True
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
         
+        
         drawFactory(self.cctx, self.factory.machine_dict,self.factory.wall_dict, drawColors=True, highlight=self.selected, drawNames=True, wallInteriorColor = color)
-
+        
+        if self.activeModes[Modes.MODE9]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0))
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
         if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
         if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
-        if self.activeModes[Modes.MODE9]: draw_pathwidth_circles2(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
+        
 
 
         # for key, machine in self.factory.machine_dict.items():5

@@ -64,6 +64,8 @@ class SMALLSQUARE(BaseFactoryConf):
     AMOUNTPOLY = 0
     MAXCORNERS = 3
 
+    BOUNDARYSPACING = 500
+
 class EDF(BaseFactoryConf):
     WIDTH = 6000 #9,60m
     HEIGHT = 6700 #11,20m
