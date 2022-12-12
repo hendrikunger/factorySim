@@ -51,7 +51,7 @@ class FactoryPath():
             multi = MultiPolygon([union])
         else:
             print("Error: No valid Polygon in Machine Dictionary")
-            return
+            return self.fullPathGraph, self.reducedPathGraph
         walllist = [x.poly for x in wall_dict.values()]
         union = unary_union(walllist)
         if union.geom_type == "MultiPolygon":
@@ -60,7 +60,7 @@ class FactoryPath():
             walls = MultiPolygon([union])
         else:
             print("Error: No valid Polygon in Machine Dictionary")
-            return
+            return self.fullPathGraph, self.reducedPathGraph
 
 
         #Scale boundary spacing according to factory size
@@ -92,7 +92,12 @@ class FactoryPath():
         if self.TIMING: self.timelog("Boundary generation")
 
         voronoiBase = GeometryCollection([walkableArea, bb_points])
-        voronoiArea = voronoi_diagram(voronoiBase, edges=True)
+        try:
+            voronoiArea = voronoi_diagram(voronoiBase, edges=True)
+        except:
+            print("Error: Could not create Voronoi Diagram")
+            return self.fullPathGraph, self.reducedPathGraph
+
         if self.TIMING: self.timelog("Voronoi")
 
         self.route_lines = []
