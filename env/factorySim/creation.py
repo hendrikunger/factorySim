@@ -25,13 +25,14 @@ class FactoryCreator():
         self.bb = None
         self.prep_bb = None
         self.machine_dict = {}
+        self.wall_dict = {}
 
     def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
         if self.bb:
             bbox = self.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
-            scale_x = viewport_width / (bbox[2])
-            scale_y = viewport_height / (bbox[3])
+            scale_x = viewport_width / (bbox[2] - bbox[0])
+            scale_y = viewport_height / (bbox[3] - bbox[1])
             sugesstedscale = min(scale_x, scale_y)
             return sugesstedscale
         else:
@@ -43,9 +44,9 @@ class FactoryCreator():
         
         polygons = []
         self.machine_dict = {}
-
-        self.bb = box(0,0,self.factoryWidth,self.factoryHeight)
-        self.prep_bb = prep(self.bb)
+        if not self.bb:
+            self.bb = box(0,0,self.factoryWidth,self.factoryHeight)
+            self.prep_bb = prep(self.bb)
 
         topLeftCornersRect = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeHeight], size=[self.amountRect,2], endpoint=True)
         topLeftCornersPoly = self.rng.integers([0,0], [self.factoryWidth - self.maxShapeWidth, self.factoryHeight - self.maxShapeWidth], size=[self.amountPoly,2], endpoint=True)
@@ -184,32 +185,37 @@ class FactoryCreator():
             singleElement = rotate(singleElement, rotation, origin=(origin[0], origin[1]), use_radians=True)
             #create Factory Object       
             
-            self.machine_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
+            element_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
                                                             name=element.Name + my_uuid,
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement)
         del(ifc_file)  #Hopefully fixes memory leak
 
         if recalculate_bb:
-            bbox = unary_union([x.poly for x in self.machine_dict.values()])
+            bbox = unary_union([x.poly for x in element_dict.values()])
             #Prevent error due to single element in IFC File
             if bbox.type == "MultiPolygon":
                 bbox = bbox.bounds
             else:
                 bbox = MultiPolygon([bbox]).bounds
-            self.bb = box(0,0,bbox[2],bbox[3])
+            self.bb = box(bbox[0], bbox[1], bbox[2], bbox[3])
             self.prep_bb = prep(self.bb)
-            self.factoryWidth = bbox[2]
-            self.factoryHeight = bbox[3]
+            self.factoryWidth = bbox[2] - bbox[0]
+            self.factoryHeight = bbox[3] - bbox[1]
 
-        for element in self.machine_dict.values():
+        for element in element_dict.values():
             element.poly = scale(element.poly, yfact=-1, origin=self.bb.centroid)
             polybbox = element.poly.bounds
             element.origin = (polybbox[0], polybbox[1])
             element.center = element.poly.representative_point()
+        
+        if elementName == "IFCBUILDINGELEMENTPROXY":
+            self.machine_dict = element_dict
+        elif elementName == "IFCWALL":
+            self.wall_dict = element_dict
 
 
-        return self.machine_dict
+        return element_dict
 
 
 

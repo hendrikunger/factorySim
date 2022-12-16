@@ -72,12 +72,12 @@ if __name__ == "__main__":
 
     else:
     #Continuing training
-        config['env_config']['prefix'] = 4
+        config['env_config']['prefix'] = 1
 
 
         stop = {
         "training_iteration": 100000,
-        "timesteps_total": 9500000,
+        "timesteps_total": 6500000,
         "episode_reward_mean": 5,
         }
 
@@ -88,7 +88,7 @@ if __name__ == "__main__":
                     checkpoint_freq=10,
                     keep_checkpoints_num=10,
                     checkpoint_score_attr="episode_reward_mean", 
-                    restore="/root/ray_results/PPO_2022-11-22_21-45-00/PPO_MultiEnv_ea0fc_00000_0_2022-11-22_21-45-00/checkpoint_002450/")
+                    restore="/root/ray_results/PPO_2022-11-29_21-36-58/PPO_MultiEnv_f3c8f_00000_0_2022-11-29_21-36-58/checkpoint_002040/")
 
 
     #Loading for Evaluation

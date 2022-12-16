@@ -95,10 +95,27 @@ class factorySimLive(mglw.WindowConfig):
         "Input",
         "2")
 
+        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        # "..",
+        # "..",
+        # "Input",
+        # "2",  
+        # "TestCaseZigZag" + ".ifc")
+
+        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        # "..",
+        # "..",
+        # "Input",
+        # "2",  
+        # "EDF" + ".ifc")
+
         self.create_factory()
 
 
         self.factoryCreator.bb = self.factory.factoryCreator.bb
+        self.factoryCreator.factoryWidth = self.factory.factoryCreator.factoryWidth
+        self.factoryCreator.factoryHeight = self.factory.factoryCreator.factoryHeight
+
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
@@ -168,7 +185,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def resize(self, width: int, height: int):
         self.window_size = (width, height)
-        self.currentScale = self.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+        self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
         self.recreateCairoContext()
 
 
@@ -223,15 +240,15 @@ class factorySimLive(mglw.WindowConfig):
 
 
     def mouse_position_event(self, x, y, dx, dy):
-        self.cursorPosition = (x, y)
+        self.cursorPosition = (x  + self.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.factory.DRAWINGORIGIN[1] * self.currentScale)
 
     def mouse_drag_event(self, x, y, dx, dy):
-        self.cursorPosition = (x, y)
+        self.cursorPosition = (x  + self.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.factory.DRAWINGORIGIN[1] * self.currentScale)
 
         if self.wnd.mouse_states.left == True and self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
             # move object  
-            self.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale)) + self.selected_offset_x,
-                ((y / self.currentScale)) + self.selected_offset_y)
+            self.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale) + self.factory.DRAWINGORIGIN[0]) + self.selected_offset_x,
+                ((y / self.currentScale) + self.factory.DRAWINGORIGIN[1]) + self.selected_offset_y)
             self.update_needed()
 
 
@@ -240,19 +257,19 @@ class factorySimLive(mglw.WindowConfig):
         if button == 1:  
             #Draw Rectangle         
             if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE:
-                self.clickedPoints.append((x,y))
+                self.clickedPoints.append((x + self.factory.DRAWINGORIGIN[0] * self.currentScale ,y + self.factory.DRAWINGORIGIN[1] * self.currentScale))
                 if len(self.clickedPoints) >= 2:
                     self.factory_add_rect(self.clickedPoints[0], self.clickedPoints[1], useWindowCoordinates=True)
                     self.clickedPoints.clear()                   
 
              #Draw Polygon         
             elif self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON:
-                self.clickedPoints.append((x,y))
+                self.clickedPoints.append((x + self.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.factory.DRAWINGORIGIN[1] * self.currentScale))
 
             #Prepare Mouse Drag
             else:
                 for key, machine in reversed(self.factory.machine_dict.items()):
-                    point_scaled = Point(x/self.currentScale, y/self.currentScale)
+                    point_scaled = Point(x/self.currentScale + self.factory.DRAWINGORIGIN[0], y/self.currentScale + self.factory.DRAWINGORIGIN[1])
                     if machine.poly.contains(point_scaled):
                         self.selected = key
                         self.selected_offset_x = machine.poly.bounds[0] - point_scaled.x
@@ -272,7 +289,7 @@ class factorySimLive(mglw.WindowConfig):
             #Add Materialflow
             elif self.selected is not None:
                 for key, machine in reversed(self.factory.machine_dict.items()):
-                    point_scaled = Point(x/self.currentScale, y/self.currentScale)
+                    point_scaled = Point(x/self.currentScale + self.factory.DRAWINGORIGIN[0], y/self.currentScale + self.factory.DRAWINGORIGIN[1])
                     if machine.poly.contains(point_scaled) and key is not self.selected:
                         self.factory.addMaterialFlow(self.selected, key, np.random.randint(1,100))
                         self.update_needed()
@@ -306,7 +323,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def render_cairo_to_texture(self):
         # Draw with cairo to surface
-        draw_BG(self.cctx, self.window_size[0], self.window_size[1], self.is_darkmode)
+        draw_BG(self.cctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, self.is_darkmode)
         
         if self.is_dirty:
             if self.is_calculating:
@@ -325,13 +342,15 @@ class factorySimLive(mglw.WindowConfig):
                 self.is_calculating = True
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
         
+        
         drawFactory(self.cctx, self.factory.machine_dict,self.factory.wall_dict, drawColors=True, highlight=self.selected, drawNames=True, wallInteriorColor = color)
-
+        
+        if self.activeModes[Modes.MODE9]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0))
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
         if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
         if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
-        if self.activeModes[Modes.MODE9]: draw_pathwidth_circles2(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
+        
 
 
         # for key, machine in self.factory.machine_dict.items():5
@@ -380,9 +399,7 @@ class factorySimLive(mglw.WindowConfig):
             self.update_during_calculation = True 
 
     def recreateCairoContext(self):
-        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.window_size[0], self.window_size[1])
-        self.cctx = cairo.Context(self.surface)
-        self.cctx.scale(self.currentScale, self.currentScale)
+        self.surface, self.cctx = self.factory.provideCairoDrawingData(self.window_size[0], self.window_size[1], scale=self.currentScale)
 
     def setupKeys(self):
         keys = self.wnd.keys
@@ -485,7 +502,8 @@ class factorySimLive(mglw.WindowConfig):
         factoryConfig=self.factoryConfig,
         randomPos=False,
         createMachines=True,
-        verboseOutput=0
+        verboseOutput=0,
+        maxMF_Elements=None
         )
         self.future = self.executor.submit(self.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()

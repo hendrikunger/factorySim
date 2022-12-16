@@ -9,7 +9,7 @@ env_config:
   maxMF_Elements: 3
   outputScale: 10
   rendermode: null
-  factoryconfig: SMALL
+  factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
 model:
   custom_model: my_model

@@ -5,8 +5,8 @@ from shapely.ops import polylabel
 
 
 
-def draw_BG(ctx, width, height, darkmode=True):
-    ctx.rectangle(0,0, *ctx.device_to_user_distance(width,height))
+def draw_BG(ctx, startpos, width, height, darkmode=True):
+    ctx.rectangle(*ctx.device_to_user_distance(*startpos), *ctx.device_to_user_distance(width,height))
     if darkmode:
         ctx.set_source_rgba(0.0, 0.0, 0.0)
     else:
@@ -24,20 +24,18 @@ def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
     modifer = 0.5 if asStreets else 1.0
 
     for u,v,data in reducedPathGraph.edges(data=True):
-        temp = [pos[x] for x in data['nodelist']]
         ctx.set_line_width(data['pathwidth']*modifer)
-        ctx.move_to(*temp[0])
-        for node in temp[1:]:
+        ctx.move_to(*data['nodelist'][0])
+        for node in data['nodelist'][1:]:
             ctx.line_to(*node)
         ctx.stroke()
     ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
 
     for u,v,data in reducedPathGraph.edges(data=True):
-        temp = [pos[x] for x in data['nodelist']]
         if data['pathtype'] =="twoway":
             ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
-            ctx.move_to(*temp[0])
-            for node in temp[1:]:
+            ctx.move_to(*data['nodelist'][0])
+            for node in data['nodelist'][1:]:
                 ctx.line_to(*node)
     ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
     ctx.stroke()
@@ -76,36 +74,36 @@ def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
     return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
-    
-    for subpoly in poly.geoms:
-        if highlight:
-            ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
-        else:
-            ctx.set_source_rgba(*color, 1.0)
-        ctx.move_to(*subpoly.exterior.coords[0])
-        for x,y in subpoly.exterior.coords[1:]:
-            ctx.line_to(x,y)
-        ctx.close_path()
-        ctx.fill()
-
-        if drawHoles:
-            for loop in subpoly.interiors:
-                ctx.move_to(*loop.coords[0])
-                for x,y in loop.coords[1:]:
-                    ctx.line_to(x,y)
-            ctx.set_source_rgba(*color, 1.0)
+    if poly:
+        for subpoly in poly.geoms:
+            if highlight:
+                ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+            else:
+                ctx.set_source_rgba(*color, 1.0)
+            ctx.move_to(*subpoly.exterior.coords[0])
+            for x,y in subpoly.exterior.coords[1:]:
+                ctx.line_to(x,y)
             ctx.close_path()
             ctx.fill()
 
+            if drawHoles:
+                for loop in subpoly.interiors:
+                    ctx.move_to(*loop.coords[0])
+                    for x,y in loop.coords[1:]:
+                        ctx.line_to(x,y)
+                ctx.set_source_rgba(*color, 1.0)
+                ctx.close_path()
+                ctx.fill()
 
-    if text:
-        ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-        ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
-        (x, y, width, height, dx, dy) = ctx.text_extents(text)
-        point = polylabel(poly.convex_hull, tolerance=1000)
-        ctx.move_to(point.x - width/2, point.y - height/2)    
-        ctx.show_text(text)
-    return ctx
+
+        if text:
+            ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+            ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
+            (x, y, width, height, dx, dy) = ctx.text_extents(text)
+            point = polylabel(poly.convex_hull, tolerance=1000)
+            ctx.move_to(point.x - width/2, point.y - height/2)    
+            ctx.show_text(text)
+        return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_pathwidth_circles(ctx, fullPathGraph):
     for _ , data in fullPathGraph.nodes(data=True):
@@ -128,15 +126,16 @@ def draw_pathwidth_circles2(ctx, fullPathGraph, reducedPathGraph):
 #------------------------------------------------------------------------------------------------------------
 def draw_route_lines(ctx, route_lines):
     for line in route_lines:
-        ctx.move_to(line.xy[0][0], line.xy[1][0])
-        ctx.line_to(line.xy[0][1], line.xy[1][1])
+        ctx.move_to(*line.coords[0])
+        for x,y in line.coords[1:]:
+            ctx.line_to(x,y)
     ctx.set_line_width(ctx.device_to_user_distance(3, 3)[0])
     ctx.set_source_rgba(0.5, 0.5, 0.5, 1.0)
     ctx.stroke()
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
-def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawMachineCenter = False, drawOrigin = False, highlight = None):   
+def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
 
     #Walls
     if wall_dict:
@@ -211,14 +210,14 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                     ctx.set_source_rgb(0.5, 0.5, 0.5)
                 ctx.arc(machine.origin[0], machine.origin[1], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
                 ctx.fill()
+    ctx.set_dash([])
 
     #Material Flow
-    drawMaterialFlow(ctx, machine_dict, materialflow_file, drawColors)
+    drawMaterialFlow(ctx, machine_dict, materialflow_file, drawColors, isObs=isObs)
     
-
     return ctx
 
-def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = True):
+def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = True, isObs=False):
     if  materialflow_file is not None:
 
         for index, row in materialflow_file.iterrows():
@@ -232,7 +231,11 @@ def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = Tr
 
                 ctx.move_to(current_from_Machine.center.x, current_from_Machine.center.y)
                 ctx.line_to(current_to_Machine.center.x, current_to_Machine.center.y)
-                ctx.set_line_width(row["intensity_sum_norm"] * ctx.device_to_user_distance(20, 30)[0])
+                if isObs:
+                    modifer = 3.0
+                else:
+                    modifer = 20.0
+                ctx.set_line_width(ctx.device_to_user_distance(row["intensity_sum_norm"] * modifer, 0)[0] )
                 ctx.stroke()   
             except KeyError:
                 print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
