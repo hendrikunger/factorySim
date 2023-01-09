@@ -8,7 +8,6 @@ import logging
 from time import time
 
 import numpy as np
-
 import cairo
 import pandas as pd
 
@@ -17,7 +16,8 @@ import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions
 from factorySim.kpi import FactoryRating
 from factorySim.routing import FactoryPath
-
+from shapely.ops import unary_union
+from shapely.geometry import MultiPolygon
 
 class FactorySim:
  #------------------------------------------------------------------------------------------------------------
@@ -95,6 +95,7 @@ class FactorySim:
         self.factoryPath=FactoryPath(factoryConfig.BOUNDARYSPACING, 
             factoryConfig.MINDEADENDLENGTH,
             factoryConfig.MINPATHWIDTH,
+            factoryConfig.MAXPATHWIDTH,
             factoryConfig.MINTWOWAYPATHWIDTH,
             factoryConfig.SIMPLIFICATIONANGLE)
 
@@ -215,7 +216,7 @@ class FactorySim:
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
         self.pathPolygon = self.factoryRating.PathPolygon()
-
+        self.freespacePolygon = MultiPolygon(unary_union(self.factoryRating.FreeSpacePolygon())-unary_union(self.pathPolygon))
         
 
        

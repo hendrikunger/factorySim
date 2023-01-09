@@ -57,8 +57,8 @@ class factorySimLive(mglw.WindowConfig):
     window_size = (1920, 1080)
     #window_size = (1280, 720)
     #window_size = (1920*6, 1080)
-    #mqtt_broker = "broker.hivemq.com"
-    mqtt_broker = "10.54.129.47"
+    mqtt_broker = "broker.hivemq.com"
+    #mqtt_broker = "10.54.129.47"
     aspect_ratio = None
     fullscreen = False
     resizable = True
@@ -69,9 +69,9 @@ class factorySimLive(mglw.WindowConfig):
     is_calculating = False
     update_during_calculation = False
     clickedPoints = []
-    #factoryConfig = baseConfigs.SMALLSQUARE
+    factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF
-    factoryConfig = baseConfigs.EDF_EMPTY
+    #factoryConfig = baseConfigs.EDF_EMPTY
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
@@ -345,6 +345,7 @@ class factorySimLive(mglw.WindowConfig):
         
         drawFactory(self.cctx, self.factory.machine_dict,self.factory.wall_dict, drawColors=True, highlight=self.selected, drawNames=True, wallInteriorColor = color)
         
+        if self.activeModes[Modes.MODE8]: draw_poly(self.cctx, self.factory.freespacePolygon, (0.0, 0.8, 0.0))
         if self.activeModes[Modes.MODE9]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0))
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)

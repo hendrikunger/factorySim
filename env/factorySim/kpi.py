@@ -30,6 +30,19 @@ class FactoryRating():
 
         return MultiPolygon(polys)
 
+    def FreeSpacePolygon(self):
+        polys = []
+        pos=nx.get_node_attributes(self.fullPathGraph,'pos')
+
+        for u,v,data in self.fullPathGraph.edges(data=True):
+            line = LineString([pos[u],pos[v]])
+            if data['true_pathwidth']:
+                polys.append(line.buffer(data['true_pathwidth']/2))
+            else:
+                polys.append(line.buffer(data['pathwidth']/2))
+
+        return MultiPolygon(polys)
+
     def findCollisions(self, lastUpdatedMachine=None):
         collisionAfterLastUpdate = False
         #Machines with Machines

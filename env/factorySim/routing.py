@@ -182,8 +182,8 @@ class FactoryPath():
                         lastPoint_str,
                         currentPoint_str,
                         weight=currentPoint.distance(lastPoint),
-                        pathwidth=edgePathWidth,
-                        max_pathwidth=edgePathWidth if edgePathWidth > self.maxPathWidth else None,
+                        pathwidth=edgePathWidth if edgePathWidth <= self.maxPathWidth else self.maxPathWidth,
+                        true_pathwidth=edgePathWidth if edgePathWidth > self.maxPathWidth else None,
                         routeIndex=index
                         )
                     currentPath.append((lastPoint_str,currentPoint_str,currentPoint.distance(lastPoint)))
@@ -317,6 +317,7 @@ class FactoryPath():
                     pathwidth = self.fullPathGraph[lastNode][currentInnerNode]["pathwidth"]
                     maxpath = max(maxpath, pathwidth)
                     minpath = min(minpath, pathwidth)
+                   
 
                     if currentInnerNode in stoppers:
                         #found a crossroad or deadend
