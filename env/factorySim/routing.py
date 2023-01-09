@@ -23,10 +23,11 @@ class FactoryPath():
     TIMING = False
     PLOTTING = False
 
-    def __init__(self, boundarySpacing=150, minDeadEndLength=2000, minPathWidth=1000, minTwoWayPathWidth=2000, simplificationAngle=35):
+    def __init__(self, boundarySpacing=150, minDeadEndLength=2000, minPathWidth=1000, maxPathWidth=2500, minTwoWayPathWidth=2000, simplificationAngle=35):
 
         self.minDeadEndLength = minDeadEndLength # If Deadends are shorter than this, they are deleted
         self.minPathWidth = minPathWidth  # Minimum Width of a Road to keep
+        self.maxPathWidth = maxPathWidth # Maximum Width of a Road
         self.minTwoWayPathWidth = minTwoWayPathWidth  # Minimum Width of a Road to keep
         self.boundarySpacing = boundarySpacing # Spacing of Points used as Voronoi Kernels
         self.simplificationAngle = simplificationAngle # Angle in degrees, used for support point calculation in simple path
@@ -174,11 +175,15 @@ class FactoryPath():
                         pathwidth=currentPathWidth,
                         routeIndex=index
                         )
+
+                    edgePathWidth = min(currentPathWidth, lastPathWidth)
+
                     self.fullPathGraph.add_edge(
                         lastPoint_str,
                         currentPoint_str,
                         weight=currentPoint.distance(lastPoint),
-                        pathwidth=min(currentPathWidth, lastPathWidth),
+                        pathwidth=edgePathWidth,
+                        max_pathwidth=edgePathWidth if edgePathWidth > self.maxPathWidth else None,
                         routeIndex=index
                         )
                     currentPath.append((lastPoint_str,currentPoint_str,currentPoint.distance(lastPoint)))

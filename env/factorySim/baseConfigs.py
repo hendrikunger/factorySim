@@ -9,6 +9,7 @@ class BaseFactoryConf():
 
     MINDEADENDLENGTH = 2000 # If Deadends are shorter than this, they are deleted
     MINPATHWIDTH = 1000  # Minimum Width of a Road to keep
+    MAXPATHWIDTH = 2500  # Maximum Width of a Road
     MINTWOWAYPATHWIDTH = 2000  # Minimum Width of a Road to keep
     BOUNDARYSPACING = 500  # Spacing of Points used as Voronoi Kernels
     SIMPLIFICATIONANGLE = 35 # Angle in degrees, used for support point calculation in simple path
