@@ -69,9 +69,9 @@ class factorySimLive(mglw.WindowConfig):
     is_calculating = False
     update_during_calculation = False
     clickedPoints = []
-    factoryConfig = baseConfigs.SMALLSQUARE
+    #factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF
-    #factoryConfig = baseConfigs.EDF_EMPTY
+    factoryConfig = baseConfigs.EDF_EMPTY
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
@@ -102,12 +102,12 @@ class factorySimLive(mglw.WindowConfig):
         # "2",  
         # "TestCaseZigZag" + ".ifc")
 
-        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        # "..",
-        # "..",
-        # "Input",
-        # "2",  
-        # "EDF" + ".ifc")
+        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "Input",
+        "2",  
+        "EDF" + ".ifc")
 
         self.create_factory()
 
@@ -560,6 +560,7 @@ class factorySimLive(mglw.WindowConfig):
     def handleMQTT_Position(self, topic, payload):
         pp = json.loads(payload)
         index = self.extractID(topic)
+        
         if index in self.factory.machine_dict and "x" in pp and "y" in pp:        
             self.factory.machine_dict[index].translate_Item(pp["x"],pp["y"])
             self.update_needed()
