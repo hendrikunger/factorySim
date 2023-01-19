@@ -32,6 +32,8 @@ class BaseFactoryConf():
             return SMALLSQUARE
         elif name == "EDF":
             return EDF
+        elif name == "EDF_EMPTY":
+            return EDF
         else:
             raise ValueError("Unknown Factory Configuration")     
 
@@ -61,8 +63,8 @@ class SMALLSQUARE(BaseFactoryConf):
     HEIGHT = 10000
     MAXSHAPEWIDTH = 2000
     MAXSHAPEHEIGHT = 2000
-    AMOUNTRECT = 4
-    AMOUNTPOLY = 0
+    AMOUNTRECT = 8
+    AMOUNTPOLY = 3
     MAXCORNERS = 3
 
     BOUNDARYSPACING = 500

@@ -272,7 +272,6 @@ class FactoryPath():
 
         visited = set() # Set to keep track of visited nodes.
         tempPath = [] # List to keep track of visited nodes in current path.
-        paths = [] # List to keep track of all paths.
 
         ep = self.endpoints
         cross = self.crossroads
@@ -323,7 +322,6 @@ class FactoryPath():
                         #found a crossroad or deadend
                         tempPath.append(pos[currentInnerNode])
                         tempPath = self.filterZigZag(tempPath)
-                        paths.append(tempPath)
                         
                         #Prevent going back and forth between direct connected crossroads 
                         if lastNode != currentOuterNode:
@@ -509,11 +507,11 @@ if __name__ == "__main__":
     import factorySim.baseConfigs as baseConfigs
 
     SAVEPLOT = True
-    SAVEFORMAT = "png"
+    SAVEFORMAT = "svg"
     DETAILPLOT = True
     PLOT = True
     ITERATIONS = 1
-    LINESCALER = 13
+    LINESCALER = 20
 
     rng = np.random.default_rng()
 
@@ -526,18 +524,24 @@ if __name__ == "__main__":
             "Input",
             "2",  
             "TestCaseZigZag" + ".ifc")
+        
+        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+            "..",
+            "..",
+            "Input",
+            "FAIM2023" + ".ifc")
    
         
 
         wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
         bb = factoryCreator.bb  
-        machine_dict = factoryCreator.create_factory()
-        #machine_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
+        #machine_dict = factoryCreator.create_factory()
+        machine_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
 
         multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
 
         machine_colors = [rng.random(size=3) for _ in multi.geoms]
-        factoryPath = FactoryPath(boundarySpacing=500, minDeadEndLength=2000, minPathWidth=1000, minTwoWayPathWidth=2000, simplificationAngle=35)
+        factoryPath = FactoryPath(boundarySpacing=500, minDeadEndLength=2000, minPathWidth=1000, maxPathWidth=2500, minTwoWayPathWidth=2000, simplificationAngle=35)
         factoryPath.TIMING = True
         factoryPath.PLOTTING = True
         factoryPath.calculateAll(machine_dict, wall_dict, bb)
@@ -550,15 +554,16 @@ if __name__ == "__main__":
         if PLOT:
     #  Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
             if DETAILPLOT:
-
+                print("1 - Filtered_Lines")
                 fig, ax = plt.subplots(1,figsize=(16, 16))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
                 plt.gca().invert_yaxis()
                 plt.autoscale(False)
+                plt.axis('off')
 
                 for wall in wall_dict.values():
-                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="black", ec='#000000', alpha=0.5))
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
                 if multi.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -575,16 +580,21 @@ if __name__ == "__main__":
                 # for point in bb_points:
                 #     ax.scatter(point.xy[0], point.xy[1], color='red')
                 #ax.add_patch(descartes.PolygonPatch(allEdges, fc='blue', ec='#000000', alpha=0.5))  
-                if SAVEPLOT: plt.savefig(f"{runs+1}_1_Filtered_Lines.{SAVEFORMAT}", format=SAVEFORMAT)
+                if SAVEPLOT: plt.savefig(f"{runs+1}_1_Filtered_Lines.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
                 plt.show()
 
             # Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
             if DETAILPLOT:
+                print("2 - Pathwidth_Calculation")
                 fig, ax = plt.subplots(1,figsize=(16, 16))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
                 plt.gca().invert_yaxis()
                 plt.autoscale(False)
+                plt.axis('off')
+
+                for wall in wall_dict.values():
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
                 for point in factoryPath.hitpoints:
                     ax.scatter(point.x, point.y, color='red')
@@ -605,16 +615,21 @@ if __name__ == "__main__":
                     for j, poly in enumerate(multi.geoms):
                         ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.8))           
 
-                if SAVEPLOT: plt.savefig(f"{runs+1}_2_Pathwidth_Calculation.{SAVEFORMAT}", format=SAVEFORMAT)
+                if SAVEPLOT: plt.savefig(f"{runs+1}_2_Pathwidth_Calculation.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
                 plt.show()
 
             #  Filtering Plot -----------------------------------------------------------------------------------------------------------------
-
-            fig, ax = plt.subplots(1, figsize=(16, 16))
+            
+            print("3 - Pruning")
+            fig, ax = plt.subplots(1,figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()
             plt.autoscale(False)
+            plt.axis('off')
+
+            for wall in wall_dict.values():
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
             if multi.geom_type ==  'Polygon':
                 ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -635,17 +650,22 @@ if __name__ == "__main__":
             nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, nodelist=factoryPath.old_endpoints, node_size=150, node_color='green')
             nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, nodelist=factoryPath.old_crossroads, node_size=150, node_color='white', alpha=0.6, linewidths=4, edgecolors='red')
 
-            if SAVEPLOT: plt.savefig(f"{runs+1}_3_Pruning.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_3_Pruning.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
             
             plt.show()
             
             #  Clean Plot -----------------------------------------------------------------------------------------------------------------
 
-            fig, ax = plt.subplots(1, figsize=(16, 16))
+            print("4 - Clean")
+            fig, ax = plt.subplots(1,figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()
             plt.autoscale(False)
+            plt.axis('off')
+
+            for wall in wall_dict.values():
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
             if multi.geom_type ==  'Polygon':
                 ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -666,19 +686,24 @@ if __name__ == "__main__":
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.endpoints, node_size=120, node_color='blue')
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.support, node_size=120, node_color='green')
             
-            ax.add_patch(descartes.PolygonPatch(pathPoly, fc='red', ec='#000000', alpha=0.9))
+            #ax.add_patch(descartes.PolygonPatch(pathPoly, fc='red', ec='#000000', alpha=0.9))
 
-            if SAVEPLOT: plt.savefig(f"{runs+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
 
             plt.show()
 
             #  Simplification Plot -----------------------------------------------------------------------------------------------------------------
+            print("5 - Simplification")
 
             fig, ax = plt.subplots(1,figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()
             plt.autoscale(False)
+            plt.axis('off')
+
+            for wall in wall_dict.values():
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
             # for u,v,a in factoryPath.reducedPathGraph.edges(data=True):
             #     linecolor = rng.random(size=3)
@@ -712,17 +737,21 @@ if __name__ == "__main__":
             nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, width=min_pathwidth/LINESCALER, edge_color="blue", alpha=0.5)
             nx.draw_networkx_edges(factoryPath.reducedPathGraph, pos=pos, ax=ax, edge_color="yellow", width=4)
 
-            if SAVEPLOT: plt.savefig(f"{runs+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_5_Simplification.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
             plt.show()
 
             #  Closest Edge Plot -----------------------------------------------------------------------------------------------------------------
             if DETAILPLOT:
-
+                print("6 - Closest_Edge")
                 fig, ax = plt.subplots(1,figsize=(16, 16))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
                 plt.gca().invert_yaxis()
                 plt.autoscale(False)
+                plt.axis('off')
+
+                for wall in wall_dict.values():
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
                 if multi.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -745,20 +774,25 @@ if __name__ == "__main__":
                 for point in repPoints:
                     ax.plot(point.x, point.y, 'o', color='green', ms=10)
                     hit = nearest_points(point, MultiPoint(total))[1]
-                    ax.plot([point.x, hit.x],[ point.y, hit.y], color=rng.random(size=3),linewidth=3)
+                    ax.plot([point.x, hit.x],[ point.y, hit.y], color="green",linewidth=3)
                     key = str((hit.x, hit.y))
                     if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
 
-                if SAVEPLOT: plt.savefig(f"{runs+1}_5_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT)
+                if SAVEPLOT: plt.savefig(f"{runs+1}_6_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
                 plt.show()
 
             #  Path Plot --------------------------------------------------------------------------------------------------------
+            print("7 - Path_Plot")
             fig, ax = plt.subplots(1,figsize=(16, 16))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()
             plt.autoscale(False)
+            plt.axis('off')
+
+            for wall in wall_dict.values():
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
             nx.draw(factoryPath.fullPathGraph, pos=pos, ax=ax, node_size=80, node_color='black')
 
@@ -773,7 +807,7 @@ if __name__ == "__main__":
                 for j, poly in enumerate(multi.geoms):
                     ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
-            if SAVEPLOT: plt.savefig(f"{runs+1}_6_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT)
+            if SAVEPLOT: plt.savefig(f"{runs+1}_7_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
             plt.show()
             print("Fertsch")
 
