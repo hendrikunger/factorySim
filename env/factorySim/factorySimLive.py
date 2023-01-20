@@ -71,7 +71,7 @@ class factorySimLive(mglw.WindowConfig):
     clickedPoints = []
     #factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF
-    factoryConfig = baseConfigs.EDF_EMPTY
+    factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
@@ -108,7 +108,7 @@ class factorySimLive(mglw.WindowConfig):
         "Input",
         "2",  
         "EDF" + ".ifc")
-
+        #self.ifcpath = None
         self.create_factory()
 
 
@@ -564,8 +564,14 @@ class factorySimLive(mglw.WindowConfig):
         if index in self.factory.machine_dict and "x" in pp and "y" in pp:        
             self.factory.machine_dict[index].translate_Item(pp["x"],pp["y"])
             self.update_needed()
+        elif index in self.factory.machine_dict and "u" in pp and "v" in pp:
+
+            self.factory.machine_dict[index].translate_Item(pp["u"],pp["v"])
+            self.update_needed()
         elif index in self.mobile_dict and "x" in pp and "y" in pp:
             self.mobile_dict[index].translate_Item(pp["x"],pp["y"]) 
+        elif index in self.mobile_dict and "u" in pp and "v" in pp:
+            self.mobile_dict[index].translate_Item(pp["u"],pp["v"]) 
         else:
             print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index")
     

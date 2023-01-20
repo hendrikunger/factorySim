@@ -23,10 +23,10 @@ class FactoryRating():
 
     def PathPolygon(self):
         polys = []
-
-        for u,v,data in self.reducedPathGraph.edges(data=True):
-            line = LineString(data["nodelist"])
-            polys.append(line.buffer(data['pathwidth']/2))
+        if self.reducedPathGraph:
+            for u,v,data in self.reducedPathGraph.edges(data=True):
+                line = LineString(data["nodelist"])
+                polys.append(line.buffer(data['pathwidth']/2))
         if polys:
             return MultiPolygon(polys)
         else:
@@ -34,14 +34,15 @@ class FactoryRating():
 
     def FreeSpacePolygon(self):
         polys = []
-        pos=nx.get_node_attributes(self.fullPathGraph,'pos')
+        if self.fullPathGraph:
+            pos=nx.get_node_attributes(self.fullPathGraph,'pos')
 
-        for u,v,data in self.fullPathGraph.edges(data=True):
-            line = LineString([pos[u],pos[v]])
-            if data['true_pathwidth']:
-                polys.append(line.buffer(data['true_pathwidth']/2))
-            else:
-                polys.append(line.buffer(data['pathwidth']/2))
+            for u,v,data in self.fullPathGraph.edges(data=True):
+                line = LineString([pos[u],pos[v]])
+                if data['true_pathwidth']:
+                    polys.append(line.buffer(data['true_pathwidth']/2))
+                else:
+                    polys.append(line.buffer(data['pathwidth']/2))
         if polys:
             return MultiPolygon(polys)
         else:

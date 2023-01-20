@@ -50,6 +50,8 @@ class FactoryPath():
             multi = MultiPolygon(union)
         elif union.geom_type == "Polygon":
             multi = MultiPolygon([union])
+        elif union.geom_type == "GeometryCollection":
+            multi = MultiPolygon()
         else:
             print("Error: No valid Polygon in Machine Dictionary")
             return self.fullPathGraph, self.reducedPathGraph
@@ -59,8 +61,10 @@ class FactoryPath():
             walls = MultiPolygon(union)
         elif union.geom_type == "Polygon":
             walls = MultiPolygon([union])
+        elif union.geom_type == "GeometryCollection":
+            walls = multi.boundary
         else:
-            print("Error: No valid Polygon in Machine Dictionary")
+            print("Error: No valid Polygon in Wall Dictionary")
             return self.fullPathGraph, self.reducedPathGraph
 
 
