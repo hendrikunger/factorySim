@@ -17,7 +17,7 @@ from factorySim.rendering import  draw_BG, drawFactory, drawCollisions
 from factorySim.kpi import FactoryRating
 from factorySim.routing import FactoryPath
 from shapely.ops import unary_union
-from shapely.geometry import MultiPolygon
+from shapely.geometry import MultiPolygon, Polygon
 
 class FactorySim:
  #------------------------------------------------------------------------------------------------------------
@@ -216,7 +216,11 @@ class FactorySim:
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
         self.pathPolygon = self.factoryRating.PathPolygon()
-        self.freespacePolygon = MultiPolygon(unary_union(self.factoryRating.FreeSpacePolygon())-unary_union(self.pathPolygon))
+        temp = unary_union(self.factoryRating.FreeSpacePolygon())-unary_union(self.pathPolygon)
+        if type(temp) == Polygon:
+            self.freespacePolygon = MultiPolygon([temp])
+        else:
+            self.freespacePolygon = MultiPolygon()
         
 
        

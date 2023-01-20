@@ -27,8 +27,10 @@ class FactoryRating():
         for u,v,data in self.reducedPathGraph.edges(data=True):
             line = LineString(data["nodelist"])
             polys.append(line.buffer(data['pathwidth']/2))
-
-        return MultiPolygon(polys)
+        if polys:
+            return MultiPolygon(polys)
+        else:
+            return MultiPolygon()
 
     def FreeSpacePolygon(self):
         polys = []
@@ -40,8 +42,10 @@ class FactoryRating():
                 polys.append(line.buffer(data['true_pathwidth']/2))
             else:
                 polys.append(line.buffer(data['pathwidth']/2))
-
-        return MultiPolygon(polys)
+        if polys:
+            return MultiPolygon(polys)
+        else:
+            return MultiPolygon()
 
     def findCollisions(self, lastUpdatedMachine=None):
         collisionAfterLastUpdate = False

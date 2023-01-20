@@ -205,7 +205,7 @@ class FactoryPath():
         # Filter  Graph -----------------------------------------------------------------------------------------------------------------
         # Cleans road network created with voronoi method by 
         # - removing elements that are narrower than min_pathwidth
-        # - removing any dangelength parts that might have been cut off
+        # - removing any dangeling parts that might have been cut off
         # - removing all dead end that are shorter than min_length
 
 
