@@ -70,7 +70,7 @@ class factorySimLive(mglw.WindowConfig):
     update_during_calculation = False
     clickedPoints = []
     #factoryConfig = baseConfigs.SMALLSQUARE
-    #factoryConfig = baseConfigs.EDF
+    #factoryConfig = baseConfigs.EDF_EMPTY
     factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
@@ -541,7 +541,6 @@ class factorySimLive(mglw.WindowConfig):
                     self.is_darkmode = False
                 else:
                     print("Unknown payload for EDF/BP/bg: " + payload)
-
             if topic.startswith("EDF/BP/machines/"):
                 if topic.endswith("/pos"):
                     self.handleMQTT_Position(topic, payload)
@@ -560,18 +559,22 @@ class factorySimLive(mglw.WindowConfig):
     def handleMQTT_Position(self, topic, payload):
         pp = json.loads(payload)
         index = self.extractID(topic)
-        
         if index in self.factory.machine_dict and "x" in pp and "y" in pp:        
             self.factory.machine_dict[index].translate_Item(pp["x"],pp["y"])
             self.update_needed()
         elif index in self.factory.machine_dict and "u" in pp and "v" in pp:
-
-            self.factory.machine_dict[index].translate_Item(pp["u"],pp["v"])
+            #input 0-1 -> scale to window coordinates -> scale to current zoom
+            scaled_u = pp["u"]* self.window_size[0] / self.currentScale
+            scaled_v = pp["v"]* self.window_size[1] / self.currentScale
+            self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
             self.update_needed()
         elif index in self.mobile_dict and "x" in pp and "y" in pp:
             self.mobile_dict[index].translate_Item(pp["x"],pp["y"]) 
         elif index in self.mobile_dict and "u" in pp and "v" in pp:
-            self.mobile_dict[index].translate_Item(pp["u"],pp["v"]) 
+            #input 0-1 -> scale to window coordinates -> scale to current zoom
+            scaled_u = pp["u"]* self.window_size[0] / self.currentScale
+            scaled_v = pp["v"]* self.window_size[1] / self.currentScale
+            self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
         else:
             print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index")
     
