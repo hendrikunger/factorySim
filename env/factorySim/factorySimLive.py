@@ -57,8 +57,8 @@ class factorySimLive(mglw.WindowConfig):
     window_size = (1920, 1080)
     #window_size = (1280, 720)
     #window_size = (1920*6, 1080)
-    mqtt_broker = "broker.hivemq.com"
-    #mqtt_broker = "10.54.129.47"
+    #mqtt_broker = "broker.hivemq.com"
+    mqtt_broker = "10.54.129.47"
     aspect_ratio = None
     fullscreen = False
     resizable = True
