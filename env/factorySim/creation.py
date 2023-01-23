@@ -87,7 +87,7 @@ class FactoryCreator():
             bbox = poly.bounds
             poly = MultiPolygon([poly])
             #origin is lower left corner
-            self.machine_dict[str(i)] = FactoryObject(gid=i, 
+            self.machine_dict[i] = FactoryObject(gid=i, 
                                             name="creative_name_" + str(i),
                                             origin=(bbox[0],bbox[1]),
                                             poly=poly)
