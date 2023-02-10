@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import math
 import random
 import logging
 
@@ -30,8 +29,8 @@ class FactorySim:
         self.factoryCreator = FactoryCreator(self.FACTORYDIMENSIONS,
             factoryConfig.MAXSHAPEWIDTH,
             factoryConfig.MAXSHAPEHEIGHT, 
-            math.floor(0.8*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
-            math.ceil(0.2*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTPOLY, 
+            np.floor(0.8*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
+            np.ceil(0.2*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTPOLY, 
             factoryConfig.MAXCORNERS
             )
         self.verboseOutput = verboseOutput
@@ -175,7 +174,7 @@ class FactorySim:
                 print(f"Update: {self.machine_dict[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
             if (rotation is not None):
-                mappedRot = np.interp(rotation, (-1.0, 1.0), (0, 2*math.pi))
+                mappedRot = np.interp(rotation, (-1.0, 1.0), (0, 2*np.pi))
                 self.machine_dict[machineIndex].rotate_Item(mappedRot)
 
             bbox = self.factoryCreator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
@@ -205,13 +204,13 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Pfadbewertung abgeschlossen")
 
-        self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.factoryCreator.prep_bb)
+        self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.factoryCreator.prep_bb, dfMF=self.dfMF)
 
         self.RatingDict["ratingCollision"] = self.evaluateCollision()          
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
 
-        self.RatingDict["ratingMF"] = self.evaluateMF()          
+        self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.factoryCreator.bb)          
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
@@ -229,7 +228,7 @@ class FactorySim:
         #el
 ## Total Rating Calculation 
         if(self.RatingDict["ratingCollision"] == 1):
-            self.currentRating = math.pow(self.RatingDict["ratingMF"],3)
+            self.currentRating = np.power(self.RatingDict["ratingMF"],3)
         else: 
             self.currentRating = -1
             #if(output["ratingCollision"] >= 0.5):
@@ -286,27 +285,7 @@ class FactorySim:
     def generateRatingText(self):
         return f"Reward: {self.RatingDict['TotalRating']:1.2f} |  MF: {self.RatingDict['ratingMF']:1.2f}  |  COLL: {self.RatingDict['ratingCollision']:1.2f}"
 
- #------------------------------------------------------------------------------------------------------------
-    def evaluateMF_Helper(self, source, sink): 
-        source_center = self.machine_dict[source].center
-        sink_center = self.machine_dict[sink].center
-        return math.sqrt(math.pow(source_center.x-sink_center.x,2) + math.pow(source_center.y-sink_center.y,2))
 
- #------------------------------------------------------------------------------------------------------------
-    def evaluateMF(self):
-        if len(self.dfMF.index) > 0:
-            self.dfMF['distance'] = self.dfMF.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
-            #sum of all costs /  maximum intensity (intensity sum norm * 1) 
-            #find longest distance possible in factory
-            maxDistance = max(self.factoryCreator.bb.bounds[2],  self.factoryCreator.bb.bounds[3])
-            self.dfMF['distance_norm'] = self.dfMF['distance'] / maxDistance
-            self.dfMF['costs'] = self.dfMF['distance_norm'] * self.dfMF['intensity_sum_norm']
-            output = 1 - (math.pow(self.dfMF['costs'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
-            if(output < 0): output = 0
-
-            return output
-        else:
-            return 0
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateCollision(self):
@@ -357,52 +336,6 @@ class FactorySim:
 
 
     
-#------------------------------------------------------------------------------------------------------------  
-    def drawDetailedMachines(self, surfaceIn=None, scale = 1, randomcolors = False, highlight = None):   
-        #Drawing
-        #Machine Positions
-        if(surfaceIn is None):
-            surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.WIDTH * scale, self.HEIGHT * scale)
-        else:
-            surface = surfaceIn
-        ctx = cairo.Context(surface)
-        ctx.scale(1.0 * scale, -1.0 * scale)
-        ctx.translate(0.0,-self.HEIGHT)
-        if(surfaceIn is None):
-            ctx.rectangle(0, 0, self.WIDTH, self.HEIGHT)  
-            ctx.set_source_rgb(1.0, 1.0, 1.0)
-            ctx.fill()
-        
-        #draw machine positions
-        for i, machine in enumerate(self.machine_dict.values()):
-            for poly in machine.poly.geoms:
-                if (((i == highlight) or machine.gid==highlight) and (highlight is not None)):
-                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                elif randomcolors:
-                        ctx.set_source_rgb(random.random(), random.random(), random.random())
-                else:
-                    ctx.set_source_rgb(0.4, 0.4, 0.4)
-                #draw all outer contours
-                for point in poly.exterior.coords:  
-                    ctx.line_to(point[0], point[1])
-                ctx.close_path()
-                ctx.fill()
-                #draw all holes
-                if randomcolors:
-                    ctx.set_source_rgb(random.random(), random.random(), random.random())
-                else:
-                    ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
-                for loop in poly.interiors:
-                    for point in loop.coords:
-                        ctx.line_to(point[0], point[1])
-                    ctx.close_path()
-                ctx.fill()
-
-                
-        if(self.verboseOutput >= 3):
-            self.printTime("Detailierte Machinenpositionen gezeichnet")
-        return surface
-
 
 
  #------------------------------------------------------------------------------------------------------------
@@ -458,23 +391,13 @@ def main():
     surface.write_to_png(path) 
     demoFactory.printTime("PNG schreiben")
     
- #------------------------------------------------------------------------------------------------------------------------------------------
-    #detailed Machines Output to PNG
-    # detailedMachines = demoFactory.drawDetailedMachines(surfaceIn=machinePositions, randomcolors = False, highlight=None)
-    # path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #     "..",
-    #     "..",
-    #    "Output", 
-    #    F"{outputfile}_detailed_machines.png")
-    # detailedMachines.write_to_png(path)
- #------------------------------------------------------------------------------------------------------------------------------------------
 
 
     #Rate current Layout
     demoFactory.evaluate()
 
     #Change machine
-    #demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, math.pi/2)
+    #demoFactory.update(0,demoFactory.machine_list[0].origin.x,demoFactory.machine_list[0].origin.y, np.pi/2)
     #demoFactory.update(0,0.8 ,-0.2 , 1)
     #demoFactory.evaluate()
     #demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)

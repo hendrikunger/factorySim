@@ -57,8 +57,8 @@ class factorySimLive(mglw.WindowConfig):
     window_size = (1920, 1080)
     #window_size = (1280, 720)
     #window_size = (1920*6, 1080)
-    #mqtt_broker = "broker.hivemq.com"
-    mqtt_broker = "10.54.129.47"
+    mqtt_broker = "broker.hivemq.com"
+    #mqtt_broker = "10.54.129.47"
     aspect_ratio = None
     fullscreen = False
     resizable = True
@@ -494,7 +494,7 @@ class factorySimLive(mglw.WindowConfig):
     def factory_delete_item(self, index):
             self.factory.machine_dict.pop(index)
             indexNames = self.factory.dfMF[ (self.factory.dfMF['from'] == index) | (self.factory.dfMF['to'] == index) ].index
-            self.factory.dfMF.drop(indexNames , inplace=True)
+            self.factory.dfMF = self.factory.dfMF.drop(indexNames).reset_index(drop=True)
             self.update_needed()
             
     def create_factory(self):

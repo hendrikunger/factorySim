@@ -8,19 +8,20 @@ from shapely.ops import unary_union
 DEBUG = False
 class FactoryRating():
 
-    def __init__(self, machine_dict=None, wall_dict=None, fullPathGraph=None, reducedPathGraph=None, prepped_bb=None):
+    def __init__(self, machine_dict=None, wall_dict=None, fullPathGraph=None, reducedPathGraph=None, prepped_bb=None, dfMF=None):
 
         self.machine_dict = machine_dict
         self.wall_dict = wall_dict
         self.fullPathGraph = fullPathGraph
         self.reducedPathGraph = reducedPathGraph
         self.prepped_bb = prepped_bb
-
+        self.dfMF = dfMF
+ #------------------------------------------------------------------------------------------------------------
     def PathWideVariance(self):
         min_pathwidth = np.array(list((nx.get_edge_attributes(self.PathGraph,'pathwidth').values())))
         max_pathwidth = np.array(list((nx.get_edge_attributes(self.PathGraph,'max_pathwidth').values())))
         return np.mean(min_pathwidth/max_pathwidth)
-
+ #------------------------------------------------------------------------------------------------------------
     def PathPolygon(self):
         polys = []
         if self.reducedPathGraph:
@@ -31,7 +32,7 @@ class FactoryRating():
             return MultiPolygon(polys)
         else:
             return MultiPolygon()
-
+ #------------------------------------------------------------------------------------------------------------
     def FreeSpacePolygon(self):
         polys = []
         if self.fullPathGraph:
@@ -47,7 +48,7 @@ class FactoryRating():
             return MultiPolygon(polys)
         else:
             return MultiPolygon()
-
+ #------------------------------------------------------------------------------------------------------------
     def findCollisions(self, lastUpdatedMachine=None):
         collisionAfterLastUpdate = False
         #Machines with Machines
@@ -83,7 +84,27 @@ class FactoryRating():
         return collisionAfterLastUpdate
 
 
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateMF_Helper(self, source, sink): 
+        source_center = self.machine_dict[source].center
+        sink_center = self.machine_dict[sink].center
+        return np.sqrt(np.power(source_center.x-sink_center.x,2) + np.power(source_center.y-sink_center.y,2))
 
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateMF(self, boundingBox):
+        if len(self.dfMF.index) > 0:
+            self.dfMF['distance'] = self.dfMF.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
+            #sum of all costs /  maximum intensity (intensity sum norm * 1) 
+            #find longest distance possible in factory
+            maxDistance = max(boundingBox.bounds[2],  boundingBox.bounds[3])
+            self.dfMF['distance_norm'] = self.dfMF['distance'] / maxDistance
+            self.dfMF['costs'] = self.dfMF['distance_norm'] * self.dfMF['intensity_sum_norm']
+            output = 1 - (np.power(self.dfMF['costs'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
+            if(output < 0): output = 0
+
+            return output
+        else:
+            return 0
 
 
 if __name__ == "__main__":
