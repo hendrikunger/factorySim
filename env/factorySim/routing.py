@@ -268,6 +268,7 @@ class FactoryPath():
         nx.set_node_attributes(self.fullPathGraph, self.findSupportNodes(self.fullPathGraph, cutoff=self.simplificationAngle))
         self.support = list(nx.get_node_attributes(self.fullPathGraph, "isSupport").keys())
 
+
         if self.TIMING: self.timelog("Network Filtering")
 
         # Simpicification and Path Generation ------------------------------------------------------------------------------------
@@ -346,6 +347,7 @@ class FactoryPath():
                             nodelist=tempPath,
                             pathtype=pathtype
                         )
+
                         tempPath = [] 
                         break 
                     else:
@@ -367,9 +369,13 @@ class FactoryPath():
             self.timelog("Network Path Generation")
             print(f"Algorithm Total: {self.nextTime - self.totalTime}")
 
+
+        nx.set_node_attributes(self.fullPathGraph, self.calculateNodeAngles(self.fullPathGraph))
+        
+        
         return self.fullPathGraph, self.reducedPathGraph
 
-    def calculateNodeAngles(self, G, cutoff=45):
+    def calculateNodeAngles(self, G):
 
         candidates = [node for node, degree in G.degree() if degree == 2]
         node_data ={}
@@ -378,23 +384,26 @@ class FactoryPath():
         for node in candidates: 
             neighbors = list(G.neighbors(node))
             
-            vector_1 = [pos[node][0] - pos[neighbors[0]][0], pos[node][1] - pos[neighbors[0]][1]]
-            vector_2 = [pos[neighbors[1]][0] - pos[node][0], pos[neighbors[1]][1] - pos[node][1]]
+            vector_1 = np.array(pos[node]) - np.array(pos[neighbors[0]])
+            vector_2 = np.array(pos[neighbors[1]]) - np.array(pos[node])
 
             unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
             unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
-            dot_product = np.clip(np.dot(unit_vector_1, unit_vector_2),-0.99999999,0.99999999)
-            angle = np.rad2deg(np.arccos(dot_product))
 
+            dot_product = np.dot(unit_vector_1, unit_vector_2)
+            angle = np.rad2deg(np.arccos(np.clip(dot_product, -1.0, 1.0)))
 
-            #angle = np.arctan2(*pos[neighbors[0]]) - np.arctan2(*pos[neighbors[1]])
-            node_data[node] = {"edge_angle" : angle}
+            theta1 = np.arctan2(vector_1[1],vector_1[0])
+            theta2 = np.arctan2(vector_2[1],vector_2[0])
+            vector_1 = np.array(pos[neighbors[0]]) -np.array(pos[node])
+            gamma1 = np.arctan2(vector_1[1],vector_1[0])
+            gamma2 = np.arctan2(vector_2[1],vector_2[0])
 
-            # if(angle < -np.pi/12  or angle > np.pi/12):
-            #     node_data[node] = {"isSupport" : True}
+            if gamma1 < gamma2:
+                theta1, theta2 = theta2, theta1
 
-            if(abs(angle) > cutoff):
-                node_data[node] = {"isSupport" : True}
+            node_data[node] = {"edge_angle" : angle, "arcstart" : theta1, "arcend" : theta2}
+
 
         return node_data
 
@@ -432,7 +441,6 @@ class FactoryPath():
             dot_product = np.clip(np.dot(unit_vector_1, unit_vector_2),-0.99999999,0.99999999)
             angle = np.rad2deg(np.arccos(dot_product))
 
-            node_data[node] = {"edge_angle" : angle}
 
             if(abs(angle) > cutoff):
                 node_data[node] = {"isSupport" : True}

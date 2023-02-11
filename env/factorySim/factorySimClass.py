@@ -201,6 +201,7 @@ class FactorySim:
     def evaluate(self):
         
         self.fullPathGraph, self.reducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
+        
         if(self.verboseOutput >= 3):
             self.printTime("Pfadbewertung abgeschlossen")
 
@@ -221,7 +222,6 @@ class FactorySim:
         else:
             self.freespacePolygon = MultiPolygon()
         
-
        
         #if(self.episodeCounter < len(self.machine_list)):
         #    self.currentRating = 0
@@ -236,15 +236,12 @@ class FactorySim:
             #else:
             #    self.currentRating = -1
 
-
         #if(self.collisionAfterLastUpdate):
         #    self.currentRating = -0.8
         #elif(output["ratingCollision"] < 1):
         #    self.currentRating = -0.5
         #else:
         #    self.currentRating = self.mapRange(output["ratingMF"],(-2,1),(-1,1))
-
-
 
 
         ##Normalize
@@ -257,8 +254,6 @@ class FactorySim:
         #    self.currentMappedRating = -0.2
         #
         #self.lastRating = self.currentRating
-
-
 
         #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
         self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating
@@ -333,9 +328,6 @@ class FactorySim:
         
         
         return surface, ctx
-
-
-    
 
 
  #------------------------------------------------------------------------------------------------------------

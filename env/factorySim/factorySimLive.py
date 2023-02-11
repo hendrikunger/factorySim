@@ -351,7 +351,7 @@ class factorySimLive(mglw.WindowConfig):
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
         if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
         if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
-        
+        if self.activeModes[Modes.MODE0]:draw_node_angles(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
 
 
         # for key, machine in self.factory.machine_dict.items():5

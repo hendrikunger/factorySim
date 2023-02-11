@@ -20,17 +20,18 @@ def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
     ctx.set_line_cap(cairo.LINE_CAP_ROUND)
 
     if fullPathGraph and reducedPathGraph:
-        pos=nx.get_node_attributes(fullPathGraph,'pos')
-
-    
         modifer = 0.5 if asStreets else 1.0
-
         for u,v,data in reducedPathGraph.edges(data=True):
+            #print(data['nodelist'][1])
             ctx.set_line_width(data['pathwidth']*modifer)
             ctx.move_to(*data['nodelist'][0])
             for node in data['nodelist'][1:]:
                 ctx.line_to(*node)
-            ctx.stroke()
+                node_data = fullPathGraph.nodes[str(node)]
+                if "edge_angle" in node_data:
+                    #print(node_data["edge_angle"], node_data["arcstart"], node_data["arcend"]) 
+                    ctx.arc(node[0], node[1], 10, node_data["arcstart"], node_data["arcend"])
+            ctx.stroke()        
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
 
         for u,v,data in reducedPathGraph.edges(data=True):
@@ -74,6 +75,29 @@ def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
             ctx.move_to(*pos[point])
             ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
         ctx.fill()
+    return ctx
+
+#------------------------------------------------------------------------------------------------------------
+def draw_node_angles(ctx, fullPathGraph, reducedPathGraph):
+    ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+
+    if fullPathGraph and reducedPathGraph:
+
+        for u,v,data in reducedPathGraph.edges(data=True):
+
+            for node in data['nodelist']:
+
+                node_data = fullPathGraph.nodes[str(node)]
+                if "edge_angle" in node_data:
+                    #print(node_data["edge_angle"], node_data["arcstart"], node_data["arcend"]) 
+                    r = ctx.device_to_user_distance(50, 50)[0]
+                    ctx.move_to(node[0], node[1])
+                    ctx.arc(node[0], node[1], r, node_data["arcstart"], node_data["arcend"])
+                    ctx.close_path()
+            ctx.fill()        
+        ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+
+
     return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
