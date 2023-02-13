@@ -80,6 +80,7 @@ def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
 #------------------------------------------------------------------------------------------------------------
 def draw_node_angles(ctx, fullPathGraph, reducedPathGraph):
     ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+    ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
 
     if fullPathGraph and reducedPathGraph:
 
@@ -88,13 +89,29 @@ def draw_node_angles(ctx, fullPathGraph, reducedPathGraph):
             for node in data['nodelist']:
 
                 node_data = fullPathGraph.nodes[str(node)]
+                ctx.move_to(*node)
+                ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+                ctx.arc(*node, ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+                ctx.fill()  
                 if "edge_angle" in node_data:
-                    #print(node_data["edge_angle"], node_data["arcstart"], node_data["arcend"]) 
-                    r = ctx.device_to_user_distance(50, 50)[0]
+                    r = ctx.device_to_user_distance(30, 30)[0]
                     ctx.move_to(node[0], node[1])
-                    ctx.arc(node[0], node[1], r, node_data["arcstart"], node_data["arcend"])
+                    if node_data["arcstart"] > node_data["arcend"]:
+                        ctx.arc_negative(node[0], node[1], r, node_data["arcstart"], node_data["arcend"])
+                        ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+                        
+                    else:
+                        ctx.arc_negative(node[0], node[1], r, node_data["arcstart"], node_data["arcend"])
+                        ctx.set_source_rgba(0.0, 1.0, 0.0, 1.0)
+                        
                     ctx.close_path()
-            ctx.fill()        
+                    ctx.stroke() 
+                    ctx.move_to(node[0], node[1])
+                    ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+                    ctx.show_text(str(round(node_data["edge_angle"], 2)))
+  
+                
+ 
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
 
 

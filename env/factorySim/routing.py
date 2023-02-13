@@ -280,7 +280,7 @@ class FactoryPath():
 
         ep = self.endpoints
         cross = self.crossroads
-        stoppers = set(ep + cross + self.support)
+        stoppers = set(ep + cross)
 
         if ep: 
             nodes_to_visit = [ep[0]]
@@ -369,40 +369,40 @@ class FactoryPath():
             self.timelog("Network Path Generation")
             print(f"Algorithm Total: {self.nextTime - self.totalTime}")
 
-
-        nx.set_node_attributes(self.fullPathGraph, self.calculateNodeAngles(self.fullPathGraph))
-        
+        nx.set_node_attributes(self.fullPathGraph, self.calculateNodeAngles(self.fullPathGraph, self.reducedPathGraph))
         
         return self.fullPathGraph, self.reducedPathGraph
 
-    def calculateNodeAngles(self, G):
-
-        candidates = [node for node, degree in G.degree() if degree == 2]
+    def calculateNodeAngles(self, fullPathGraph, reducedPathGraph):
         node_data ={}
-        pos=nx.get_node_attributes(G,'pos')
+        pos=nx.get_node_attributes(fullPathGraph, 'pos')
 
-        for node in candidates: 
-            neighbors = list(G.neighbors(node))
-            
-            vector_1 = np.array(pos[node]) - np.array(pos[neighbors[0]])
-            vector_2 = np.array(pos[neighbors[1]]) - np.array(pos[node])
+        for u,v,data in reducedPathGraph.edges(data=True):
 
-            unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
-            unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
+            for index, node in enumerate(data['nodelist'][1:-1]):
+                node = str(node)
+                neighbors = [str(data['nodelist'][index]), str(data['nodelist'][index+2])]
+                
+                vector_1 = np.array(pos[neighbors[0]]) -np.array(pos[node])
+                vector_2 = np.array(pos[neighbors[1]]) - np.array(pos[node])
 
-            dot_product = np.dot(unit_vector_1, unit_vector_2)
-            angle = np.rad2deg(np.arccos(np.clip(dot_product, -1.0, 1.0)))
+                unit_vector_1 = vector_1 / np.linalg.norm(vector_1)
+                unit_vector_2 = vector_2 / np.linalg.norm(vector_2)
 
-            theta1 = np.arctan2(vector_1[1],vector_1[0])
-            theta2 = np.arctan2(vector_2[1],vector_2[0])
-            vector_1 = np.array(pos[neighbors[0]]) -np.array(pos[node])
-            gamma1 = np.arctan2(vector_1[1],vector_1[0])
-            gamma2 = np.arctan2(vector_2[1],vector_2[0])
+                dot_product = np.dot(unit_vector_1, unit_vector_2)
+                angle = np.rad2deg(np.arccos(np.clip(dot_product, -1.0, 1.0)))
 
-            if gamma1 < gamma2:
-                theta1, theta2 = theta2, theta1
+                theta1 = np.arctan2(vector_1[1],vector_1[0])
+                theta2 = np.arctan2(vector_2[1],vector_2[0])
+                
+                vector_1 = np.array(pos[node]) - np.array(pos[neighbors[0]])
+                gamma1 = np.arctan2(vector_1[1],vector_1[0])
+                gamma2 = np.arctan2(vector_2[1],vector_2[0])
 
-            node_data[node] = {"edge_angle" : angle, "arcstart" : theta1, "arcend" : theta2}
+                if gamma1 > gamma2:
+                    theta1, theta2 = theta2, theta1
+
+                node_data[node] = {"edge_angle" : angle, "arcstart" : theta1, "arcend" : theta2, "gamma1" : gamma1, "gamma2" : gamma2}
 
 
         return node_data
