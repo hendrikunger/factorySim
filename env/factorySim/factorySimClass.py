@@ -221,6 +221,8 @@ class FactorySim:
             self.freespacePolygon = MultiPolygon([temp])
         else:
             self.freespacePolygon = MultiPolygon()
+
+        self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         
        
         #if(self.episodeCounter < len(self.machine_list)):
@@ -278,7 +280,11 @@ class FactorySim:
         return self.currentMappedRating, self.currentRating, self.RatingDict, done
 
     def generateRatingText(self):
-        return f"Reward: {self.RatingDict['TotalRating']:1.2f} |  MF: {self.RatingDict['ratingMF']:1.2f}  |  COLL: {self.RatingDict['ratingCollision']:1.2f}"
+        return (f"Reward: {self.RatingDict['TotalRating']:1.2f} |  "
+                f"MF: {self.RatingDict['ratingMF']:1.2f}  |  "
+                f"COLL: {self.RatingDict['ratingCollision']:1.2f}|  "
+                f"CONT: {self.RatingDict['routeContinuity']:1.2f}|  "
+                )
 
 
 

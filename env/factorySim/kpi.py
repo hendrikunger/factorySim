@@ -106,6 +106,26 @@ class FactoryRating():
         else:
             return 0
 
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateRouteContinuity(self):
+        #angleList holds smallest angle in degrees between two edges (0-180)
+        angleList = np.array(list(nx.get_node_attributes(self.fullPathGraph, "edge_angle").values()))
+        #No bends == best Rating
+        numBends = len(angleList)
+        if numBends == 0: return 1
+        #find minimum distance to 90 or 180 degrees, the closer to this value the better
+        angleList = angleList/180
+        #square to get a higher penalty for sharper bends
+        angleList = np.power(angleList, 2)
+        #Devide by count of bends in relation to number of simple edges, to penalize higher bend density
+        #Penalizing having more bends then simple edges via maximum function
+        angleList = angleList /  np.maximum(1, numBends/self.reducedPathGraph.number_of_edges())
+        #Reduce influence of single bends if there are not many bends
+        angleList = (1-(1/numBends)) * angleList + (1/numBends) #* 1        
+        #Normalze to a sum of 1
+        normed = angleList.sum() / numBends
+        return normed
+
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
