@@ -31,7 +31,7 @@ class FactoryPath():
         self.minTwoWayPathWidth = minTwoWayPathWidth  # Minimum Width of a Road to keep
         self.boundarySpacing = boundarySpacing # Spacing of Points used as Voronoi Kernels
         self.simplificationAngle = simplificationAngle # Angle in degrees, used for support point calculation in simple path
-    	
+
     def timelog(self, text):
         self.nextTime = time.perf_counter()
         print(f"{text} {self.nextTime - self.startTime}")
@@ -371,7 +371,7 @@ class FactoryPath():
 
         nx.set_node_attributes(self.fullPathGraph, self.calculateNodeAngles(self.fullPathGraph, self.reducedPathGraph))
         
-        return self.fullPathGraph, self.reducedPathGraph
+        return self.fullPathGraph, self.reducedPathGraph, walkableArea
 
     def calculateNodeAngles(self, fullPathGraph, reducedPathGraph):
         node_data ={}
@@ -822,38 +822,6 @@ if __name__ == "__main__":
             if SAVEPLOT: plt.savefig(f"{runs+1}_7_Path_Plot.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
             plt.show()
             print("Fertsch")
-
-
-
-
-# 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
-# 3 - Stetigkeit	                    Richtungswechsel im Materialfluss
-
-
-
-# 	                                    Verwinkelung
-# 	                                    Vorhandensein eindeutiger Wegachsen
-# 	                                    Wegeeffizienz
-# 6 - Zugänglichkeit	                Abdeckung Wegenetz
-# 	                                    Kontaktflächen Wegenetz
-# 7 - Flächennutzungsgrad	            genutzte Fabrikfläche (ohne zusammenhängende Freifläche)
-# 1 - Skalierbarkeit 	                Ausdehnung der größten verfügbaren Freifläche
-# 2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
-# 1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
-# 2 - Ruhe	                            Erfüllung der Arbeitsplatzanforderungen
-# 3 - Erschütterungsfreiheit	        Erfüllung der Arbeitsplatzanforderungen
-# 4 - Sauberkeit	                    Erfüllung der Arbeitsplatzanforderungen
-# 5 - Temperatur	                    Erfüllung der Arbeitsplatzanforderungen
-
-
-
-# Erledigt =================================================================
-
-# 1 - Materialflusslänge	            Entfernung (direkt)
-# 	                                    Entfernung (wegorientiert)
-# 4 - Intensität	                    Anzahl der Transporte
-# 5 - Wegekonzept	                    Auslegung Wegbreite
-# 	                                    Sackgassen
 
 
 

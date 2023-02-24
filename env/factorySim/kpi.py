@@ -33,7 +33,24 @@ class FactoryRating():
         else:
             return MultiPolygon()
  #------------------------------------------------------------------------------------------------------------
-    def FreeSpacePolygon(self):
+    def FreeSpacePolygon(self, pathPolygon, walkableAreaPoly):
+        temp = unary_union(walkableAreaPoly) - unary_union(pathPolygon)
+
+        if type(temp) == Polygon:
+            return MultiPolygon([temp])
+        elif type(temp) == MultiPolygon:
+            return temp
+ #------------------------------------------------------------------------------------------------------------
+    def UsedSpacePolygon(self):
+        machinelist = [x.poly for x in self.machine_dict.values()]
+        temp = unary_union(machinelist).convex_hull
+
+        if type(temp) == Polygon:
+            return MultiPolygon([temp])
+        elif type(temp) == MultiPolygon:
+            return temp
+ #------------------------------------------------------------------------------------------------------------
+    def FreeSpaceRoutesPolygon(self, pathPolygon):
         polys = []
         if self.fullPathGraph:
             pos=nx.get_node_attributes(self.fullPathGraph,'pos')
@@ -44,10 +61,14 @@ class FactoryRating():
                     polys.append(line.buffer(data['true_pathwidth']/2))
                 else:
                     polys.append(line.buffer(data['pathwidth']/2))
-        if polys:
-            return MultiPolygon(polys)
-        else:
-            return MultiPolygon()
+
+        temp = unary_union(MultiPolygon(polys))-unary_union(pathPolygon)
+
+        if type(temp) == Polygon:
+            return MultiPolygon([temp])
+        elif type(temp) == MultiPolygon:
+            return temp
+
  #------------------------------------------------------------------------------------------------------------
     def findCollisions(self, lastUpdatedMachine=None):
         collisionAfterLastUpdate = False
@@ -161,4 +182,33 @@ if __name__ == "__main__":
         maxMF_Elements=None
         )
 
+# 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
+# 3 - Stetigkeit	                    Richtungswechsel im Materialfluss
+# 	  Materialflusslänge                Entfernung (wegorientiert)
+
+
+# 	                                    
+# 	                                    Vorhandensein eindeutiger Wegachsen
+# 	                                    Wegeeffizienz - Flächenbedarf der Wege im Vergleich zu den Flächenbedarf der Maschinen
+# 6 - Zugänglichkeit	                Abdeckung Wegenetz
+# 	                                    Kontaktflächen Wegenetz
+# 7 - Flächennutzungsgrad	            genutzte Fabrikfläche (ohne zusammenhängende Freifläche)
+# 1 - Skalierbarkeit 	                Ausdehnung der größten verfügbaren Freifläche
+# 2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
+# 1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
+# 2 - Ruhe	                            Erfüllung der Arbeitsplatzanforderungen
+# 3 - Erschütterungsfreiheit	        Erfüllung der Arbeitsplatzanforderungen
+# 4 - Sauberkeit	                    Erfüllung der Arbeitsplatzanforderungen
+# 5 - Temperatur	                    Erfüllung der Arbeitsplatzanforderungen
+
+
+
+# Erledigt =================================================================
+
+# 1 - Materialflusslänge	            Entfernung (direkt)
+
+# 4 - Intensität	                    Anzahl der Transporte
+# 5 - Wegekonzept	                    Auslegung Wegbreite
+# 	                                    Sackgassen
+#                                       Verwinkelung
 

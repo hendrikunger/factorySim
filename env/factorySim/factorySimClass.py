@@ -200,8 +200,9 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def evaluate(self):
         
-        self.fullPathGraph, self.reducedPathGraph = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
-        
+        self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
+        self.walkableArea = MultiPolygon([self.walkableArea])
+
         if(self.verboseOutput >= 3):
             self.printTime("Pfadbewertung abgeschlossen")
 
@@ -216,11 +217,9 @@ class FactorySim:
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
         self.pathPolygon = self.factoryRating.PathPolygon()
-        temp = unary_union(self.factoryRating.FreeSpacePolygon())-unary_union(self.pathPolygon)
-        if type(temp) == Polygon:
-            self.freespacePolygon = MultiPolygon([temp])
-        else:
-            self.freespacePolygon = MultiPolygon()
+        self.freeSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea)
+        self.usedSpacePolygon = self.factoryRating.UsedSpacePolygon()
+        self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
 
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         
@@ -282,8 +281,8 @@ class FactorySim:
     def generateRatingText(self):
         return (f"Reward: {self.RatingDict['TotalRating']:1.2f} |  "
                 f"MF: {self.RatingDict['ratingMF']:1.2f}  |  "
-                f"COLL: {self.RatingDict['ratingCollision']:1.2f}|  "
-                f"CONT: {self.RatingDict['routeContinuity']:1.2f}|  "
+                f"COLL: {self.RatingDict['ratingCollision']:1.2f} |  "
+                f"CONT: {self.RatingDict['routeContinuity']:1.2f} |  "
                 )
 
 
