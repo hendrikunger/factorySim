@@ -20,6 +20,7 @@ class FactoryObject:
         self.width = bounds[2] - bounds[0]
         self.height =  bounds[3] - bounds[1]
         self.center = poly.representative_point()
+        self.group = None
 
     
 

@@ -218,9 +218,9 @@ class FactorySim:
 
         self.pathPolygon = self.factoryRating.PathPolygon()
         self.freeSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea)
-        self.usedSpacePolygon = self.factoryRating.UsedSpacePolygon()
+        #20 % of the maximum dimension of the factory as grouping threshold
+        self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
         self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
-
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         
        

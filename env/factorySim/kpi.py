@@ -3,6 +3,7 @@ import numpy as np
 from itertools import combinations
 from shapely.geometry import Polygon, MultiPolygon, LineString
 from shapely.ops import unary_union
+import scipy.cluster.hierarchy as hcluster
 
 
 DEBUG = False
@@ -41,14 +42,20 @@ class FactoryRating():
         elif type(temp) == MultiPolygon:
             return temp
  #------------------------------------------------------------------------------------------------------------
-    def UsedSpacePolygon(self):
-        machinelist = [x.poly for x in self.machine_dict.values()]
-        temp = unary_union(machinelist).convex_hull
+    def UsedSpacePolygon(self, threshold):
+        machineCenters = np.array([x.center.coords[0] for x in self.machine_dict.values()])
+        
+        clusters = hcluster.fclusterdata(machineCenters, threshold, criterion="distance")
 
-        if type(temp) == Polygon:
-            return MultiPolygon([temp])
-        elif type(temp) == MultiPolygon:
-            return temp
+        grouped = {value+1: [] for value in range(len(set(clusters)))}
+        for clusterID, machine in zip(clusters, self.machine_dict.values()):
+            machine.group = clusterID
+            grouped[clusterID].append(machine.poly)
+        hulls={}
+        for key, value in grouped.items():
+            hulls[key] = MultiPolygon([unary_union(value).convex_hull])
+
+        return hulls, self.machine_dict
  #------------------------------------------------------------------------------------------------------------
     def FreeSpaceRoutesPolygon(self, pathPolygon):
         polys = []
