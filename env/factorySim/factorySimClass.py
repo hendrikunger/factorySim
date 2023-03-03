@@ -220,17 +220,22 @@ class FactorySim:
         #20 % of the maximum dimension of the factory as grouping threshold
         self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
         self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
-        self.RatingDict["areaUtilisation"] = 0.0
+        self.RatingDict["areaUtilisation"] = self.factoryRating.evaluateAreaUtilisation(self.walkableArea, self.freeSpacePolygon)
         self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
-        
+        self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
        
         #if(self.episodeCounter < len(self.machine_list)):
         #    self.currentRating = 0
         #el
 ## Total Rating Calculation 
+
+        partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "done" and k != "ratingCollision"])
+        weights = np.ones_like(partialRatings)
+        print(partialRatings)
+
         if(self.RatingDict["ratingCollision"] == 1):
-            self.currentRating = np.power(self.RatingDict["ratingMF"],3)
+            self.currentRating = np.average(partialRatings, weights=weights)
         else: 
             self.currentRating = -1
             #if(output["ratingCollision"] >= 0.5):
@@ -284,8 +289,10 @@ class FactorySim:
         return (f"REWARD: {self.RatingDict.get('TotalRating', 0): 1.2f}{con}"
                 f"MF    : {self.RatingDict.get('ratingMF', 0): 1.2f}{con}"
                 f"COLL  : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
-                f"CONT  : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
+                f"RCONT : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
+                f"RVAR  : {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
                 f"AREA  : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
+                
                 )
 
  #------------------------------------------------------------------------------------------------------------

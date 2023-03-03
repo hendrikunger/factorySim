@@ -73,3 +73,10 @@ ax.quiver(*origin, *b, color="blue", scale_units='xy', angles='xy', scale=1)
 
 plt.show()
 # %%
+import numpy as np
+a = np.array([3,5, 7])
+b = np.array([9,6, 8])
+temp= np.power(a/b,2)
+print(temp)
+print(np.mean(temp))
+# %%

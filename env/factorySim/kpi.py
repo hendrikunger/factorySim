@@ -19,10 +19,12 @@ class FactoryRating():
         self.prepped_bb = prepped_bb
         self.dfMF = dfMF
  #------------------------------------------------------------------------------------------------------------
-    def PathWideVariance(self):
-        min_pathwidth = np.array(list((nx.get_edge_attributes(self.PathGraph,'pathwidth').values())))
-        max_pathwidth = np.array(list((nx.get_edge_attributes(self.PathGraph,'max_pathwidth').values())))
-        return np.mean(min_pathwidth/max_pathwidth)
+    def PathWidthVariance(self):
+        # Calculates the Variance of the Pathwidths for all subroutes between crossroads and deadends
+        min_pathwidth = np.array(list((nx.get_edge_attributes(self.reducedPathGraph,'pathwidth').values())))
+        max_pathwidth = np.array(list((nx.get_edge_attributes(self.reducedPathGraph,'max_pathwidth').values())))
+        temp = np.power(min_pathwidth/max_pathwidth,2)
+        return np.mean(temp)
  #------------------------------------------------------------------------------------------------------------
 
     def PathPolygon(self):
@@ -95,6 +97,10 @@ class FactoryRating():
         return self.makeMultiPolygon(temp)
 
  #------------------------------------------------------------------------------------------------------------
+    def evaluateAreaUtilisation(self, walkableAreaPoly, freeSpacePolygon):
+        return 1-(freeSpacePolygon.area / walkableAreaPoly.area)
+
+ #------------------------------------------------------------------------------------------------------------
     def findCollisions(self, lastUpdatedMachine=None):
         collisionAfterLastUpdate = False
         #Machines with Machines
@@ -148,7 +154,7 @@ class FactoryRating():
             output = 1 - (np.power(self.dfMF['costs'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
             if(output < 0): output = 0
 
-            return output
+            return np.power(output,2)
         else:
             return 0
 
