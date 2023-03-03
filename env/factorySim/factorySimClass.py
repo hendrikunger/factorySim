@@ -15,7 +15,7 @@ import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions
 from factorySim.kpi import FactoryRating
 from factorySim.routing import FactoryPath
-from shapely.ops import unary_union
+from shapely.ops import unary_union, snap
 from shapely.geometry import MultiPolygon, Polygon
 
 class FactorySim:
@@ -217,9 +217,10 @@ class FactorySim:
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
         self.pathPolygon = self.factoryRating.PathPolygon()
-        self.freeSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea)
         #20 % of the maximum dimension of the factory as grouping threshold
         self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
+        self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
+        self.RatingDict["areaUtilisation"] = 0.0
         self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         
@@ -280,13 +281,12 @@ class FactorySim:
             con = "\n"
         else:
             con = " | "
-        return (f"Reward: {self.RatingDict['TotalRating']: 1.2f}{con}"
-                f"MF    : {self.RatingDict['ratingMF']: 1.2f}{con}"
-                f"COLL  : {self.RatingDict['ratingCollision']: 1.2f}{con}"
-                f"CONT  : {self.RatingDict['routeContinuity']: 1.2f}{con}"
+        return (f"REWARD: {self.RatingDict.get('TotalRating', 0): 1.2f}{con}"
+                f"MF    : {self.RatingDict.get('ratingMF', 0): 1.2f}{con}"
+                f"COLL  : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
+                f"CONT  : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
+                f"AREA  : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
                 )
-
-
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateCollision(self):

@@ -356,13 +356,15 @@ class factorySimLive(mglw.WindowConfig):
         
         
         drawFactory(self.cctx, self.factory.machine_dict,self.factory.wall_dict, drawColors=True, highlight=self.selected, drawNames=True, wallInteriorColor = color)
-        if self.activeModes[Modes.MODE7]: draw_poly(self.cctx, self.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
-        if self.activeModes[Modes.MODE8]: draw_poly(self.cctx, self.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
-        if self.activeModes[Modes.MODE9]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
+        if self.activeModes[Modes.MODE7]: 
+            draw_poly(self.cctx, self.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
+            draw_poly(self.cctx, self.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 1.0), drawHoles=True)
+        if self.activeModes[Modes.MODE_N0]: draw_poly(self.cctx, self.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
+        if self.activeModes[Modes.MODE8]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
         if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
-        if self.activeModes[Modes.MODE_N0]:   
+        if self.activeModes[Modes.MODE9]:   
             for key, poly in self.factory.usedSpacePolygonDict.items():
                 draw_poly(self.cctx, poly, (*self.cmap[key], 0.3))
         if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)

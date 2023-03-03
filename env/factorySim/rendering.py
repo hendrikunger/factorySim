@@ -118,7 +118,7 @@ def draw_node_angles(ctx, fullPathGraph, reducedPathGraph):
     return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
-    if poly:
+    if poly and not poly.is_empty:
         for subpoly in poly.geoms:
 
             ctx.move_to(*subpoly.exterior.coords[0])
@@ -189,7 +189,7 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
         for wall in wall_dict.values():
             #draw all walls
             for  poly in wall.poly.geoms:
-                ctx.set_source_rgb((0.2), 0.2, 0.2)
+                ctx.set_source_rgba(0.2, 0.2, 0.2, 1.0)
                 ctx.move_to(*poly.exterior.coords[0])
                 for point in poly.exterior.coords[1:]:  
                     ctx.line_to(point[0], point[1])

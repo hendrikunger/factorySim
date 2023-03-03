@@ -2,8 +2,9 @@ import networkx as nx
 import numpy as np
 from itertools import combinations
 from shapely.geometry import Polygon, MultiPolygon, LineString
-from shapely.ops import unary_union
+from shapely.ops import unary_union, snap
 import scipy.cluster.hierarchy as hcluster
+import time
 
 
 DEBUG = False
@@ -23,37 +24,58 @@ class FactoryRating():
         max_pathwidth = np.array(list((nx.get_edge_attributes(self.PathGraph,'max_pathwidth').values())))
         return np.mean(min_pathwidth/max_pathwidth)
  #------------------------------------------------------------------------------------------------------------
+
     def PathPolygon(self):
         polys = []
         if self.reducedPathGraph:
             for u,v,data in self.reducedPathGraph.edges(data=True):
                 line = LineString(data["nodelist"])
-                polys.append(line.buffer(data['pathwidth']/2))
+                polys.append(line.buffer(data['pathwidth']/2)) 
         if polys:
-            return MultiPolygon(polys)
+            walls = unary_union(list(x.poly for x in self.wall_dict.values()))
+            wallpoints = walls.boundary.interpolate(100)
+            output = snap(MultiPolygon(polys),wallpoints,400)
+            output = self.makeMultiPolygon(output)
+            return output
         else:
             return MultiPolygon()
  #------------------------------------------------------------------------------------------------------------
-    def FreeSpacePolygon(self, pathPolygon, walkableAreaPoly):
-        temp = unary_union(walkableAreaPoly) - unary_union(pathPolygon)
+    def FreeSpacePolygon(self, pathPolygon, walkableAreaPoly, usedSpacePolygonDict):
 
-        if type(temp) == Polygon:
-            return MultiPolygon([temp])
-        elif type(temp) == MultiPolygon:
-            return temp
+        temp = unary_union(walkableAreaPoly) - unary_union(pathPolygon) - unary_union(list(usedSpacePolygonDict.values()))
+        temp = self.makeMultiPolygon(temp)
+
+        maxArea = 0
+        maxAreaIndex = None
+        for index, polygon in enumerate(temp.geoms):
+            if polygon.area > maxArea:
+                maxArea = polygon.area
+                maxAreaIndex = index
+
+        if maxAreaIndex != None:
+            growingSpacePolygon = self.makeMultiPolygon(temp.geoms[maxAreaIndex])
+            temp = unary_union(walkableAreaPoly) - unary_union(pathPolygon) - unary_union(list(usedSpacePolygonDict.values())) - unary_union(growingSpacePolygon)
+
+            return self.makeMultiPolygon(temp), growingSpacePolygon
+        else:
+            return MultiPolygon(), MultiPolygon()
  #------------------------------------------------------------------------------------------------------------
-    def UsedSpacePolygon(self, threshold):
+    def UsedSpacePolygon(self, threshold):           
         machineCenters = np.array([x.center.coords[0] for x in self.machine_dict.values()])
+        if len(machineCenters) <= 1: 
+            return {}, self.machine_dict
         
         clusters = hcluster.fclusterdata(machineCenters, threshold, criterion="distance")
-
         grouped = {value+1: [] for value in range(len(set(clusters)))}
+
         for clusterID, machine in zip(clusters, self.machine_dict.values()):
             machine.group = clusterID
             grouped[clusterID].append(machine.poly)
+
         hulls={}
         for key, value in grouped.items():
             hulls[key] = MultiPolygon([unary_union(value).convex_hull])
+
 
         return hulls, self.machine_dict
  #------------------------------------------------------------------------------------------------------------
@@ -70,11 +92,7 @@ class FactoryRating():
                     polys.append(line.buffer(data['pathwidth']/2))
 
         temp = unary_union(MultiPolygon(polys))-unary_union(pathPolygon)
-
-        if type(temp) == Polygon:
-            return MultiPolygon([temp])
-        elif type(temp) == MultiPolygon:
-            return temp
+        return self.makeMultiPolygon(temp)
 
  #------------------------------------------------------------------------------------------------------------
     def findCollisions(self, lastUpdatedMachine=None):
@@ -153,7 +171,14 @@ class FactoryRating():
         #Normalze to a sum of 1
         normed = angleList.sum() / numBends
         return normed
-
+ #------------------------------------------------------------------------------------------------------------
+    def makeMultiPolygon(self, poly):
+        if type(poly) == Polygon:
+            return MultiPolygon([poly])
+        elif type(poly) == MultiPolygon:
+            return poly
+        else:
+            return MultiPolygon()
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
