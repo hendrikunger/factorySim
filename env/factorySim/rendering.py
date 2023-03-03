@@ -336,25 +336,30 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
-def draw_text_topleft(ctx, text, color):
-    ctx.move_to(*ctx.device_to_user_distance(20, 20))
+def draw_text(ctx, text, color, pos, center=False, rightEdge=False, factoryCoordinates=True, input_width=None):
+    width = input_width
     ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
+    #select monospaced font
+    ctx.select_font_face("Consolas", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+    if not factoryCoordinates:
+        pos = ctx.device_to_user_distance(*pos)
+
+    if center:
+        ctx.move_to(pos[0] - width/2, pos[1])
+    else:
+        if rightEdge:
+            #select monospaced font
+            if width is None:
+                (x, y, width, height, dx, dy) = ctx.text_extents(text)
+            ctx.move_to(pos[0] - 1.5 * width, pos[1])
+        else:
+            ctx.move_to(*pos)
+
     ctx.set_source_rgba(*color)
     ctx.show_text(text)
 
-def draw_text_topleft2(ctx, text, color):
-    ctx.move_to(*ctx.device_to_user_distance(20, 40))
-    ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
-    ctx.set_source_rgba(*color)
-    ctx.show_text(text)
+    return width
 
-def draw_text_pos(ctx, text, color, pos):
-    ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
-    (x, y, width, height, dx, dy) = ctx.text_extents(text)
-    ctx.move_to(pos[0] - width/2, pos[1] + ctx.device_to_user_distance(30, 30)[0])
-    
-    ctx.set_source_rgba(*color)
-    ctx.show_text(text)
 
 
 

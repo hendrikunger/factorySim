@@ -1,7 +1,5 @@
 
 import random
-import math
-import time
 
 from shapely.geometry import Polygon, MultiPolygon, box
 from shapely.affinity import translate, rotate, scale

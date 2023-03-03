@@ -141,7 +141,7 @@ class FactoryRating():
         #No bends == best Rating
         numBends = len(angleList)
         if numBends == 0: return 1
-        #find minimum distance to 90 or 180 degrees, the closer to this value the better
+        #normalise to 0-1
         angleList = angleList/180
         #square to get a higher penalty for sharper bends
         angleList = np.power(angleList, 2)

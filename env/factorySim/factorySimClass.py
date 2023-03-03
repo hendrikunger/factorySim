@@ -271,18 +271,19 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Layouts abgeschlossen")
         if(self.verboseOutput >= 1):
-            print(f"Total Rating: {self.currentMappedRating:1.2f}\n"
-                f"Raw Rating: {self.currentRating:1.2f}\n"
-                f"MaterialFlow: {self.RatingDict['ratingMF']:1.2f}\n"
-                f"Kollisionen: {self.RatingDict['ratingCollision']:1.2f}")
+            print(self.generateRatingText(multiline=True))
 
         return self.currentMappedRating, self.currentRating, self.RatingDict, done
 
-    def generateRatingText(self):
-        return (f"Reward: {self.RatingDict['TotalRating']:1.2f} |  "
-                f"MF: {self.RatingDict['ratingMF']:1.2f}  |  "
-                f"COLL: {self.RatingDict['ratingCollision']:1.2f} |  "
-                f"CONT: {self.RatingDict['routeContinuity']:1.2f} |  "
+    def generateRatingText(self, multiline=False):
+        if(multiline):
+            con = "\n"
+        else:
+            con = " | "
+        return (f"Reward: {self.RatingDict['TotalRating']: 1.2f}{con}"
+                f"MF    : {self.RatingDict['ratingMF']: 1.2f}{con}"
+                f"COLL  : {self.RatingDict['ratingCollision']: 1.2f}{con}"
+                f"CONT  : {self.RatingDict['routeContinuity']: 1.2f}{con}"
                 )
 
 

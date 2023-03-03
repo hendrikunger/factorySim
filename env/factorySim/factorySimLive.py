@@ -391,15 +391,24 @@ class factorySimLive(mglw.WindowConfig):
 
         color = (1.0, 1.0, 1.0) if self.is_darkmode else (0.0, 0.0, 0.0)
         mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
-        draw_text_topleft(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color)
-        draw_text_topleft2(self.cctx, self.factory.generateRatingText(), color)
+        draw_text(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color, (20, 20))
+
+        #Draw every rating on a new line
+        textwidth = None
+        for i, text in enumerate(self.factory.generateRatingText(multiline=True).split("\n")):
+            pos = (self.window_size[0], (40 + i*20))
+            textwidth = draw_text(self.cctx, text, color, pos, rightEdge=True, factoryCoordinates=False, input_width=textwidth)
+
         if self.selected != None: 
             #Calculate the position of bottom center of selected objectsv bounding box
             bbox = self.factory.machine_dict[self.selected].poly.bounds
             x = (bbox[0] + bbox[2])/2
             y = bbox[3]
 
-            draw_text_pos(self.cctx, self.factory.generateRatingText(), color, (x,y))
+            for i, text in enumerate(self.factory.generateRatingText(multiline=True).split("\n")):
+                textwidth = draw_text(self.cctx, text, color, (x, y+ 200+ i*200), center=True, input_width=textwidth)
+
+                #ädraw_text(self.cctx, self.factory.generateRatingText(), color, (x,y), center=True)
         
         # Copy surface to texture
         texture = self.ctx.texture((self.window_size[0], self.window_size[1]), 4, data=self.surface.get_data())
