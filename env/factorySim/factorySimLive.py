@@ -85,7 +85,7 @@ class factorySimLive(mglw.WindowConfig):
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
-
+    haallo = 0
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng()
