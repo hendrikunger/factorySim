@@ -1,10 +1,10 @@
 ray[rllib]
 pandas
 pandas-datareader
-Polygon3
-fabulous
-tqdm
-imageio
+networkx
+ifcopenshell
+shapely
 pycairo
 gputil
 wandb
+tensorboardx

@@ -1,5 +1,6 @@
 import os
 import random
+import yaml
 
 
 import gym
@@ -14,12 +15,14 @@ from factorySim.factorySimClass import FactorySim
 from ray.rllib.env.env_context import EnvContext
 from ray.rllib.env.multi_agent_env import make_multi_agent
 
-from PIL import Image
+
+import factorySim.baseConfigs as baseConfigs
+from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text_topleft, drawMaterialFlow
 
 
  
 class FactorySimEnv(gym.Env):  
-    metadata = {'render.modes': ['human', 'rgb']}
+    metadata = {'render.modes': ['human', 'rgb_array']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
     def __init__(self, env_config: EnvContext):
@@ -34,14 +37,17 @@ class FactorySimEnv(gym.Env):
         self.heigth = env_config["heigth"]
         self.maxMF_Elements = env_config["maxMF_Elements"]
         self.scale = env_config["outputScale"]
-        self.objectScaling = env_config["objectScaling"]
         if env_config["inputfile"] is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
             exit("No inputfile given.")
         self.inputfile = env_config["inputfile"]
-        self.materialflowpath = file_name + "_Materialflow.csv"
-        self.rendermode= env_config["rendermode"]
+        self.materialflowpath = None #file_name + "_Materialflow.csv"
+        self.rendermode = env_config["rendermode"]
+        self.factoryConfig = baseConfigs.BaseFactoryConf.byStringName(env_config["factoryconfig"])
+        self.surface = None
+        self.rsurface = None
+        self.prefix = env_config.get("prefix", "0")
         
 
         self.info = {}
@@ -51,6 +57,7 @@ class FactorySimEnv(gym.Env):
             "Output")
         else:
             self.output_path = os.path.join(os.path.dirname(os.path.realpath(env_config["inputfile"])), 
+            "..",
             "..",
             "Output")
 
@@ -68,9 +75,6 @@ class FactorySimEnv(gym.Env):
         self.reset()
 
     def step(self, action):
-       
-        #self.factory.update(self.currentMachine, action[0], action[1], action[2], action[3])
-        #print(F"Actions: 1 - {action[0]}      2 - {action[1]}       3 - {action[2]}")
         self.factory.update(self.currentMachine, action[0], action[1], action[2], 0)
         self.currentMappedReward, self.currentReward, self.info, done = self.factory.evaluate()
         #print(F"Reward: {self.currentMappedReward}")
@@ -88,41 +92,48 @@ class FactorySimEnv(gym.Env):
         del(self.factory)
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
-        width=self.width,
-        heigth=self.heigth,
-        randomMF = True,
-        randomPos = True,
-        maxMF_Elements = self.maxMF_Elements,
-        objectScaling = self.objectScaling,
-        verboseOutput = self.Loglevel)
+        factoryConfig=self.factoryConfig,
+        randomPos=False,
+        createMachines=True,
+        verboseOutput=self.Loglevel,
+        maxMF_Elements = self.maxMF_Elements)
+        if self.surface:
+            self.surface.finish()
+            del(self.surface)
+        if self.rsurface:
+            self.rsurface.finish()
+            del(self.rsurface)
+        self.surface, self.ctx = self.factory.provideCairoDrawingData(self.width, self.heigth)
+        self.rsurface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width * self.scale, self.heigth*self.scale)
+        self.rctx = cairo.Context(self.rsurface)
 
-        self.machineCount = len(self.factory.machine_list)
+        self.rctx.scale(self.scale*self.factory.scale, self.scale*self.factory.scale)
+        self.rctx.translate(-self.factory.factoryCreator.bb.bounds[0], -self.factory.factoryCreator.bb.bounds[1])
+
+        self.machineCount = len(self.factory.machine_dict)
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0
         self.currentMappedReward = 0
         self.uid +=1
-        
 
+        self.factory.evaluate()
         return self._get_obs()
 
-    def render(self, mode='rgb', prefix = ""):
-
-        output = self.factory.drawPositions(scale = self.scale, drawMaterialflow = False, drawMachines = True, drawWalls = True, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
-        output = self.factory.drawCollisions(surfaceIn = output, scale = self.scale, drawColors = True)
-        output = self.factory.drawPositions(surfaceIn = output, scale = self.scale, drawMaterialflow = True, drawMachines = False, drawWalls = False, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
-        output =  self._addText(output, f"{self.uid:02d}.{self.stepCount:02d} | {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}")
-
+    def render(self, mode='rgb_array'):
+        draw_BG(self.rctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, darkmode=False)
+        drawFactory(self.rctx, self.factory.machine_dict, self.factory.wall_dict, None, drawNames=False, highlight=self.currentMachine)
+        draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
+        drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
+        drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
+        draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
+        
         if mode == 'human' or self.rendermode == 'human':
-            outputPath = os.path.join(self.output_path, f"{self.uid}_{self.stepCount:04d}.png")
-            output.write_to_png(outputPath)
-            output.finish()
-            del(output)
+            outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
+            self.rsurface.write_to_png(outputPath)
             return True
-        elif mode == 'rgb':
-            buf = output.get_data()
-            output.finish()
-            del(output)
+        elif mode == 'rgb_array':
+            buf = self.rsurface.get_data()
             #bgra to rgb
             #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
             rgb = np.ndarray(shape=(self.width * self.scale, self.heigth * self.scale, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
@@ -130,7 +141,7 @@ class FactorySimEnv(gym.Env):
         elif mode == None or self.rendermode == None:
             return
         else:
-            print(F"Error -  Unkonwn Render Mode: {mode}")
+            print(F"Error -  Unkown Render Mode: {mode}")
             return -1
 
 
@@ -142,35 +153,32 @@ class FactorySimEnv(gym.Env):
 
         #new Version greyscale
 
-        output = self.factory.drawPositions(drawMaterialflow = False, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False, highlight=self.currentMachine)
-        output = self.factory.drawCollisions(surfaceIn = output, drawColors = True)
-        buf = output.get_data()
-        output.finish()
-        del(output)
+        draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
+        drawFactory(self.ctx, self.factory.machine_dict, self.factory.wall_dict, None, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
+        drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
+
+        buf = self.surface.get_data()
         machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
-        materialflow = self.factory.drawPositions(drawMaterialflow = True, drawMachines = False, drawColors = True, drawMachineCenter = False, drawOrigin = False, drawMachineBaseOrigin=False)
-        buf = materialflow.get_data()
-        materialflow.finish()
-        del(materialflow)
+        draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
+        draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
+        drawFactory(self.ctx, self.factory.machine_dict, None, self.factory.dfMF, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
+        
+        buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
 
- 
         return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) 
-
-
-
-    def _addText(self, surface, text):
-        ctx = cairo.Context(surface)
-        ctx.set_source_rgb(1, 0, 0)
-        ctx.scale(self.scale, self.scale)
-        #ctx.select_font_face("Purisa", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        ctx.set_font_size(6)
-        ctx.move_to(5, 13)
-        ctx.show_text(text)
-        return surface
-
+  
+    def close(self):
+        self.surface.finish()
+        del(self.surface)
+        del(self.ctx)
+        self.rsurface.finish()
+        del(self.rsurface)
+        del(self.rctx)
 
 MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 
@@ -178,54 +186,50 @@ MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 
 def main():
 
-    #filename = "Overlapp"
+    #filename = "Long"
     #filename = "Basic"
-    #filename = "EP_v23_S1_clean"
     #filename = "Simple"
+    filename = "EDF"
     #filename = "SimpleNoCollisions"
-    filename = "LShape"
-
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",  
-        filename + ".ifc")
 
     ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         "..",
         "..",
         "Input",
-        "2")
+        "2",  
+        filename + ".ifc")
 
-    env_config = {
-        "inputfile" : ifcpath,
-        "obs_type" : 'image',
-        "Loglevel" : 1,
-        "width" : 84,
-        "heigth" : 84,
-        "maxMF_Elements" : 5,
-        "outputScale" : 4,
-        "objectScaling" : 1.0,
-        "rendermode": "human",
-            }
+    # ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+    # "..",
+    # "..",
+    # "Input",
+    # "2")
+
+    
+    configpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "config.yaml")
+
+    with open(configpath, 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    config['env_config']['inputfile'] = ifcpath
+    config['env_config']['Loglevel'] = 0
+    config['env_config']['rendermode'] = "human"
+
         
-    env = FactorySimEnv( env_config = env_config)
-    env.reset()
-    output = None
-    prefix=0
-    output = env.render(mode='human', prefix=prefix)
-    for _ in tqdm(range(0,100)):
+    env = FactorySimEnv( env_config = config['env_config'])
+
+    #env.prefix="test"
+
+    for _ in tqdm(range(0,10)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
-        output = env.render(mode='human', prefix=prefix)
+        env.render(mode='human')
         if done:
             env.reset()
-            prefix+=1
-            output = env.render(mode='human', prefix=prefix)
-        #output = env.render(mode='rgb_array')
+            env.render(mode='human')
 
 
-
-    #np.savetxt('data.csv', output, delimiter=',')
 
         
     

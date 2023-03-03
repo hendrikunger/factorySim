@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import os
 
 from factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
@@ -8,8 +7,8 @@ import ray
 
 
 from ray.tune.logger import pretty_print
-from ray.rllib.agents import ppo
-from ray.rllib.agents.callbacks import DefaultCallbacks
+from ray import air, tune
+import ray.rllib.algorithms.ppo as ppo
 
 from ray.rllib.models import ModelCatalog
 from factorySim.customModels import MyXceptionModel
@@ -17,49 +16,12 @@ from factorySim.customModels import MyXceptionModel
 import wandb
 import yaml
 
-# import tracemalloc
-# from typing import Optional, Dict
-# from ray.rllib.evaluation import MultiAgentEpisode
-# from ray.rllib import BaseEnv
-# from ray.rllib.utils.typing import PolicyID
-# from email.policy import Policy
-# import psutil
-
-class TraceMallocCallback(DefaultCallbacks):
-
-    def __init__(self):
-        super().__init__()
-
-        tracemalloc.start(10)
-
-    def on_episode_end(self, *, worker: "RolloutWorker", base_env: BaseEnv, policies: Dict[PolicyID, Policy],
-                       episode: MultiAgentEpisode, env_index: Optional[int] = None, **kwargs) -> None:
-        snapshot = tracemalloc.take_snapshot()
-        top_stats = snapshot.statistics('lineno')
-
-        for stat in top_stats[:5]:
-            count = stat.count
-            size = stat.size
-
-            trace = str(stat.traceback)
-
-            episode.custom_metrics[f'tracemalloc/{trace}/size'] = size
-            episode.custom_metrics[f'tracemalloc/{trace}/count'] = count
-
-        process = psutil.Process(os.getpid())
-        worker_rss = process.memory_info().rss
-        worker_data = process.memory_info().data
-        worker_vms = process.memory_info().vms
-        episode.custom_metrics[f'tracemalloc/worker/rss'] = worker_rss
-        episode.custom_metrics[f'tracemalloc/worker/data'] = worker_data
-        episode.custom_metrics[f'tracemalloc/worker/vms'] = worker_vms
+import warnings
+from shapely.errors import ShapelyDeprecationWarning
+warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
 
 
-
-
-# parser = argparse.ArgumentParser()
-# parser.add_argument("--stop-iters", type=int, default=200)
-# parser.add_argument("--num-cpus", type=int, default=10)
+RESUME = True
 
 #filename = "Overlapp"
 filename = "Basic"
@@ -69,7 +31,7 @@ filename = "Basic"
 #filename = "LShape"
 
 #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
-ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
+ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2")
 
 #Import Custom Models
 ModelCatalog.register_custom_model("my_model", MyXceptionModel)
@@ -86,27 +48,65 @@ config['env_config']['inputfile'] = ifcpath
 
 
 if __name__ == "__main__":
-    #args = parser.parse_args()
     ray.init(num_gpus=1, local_mode=False, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
-    ppo_config = ppo.DEFAULT_CONFIG.copy()
-    ppo_config.update(config)
 
 
-    # use fixed learning rate instead of grid search (needs tune)
-    #ppo_config["lr"] = 1e-3
-    trainer = ppo.PPOTrainer(config=ppo_config)
-    # run manual training loop and print results after each iteration
 
-    for _ in range(5000000): #args.stop_iters,
-        result = trainer.train()
-        print(pretty_print(result))
-        # stop training of the target train steps or reward are reached
-        if (
-            result["timesteps_total"] >= 2000000#args.stop_timesteps
-            or result["episode_reward_mean"] >= 50000 #args.stop_reward
-        ):
-            break
+
+
+    stop = {
+    "training_iteration": 50000,
+    "timesteps_total": 2000000,
+    "episode_reward_mean": 5,
+    }
+
+
+    if not RESUME:
+  
+
+        tuner = tune.Tuner(ppo.PPO,
+                param_space=config,
+                run_config=air.RunConfig(stop=stop, checkpoint_config=air.CheckpointConfig(checkpoint_at_end=True, checkpoint_frequency=10, checkpoint_score_order="max", checkpoint_score_attribute="episode_reward_mean", num_to_keep=10 ))
+                )
+        results = tuner.fit()
+
+    else:
+    #Continuing training
+        config['env_config']['prefix'] = 1
+
+
+        stop = {
+        "training_iteration": 100000,
+        "timesteps_total": 6500000,
+        "episode_reward_mean": 5,
+        }
+
+        results = ray.tune.run(ppo.PPO, 
+                    config=config, 
+                    stop=stop, 
+                    reuse_actors=True, 
+                    checkpoint_freq=10,
+                    keep_checkpoints_num=10,
+                    checkpoint_score_attr="episode_reward_mean", 
+                    restore="/root/ray_results/PPO_2022-11-29_21-36-58/PPO_MultiEnv_f3c8f_00000_0_2022-11-29_21-36-58/checkpoint_002040/")
+
+
+    #Loading for Evaluation
+
+    #agent = ppo.PPO(config=config, env=MultiFactorySimEnv)
+    #agent.restore("/root/ray_results/PPO/PPO_MultiEnv_2fa55_00000_0_2022-11-19_10-08-59/checkpoint_000667/")
+
+
 
     ray.shutdown()
 
 
+    # for _ in range(500): #args.stop_iters,
+    #     result = trainer.train()
+    #     print(pretty_print(result))
+    #     # stop training of the target train steps or reward are reached
+    #     if (
+    #         result["timesteps_total"] >= 2000000#args.stop_timesteps
+    #         or result["episode_reward_mean"] >= 50000 #args.stop_reward
+    #     ):
+    #         break
