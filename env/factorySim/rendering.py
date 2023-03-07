@@ -181,12 +181,12 @@ def draw_route_lines(ctx, route_lines):
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
-def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
+def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawWalls = True, drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
 
     #Walls
-    if wall_dict:
+    if factory.wall_dict and drawWalls:
         ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
-        for wall in wall_dict.values():
+        for wall in factory.wall_dict.values():
             #draw all walls
             for  poly in wall.poly.geoms:
                 ctx.set_source_rgba(0.2, 0.2, 0.2, 1.0)
@@ -205,11 +205,11 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                     ctx.fill()
                         
     #draw machine positions
-    if machine_dict:
+    if factory.machine_dict:
         ctx.set_fill_rule(cairo.FillRule.WINDING)
         ctx.set_line_width(ctx.device_to_user_distance(5, 5)[0])
-        ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
-        for index, machine in enumerate(machine_dict.values()):
+        ctx.set_dash([])
+        for index, machine in enumerate(factory.machine_dict.values()):
             for poly in machine.poly.geoms:
                 ctx.move_to(*poly.exterior.coords[0])
                 for point in poly.exterior.coords[1:]: 
@@ -218,20 +218,33 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
                 if drawColors:
                     #highlighted machine
                     if(machine.gid == highlight):
-                        ctx.set_source_rgb(0.5, 0.5, 0.5)
+                        ctx.set_source_rgba(0.5, 0.5, 0.5, 1.0)
+                        ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
                         ctx.stroke_preserve()
-                        ctx.set_source_rgb(1.0, 0.0, 0.0)
+                        ctx.set_dash([])
+                        ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
                     #other machines
                     else:
-                        ctx.set_source_rgb(machine.color[0], machine.color[1], machine.color[2])
+                        #make machines far from path transparent
+                        if machine.gid in factory.MachinesFarFromPath:
+                            ctx.set_source_rgba(0.8,0.8,0.8,1.0)
+                            ctx.stroke_preserve()
+                            ctx.set_source_rgba(machine.color[0], machine.color[1], machine.color[2], 0.1)
+                        else:
+                            ctx.set_source_rgba(machine.color[0], machine.color[1], machine.color[2], 1.0)
                     #other machines
                 else:
                     #highlighted machine
                     if(index == highlight or machine.gid == highlight):
-                        ctx.set_source_rgb(0.9, 0.9, 0.9)
+                        ctx.set_source_rgba(0.9, 0.9, 0.9, 1.0)
                     #other machines
                     else:
-                        ctx.set_source_rgb(0.4, 0.4, 0.4)                         
+                        #make machines far from path transparent
+                        if machine.gid in factory.MachinesFarFromPath:
+                            ctx.set_source_rgba(0.8, 0.8, 0.8, 1.0) 
+                            ctx.stroke_preserve()
+                        else:
+                            ctx.set_source_rgba(0.4, 0.4, 0.4, 1.0)                         
                 ctx.fill()
 
                 if drawNames:
@@ -259,7 +272,7 @@ def drawFactory(ctx, machine_dict=None, wall_dict=None, materialflow_file=None, 
     ctx.set_dash([])
 
     #Material Flow
-    drawMaterialFlow(ctx, machine_dict, materialflow_file, drawColors, isObs=isObs)
+    drawMaterialFlow(ctx, factory.machine_dict, materialflow_file, drawColors, isObs=isObs)
     
     return ctx
 

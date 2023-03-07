@@ -122,7 +122,7 @@ class FactorySimEnv(gym.Env):
 
     def render(self, mode='rgb_array'):
         draw_BG(self.rctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.rctx, self.factory.machine_dict, self.factory.wall_dict, None, drawNames=False, highlight=self.currentMachine)
+        drawFactory(self.rctx, self.factory, None, drawNames=False, highlight=self.currentMachine)
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
@@ -154,7 +154,7 @@ class FactorySimEnv(gym.Env):
         #new Version greyscale
 
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.ctx, self.factory.machine_dict, self.factory.wall_dict, None, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
+        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
         drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
 
         buf = self.surface.get_data()
@@ -164,7 +164,7 @@ class FactorySimEnv(gym.Env):
         #separate Image for Materialflow
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
         draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        drawFactory(self.ctx, self.factory.machine_dict, None, self.factory.dfMF, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
+        drawFactory(self.ctx, self.factory, self.factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
         
         buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]

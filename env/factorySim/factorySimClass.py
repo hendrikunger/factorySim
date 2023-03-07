@@ -41,6 +41,9 @@ class FactorySim:
         self.timezero = time()
         self.lasttime = 0        
         self.RatingDict = {}
+        self.MachinesFarFromPath = set()
+        self.machine_dict = None
+        self.wall_dict = None
 
         #Importing Walls
         if path_to_ifc_file:
@@ -216,7 +219,8 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
-        self.pathPolygon = self.factoryRating.PathPolygon()
+        self.pathPolygon, self.extendedPathPolygon = self.factoryRating.PathPolygon()
+        self.MachinesFarFromPath = self.factoryRating.getMachinesFarFromPath(self.extendedPathPolygon) 
         #20 % of the maximum dimension of the factory as grouping threshold
         self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
         self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
@@ -232,7 +236,6 @@ class FactorySim:
 
         partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "done" and k != "ratingCollision"])
         weights = np.ones_like(partialRatings)
-        print(partialRatings)
 
         if(self.RatingDict["ratingCollision"] == 1):
             self.currentRating = np.average(partialRatings, weights=weights)

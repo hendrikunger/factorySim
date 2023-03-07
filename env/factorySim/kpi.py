@@ -3,8 +3,9 @@ import numpy as np
 from itertools import combinations
 from shapely.geometry import Polygon, MultiPolygon, LineString
 from shapely.ops import unary_union, snap
+from shapely.prepared import prep
 import scipy.cluster.hierarchy as hcluster
-import time
+
 
 
 DEBUG = False
@@ -36,11 +37,21 @@ class FactoryRating():
         if polys:
             walls = unary_union(list(x.poly for x in self.wall_dict.values()))
             wallpoints = walls.boundary.interpolate(100)
-            output = snap(MultiPolygon(polys),wallpoints,400)
-            output = self.makeMultiPolygon(output)
-            return output
+            pathPoly = snap(MultiPolygon(polys),wallpoints,400)
+            pathPoly = self.makeMultiPolygon(pathPoly)
+            extendedPathPoly = self.makeMultiPolygon(pathPoly.buffer(500))
+            return pathPoly, extendedPathPoly
         else:
             return MultiPolygon()
+        
+ #------------------------------------------------------------------------------------------------------------
+    def getMachinesFarFromPath(self, extendedPathPoly):
+        farMachines = set()
+        preppedPath = prep(extendedPathPoly)
+        for machine in self.machine_dict.values():
+            if not preppedPath.intersects(machine.poly):
+                farMachines.add(machine.gid) 
+        return farMachines
  #------------------------------------------------------------------------------------------------------------
     def FreeSpacePolygon(self, pathPolygon, walkableAreaPoly, usedSpacePolygonDict):
 
