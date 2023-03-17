@@ -25,7 +25,10 @@ class FactoryRating():
         min_pathwidth = np.array(list((nx.get_edge_attributes(self.reducedPathGraph,'pathwidth').values())))
         max_pathwidth = np.array(list((nx.get_edge_attributes(self.reducedPathGraph,'max_pathwidth').values())))
         temp = np.power(min_pathwidth/max_pathwidth,2)
-        return np.mean(temp)
+        if len(temp) > 0:
+            return np.mean(temp)
+        else:
+            return 0
  #------------------------------------------------------------------------------------------------------------
 
     def PathPolygon(self):
@@ -42,7 +45,7 @@ class FactoryRating():
             extendedPathPoly = self.makeMultiPolygon(pathPoly.buffer(500))
             return pathPoly, extendedPathPoly
         else:
-            return MultiPolygon()
+            return MultiPolygon(), MultiPolygon()
         
  #------------------------------------------------------------------------------------------------------------
     def getMachinesFarFromPath(self, extendedPathPoly):
@@ -106,10 +109,29 @@ class FactoryRating():
 
         temp = unary_union(MultiPolygon(polys))-unary_union(pathPolygon)
         return self.makeMultiPolygon(temp)
-
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateScalability(self, freeSpacePolygon):
+        '''Compares the area of a polygon against the Area of the minimum bounding rectangle of the polygon.'''
+        if freeSpacePolygon.area > 0:
+            return np.clip(freeSpacePolygon.area / freeSpacePolygon.minimum_rotated_rectangle.area, 0, 1)
+        else:
+            return 0
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateCompactness(self, usedSpacePolygonDict):
+        '''Compares the area of a polygon against the area of a circle with the same area as the polygon.'''
+        #Currently not used in the evaluation
+        rating = []
+        for poly in usedSpacePolygonDict.values():
+            if poly.area > 0:
+                rating.append(np.maximum(0, 2- ((poly.boundary.length/np.pi)/(2 * np.sqrt(poly.area/np.pi)))))
+        print(np.mean(np.array(rating)))
+ 
  #------------------------------------------------------------------------------------------------------------
     def evaluateAreaUtilisation(self, walkableAreaPoly, freeSpacePolygon):
-        return 1-(freeSpacePolygon.area / walkableAreaPoly.area)
+        if walkableAreaPoly.area > 0:
+            return 1-(freeSpacePolygon.area / walkableAreaPoly.area)
+        else:
+            return 0
 
  #------------------------------------------------------------------------------------------------------------
     def findCollisions(self, lastUpdatedMachine=None):
@@ -191,7 +213,10 @@ class FactoryRating():
     
  #------------------------------------------------------------------------------------------------------------
     def evaluateRouteAccess(self, MachinesFarFromPath):
-        return 1-(len(MachinesFarFromPath) / len(self.machine_dict))
+        if len(self.machine_dict) > 0:
+            return 1-(len(MachinesFarFromPath) / len(self.machine_dict))
+        else:
+            return 0
  #------------------------------------------------------------------------------------------------------------
     def makeMultiPolygon(self, poly):
         if type(poly) == Polygon:

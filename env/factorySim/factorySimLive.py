@@ -237,7 +237,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.activeModes[Modes.DRAWING] = DrawingModes.NONE
                 self.wnd.exit_key = keys.ESCAPE
             # Del to delete
-            if key == keys.DELETE:
+            if key == keys.DELETE and self.selected is not None:
                 self.factory_delete_item(self.selected)
                 self.selected = None
 

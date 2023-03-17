@@ -226,6 +226,9 @@ class FactorySim:
         self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
         self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
         self.RatingDict["areaUtilisation"] = self.factoryRating.evaluateAreaUtilisation(self.walkableArea, self.freeSpacePolygon)
+        self.RatingDict["Scalability"] = self.factoryRating.evaluateScalability(self.growingSpacePolygon)
+        #Currently not used, does not make relevant difference
+        self.factoryRating.evaluateCompactness(self.usedSpacePolygonDict)
         self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
@@ -298,6 +301,7 @@ class FactorySim:
                 f"RVAR  : {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
                 f"RACC  : {self.RatingDict.get('routeAccess', 0): 1.2f}{con}"
                 f"AREA  : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
+                f"SCALE  : {self.RatingDict.get('Scalability', 0): 1.2f}{con}"
 
                 )
 
