@@ -220,7 +220,8 @@ class FactorySim:
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
         self.pathPolygon, self.extendedPathPolygon = self.factoryRating.PathPolygon()
-        self.MachinesFarFromPath = self.factoryRating.getMachinesFarFromPath(self.extendedPathPolygon) 
+        self.MachinesFarFromPath = self.factoryRating.getMachinesFarFromPath(self.extendedPathPolygon)
+        self.RatingDict["routeAccess"] =self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath)
         #20 % of the maximum dimension of the factory as grouping threshold
         self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
         self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
@@ -228,6 +229,7 @@ class FactorySim:
         self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
+        
        
         #if(self.episodeCounter < len(self.machine_list)):
         #    self.currentRating = 0
@@ -294,8 +296,9 @@ class FactorySim:
                 f"COLL  : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
                 f"RCONT : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
                 f"RVAR  : {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
+                f"RACC  : {self.RatingDict.get('routeAccess', 0): 1.2f}{con}"
                 f"AREA  : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
-                
+
                 )
 
  #------------------------------------------------------------------------------------------------------------

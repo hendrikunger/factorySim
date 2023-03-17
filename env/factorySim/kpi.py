@@ -188,6 +188,10 @@ class FactoryRating():
         #Normalze to a sum of 1
         normed = angleList.sum() / numBends
         return normed
+    
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateRouteAccess(self, MachinesFarFromPath):
+        return 1-(len(MachinesFarFromPath) / len(self.machine_dict))
  #------------------------------------------------------------------------------------------------------------
     def makeMultiPolygon(self, poly):
         if type(poly) == Polygon:
