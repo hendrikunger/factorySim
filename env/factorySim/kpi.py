@@ -124,7 +124,6 @@ class FactoryRating():
         for poly in usedSpacePolygonDict.values():
             if poly.area > 0:
                 rating.append(np.maximum(0, 2- ((poly.boundary.length/np.pi)/(2 * np.sqrt(poly.area/np.pi)))))
-        print(np.mean(np.array(rating)))
  
  #------------------------------------------------------------------------------------------------------------
     def evaluateAreaUtilisation(self, walkableAreaPoly, freeSpacePolygon):
@@ -190,7 +189,68 @@ class FactoryRating():
             return np.power(output,2)
         else:
             return 0
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateMFIntersection2(self):
+        if len(self.dfMF.index) > 0:
+            lines=[]
+            intersections=[]
+            #get coordinates of all start and end points of Material Flows and build list of Linestrings
+            print(self.dfMF)
+            totalIntensity = self.dfMF['intensity_sum_norm'].sum()
 
+            lines = (self.dfMF.apply(lambda row: LineString
+                                         ([self.machine_dict[row['from']].center, 
+                                          self.machine_dict[row['to']].center]), 
+                                          axis=1)).tolist()
+            endpoints = [m.center for m in self.machine_dict.values()]
+
+            for line1, line2 in combinations(lines,2):
+                if line1.intersects(line2):
+                    inter= line1.intersection(line2)
+                    #check if intersection is a point and if it is an endpoint of one of the lines+
+                    found = None
+                    if inter.geom_type == "Point":
+                        for end in endpoints:
+                            if end.equals_exact(inter, tolerance=0.01):
+                                found = True
+                                break
+                        if not found: intersections.append(inter)
+            return 1, intersections
+        else:
+            return 0, []
+ #------------------------------------------------------------------------------------------------------------
+    def evaluateMFIntersection(self):
+        if len(self.dfMF.index) > 0:
+            lines=[]
+            intersections=[]
+            #get coordinates of all start and end points of Material Flows and build list of Linestrings
+            totalIntensity = self.dfMF['intensity_sum_norm'].sum()
+            output = 0
+
+            endpoints = [m.center for m in self.machine_dict.values()]
+
+            #Check for intersections between all pairs of materialflow lines
+            for row1, row2 in combinations(self.dfMF.itertuples(),2):
+                line1=LineString([self.machine_dict[row1._1].center, self.machine_dict[row1.to].center])
+                line2=LineString([self.machine_dict[row2._1].center, self.machine_dict[row2.to].center])
+                if line1.intersects(line2):
+                    inter= line1.intersection(line2)
+                    #check if intersection is a point and if it is an endpoint of one of the lines
+                    #if not, add to intersection list
+                    found = None
+                    if inter.geom_type == "Point":
+                        for end in endpoints:
+                            if end.equals_exact(inter, tolerance=0.01):
+                                found = True
+                                break
+                        if not found: 
+                            intersections.append(inter)
+                            #calculate penalty for single intersection
+                            output += (row1.intensity_sum_norm + row2.intensity_sum_norm) / 2 * totalIntensity
+            #calulate penalty for all intersections 
+            return np.clip(1-(output)/len(self.dfMF.index), 0,1), intersections
+        else:
+            return 0, []
  #------------------------------------------------------------------------------------------------------------
     def evaluateRouteContinuity(self):
         #angleList holds smallest angle in degrees between two edges (0-180)

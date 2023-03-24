@@ -75,6 +75,7 @@ class factorySimLive(mglw.WindowConfig):
     selected = None
     currentScale = 1.0
     is_darkmode = True
+    is_EDF = False
     is_dirty = False
     is_calculating = False
     update_during_calculation = False
@@ -213,7 +214,10 @@ class factorySimLive(mglw.WindowConfig):
 
             # Toggle Fullscreen
             if key == keys.F:
-                self.wnd.fullscreen = not self.wnd.fullscreen      
+                self.wnd.fullscreen = not self.wnd.fullscreen   
+            # Toggle Text Rendering under selection
+            if key == keys.E:
+                self.is_EDF = not self.is_EDF    
             # Zoom
             if key == 43: # +
                 self.currentScale += 0.005
@@ -369,15 +373,9 @@ class factorySimLive(mglw.WindowConfig):
                 draw_poly(self.cctx, poly, (*self.cmap[key], 0.3))
         if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
         if self.activeModes[Modes.MODE0]:draw_node_angles(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-
-        
-
-        # for key, machine in self.factory.machine_dict.items():5
-        #     draw_poly(self.cctx, machine.poly, machine.color, text=str(machine.gid), highlight= True if key == self.selected else False, drawHoles=True)
-        
-
-        if self.activeModes[Modes.MODE6]: drawMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
-
+        if self.activeModes[Modes.MODE6]: 
+            drawMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
+            draw_points(self.cctx, self.factory.MFIntersectionPoints, (1.0, 1.0, 0.0, 1.0))
         if self.activeModes[Modes.MODE5]: 
             drawCollisions(self.cctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
@@ -401,8 +399,8 @@ class factorySimLive(mglw.WindowConfig):
             pos = (self.window_size[0], (40 + i*20))
             textwidth = draw_text(self.cctx, text, color, pos, rightEdge=True, factoryCoordinates=False, input_width=textwidth)
 
-        if self.selected != None: 
-            #Calculate the position of bottom center of selected objectsv bounding box
+        if self.selected != None and self.is_EDF: 
+            #Calculate the position of bottom center of selected objects bounding box
             bbox = self.factory.machine_dict[self.selected].poly.bounds
             x = (bbox[0] + bbox[2])/2
             y = bbox[3]
@@ -410,7 +408,6 @@ class factorySimLive(mglw.WindowConfig):
             for i, text in enumerate(self.factory.generateRatingText(multiline=True).split("\n")):
                 textwidth = draw_text(self.cctx, text, color, (x, y+ 200+ i*200), center=True, input_width=textwidth)
 
-                #ädraw_text(self.cctx, self.factory.generateRatingText(), color, (x,y), center=True)
         
         # Copy surface to texture
         texture = self.ctx.texture((self.window_size[0], self.window_size[1]), 4, data=self.surface.get_data())

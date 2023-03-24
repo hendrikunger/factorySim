@@ -36,6 +36,7 @@ class FactorySim:
         self.verboseOutput = verboseOutput
         self.RANDSEED = randseed
         self.pathPolygon = None
+        self.MFIntersectionPoints = None
         random.seed(randseed)
             
         self.timezero = time()
@@ -215,7 +216,8 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
 
-        self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.factoryCreator.bb)          
+        self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.factoryCreator.bb)  
+        self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()        
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Materialfluss abgeschlossen")
 
@@ -294,14 +296,15 @@ class FactorySim:
             con = "\n"
         else:
             con = " | "
-        return (f"REWARD: {self.RatingDict.get('TotalRating', 0): 1.2f}{con}"
-                f"MF    : {self.RatingDict.get('ratingMF', 0): 1.2f}{con}"
-                f"COLL  : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
-                f"RCONT : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
-                f"RVAR  : {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
-                f"RACC  : {self.RatingDict.get('routeAccess', 0): 1.2f}{con}"
-                f"AREA  : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
-                f"SCALE  : {self.RatingDict.get('Scalability', 0): 1.2f}{con}"
+        return (f"REWARD              : {self.RatingDict.get('TotalRating', 0): 1.2f}{con}"
+                f"Material Flow       : {self.RatingDict.get('ratingMF', 0): 1.2f}{con}"
+                f"MF Intersections    : {self.RatingDict.get('MFIntersection', 0): 1.2f}{con}"
+                f"Collisions          : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
+                f"Route Continuity    : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
+                f"Route Width Variance: {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
+                f"Route Access        : {self.RatingDict.get('routeAccess', 0): 1.2f}{con}"
+                f"Area Utilization    : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
+                f"Scalability         : {self.RatingDict.get('Scalability', 0): 1.2f}{con}"
 
                 )
 

@@ -149,6 +149,16 @@ def draw_poly(ctx, poly, color, text:str=None, highlight=False, drawHoles=True):
             ctx.show_text(text)
         return ctx
 #------------------------------------------------------------------------------------------------------------
+def draw_points(ctx, points, color):
+
+        for point in points:
+            ctx.move_to(point.x, point.y)
+            ctx.arc(point.x, point.y, ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+
+        ctx.set_source_rgba(*color)
+        ctx.fill()
+        return ctx
+#------------------------------------------------------------------------------------------------------------
 def draw_pathwidth_circles(ctx, fullPathGraph):
     if fullPathGraph:
         for _ , data in fullPathGraph.nodes(data=True):
