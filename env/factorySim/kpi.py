@@ -21,7 +21,7 @@ class FactoryRating():
         self.dfMF = dfMF
  #------------------------------------------------------------------------------------------------------------
     def PathWidthVariance(self):
-        # Calculates the Variance of the Pathwidths for all subroutes between crossroads and deadends
+        '''Calculates the Variance of the pathwidths for all subroutes between crossroads and deadends'''
         min_pathwidth = np.array(list((nx.get_edge_attributes(self.reducedPathGraph,'pathwidth').values())))
         max_pathwidth = np.array(list((nx.get_edge_attributes(self.reducedPathGraph,'max_pathwidth').values())))
         temp = np.power(min_pathwidth/max_pathwidth,2)
@@ -117,6 +117,17 @@ class FactoryRating():
         else:
             return 0
  #------------------------------------------------------------------------------------------------------------
+    def evaluateDeadends(self):
+        '''Compares amount of deadends to amount of edges in simplified graph'''
+        if self.reducedPathGraph:
+            pos=nx.get_node_attributes(self.fullPathGraph,'pos')
+            print(len(self.reducedPathGraph.edges()))
+
+
+            return 1-(len([x for x in self.reducedPathGraph.nodes() if self.reducedPathGraph.degree(x) == 1])/len(self.reducedPathGraph.edges()))
+        else :
+            return 0
+ #------------------------------------------------------------------------------------------------------------
     def evaluateCompactness(self, usedSpacePolygonDict):
         '''Compares the area of a polygon against the area of a circle with the same area as the polygon.'''
         #Currently not used in the evaluation
@@ -189,35 +200,7 @@ class FactoryRating():
             return np.power(output,2)
         else:
             return 0
- #------------------------------------------------------------------------------------------------------------
-    def evaluateMFIntersection2(self):
-        if len(self.dfMF.index) > 0:
-            lines=[]
-            intersections=[]
-            #get coordinates of all start and end points of Material Flows and build list of Linestrings
-            print(self.dfMF)
-            totalIntensity = self.dfMF['intensity_sum_norm'].sum()
 
-            lines = (self.dfMF.apply(lambda row: LineString
-                                         ([self.machine_dict[row['from']].center, 
-                                          self.machine_dict[row['to']].center]), 
-                                          axis=1)).tolist()
-            endpoints = [m.center for m in self.machine_dict.values()]
-
-            for line1, line2 in combinations(lines,2):
-                if line1.intersects(line2):
-                    inter= line1.intersection(line2)
-                    #check if intersection is a point and if it is an endpoint of one of the lines+
-                    found = None
-                    if inter.geom_type == "Point":
-                        for end in endpoints:
-                            if end.equals_exact(inter, tolerance=0.01):
-                                found = True
-                                break
-                        if not found: intersections.append(inter)
-            return 1, intersections
-        else:
-            return 0, []
  #------------------------------------------------------------------------------------------------------------
     def evaluateMFIntersection(self):
         if len(self.dfMF.index) > 0:

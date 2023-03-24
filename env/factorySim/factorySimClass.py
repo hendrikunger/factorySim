@@ -234,6 +234,7 @@ class FactorySim:
         self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
+        self.RatingDict["Deadends"] =self.factoryRating.evaluateDeadends()
         
        
         #if(self.episodeCounter < len(self.machine_list)):
@@ -302,6 +303,7 @@ class FactorySim:
                 f"Collisions          : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
                 f"Route Continuity    : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
                 f"Route Width Variance: {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
+                f"Dead Ends           : {self.RatingDict.get('Deadends', 0): 1.2f}{con}"
                 f"Route Access        : {self.RatingDict.get('routeAccess', 0): 1.2f}{con}"
                 f"Area Utilization    : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
                 f"Scalability         : {self.RatingDict.get('Scalability', 0): 1.2f}{con}"
