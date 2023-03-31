@@ -56,6 +56,14 @@ class FactoryRating():
                 farMachines.add(machine.gid) 
         return farMachines
  #------------------------------------------------------------------------------------------------------------
+    def PathEfficiency(self, PathPoly):
+        '''Calculates the sum of machines sidelengths if they where squares and devides it by the total length of paths'''
+        if self.reducedPathGraph:
+            machineSquares = np.sqrt(np.array([x.poly.area for x in self.machine_dict.values()]))
+            return machineSquares.sum()/self.reducedPathGraph.size(weight='weight')
+        else:
+            return 0      
+ #------------------------------------------------------------------------------------------------------------
     def FreeSpacePolygon(self, pathPolygon, walkableAreaPoly, usedSpacePolygonDict):
 
         temp = unary_union(walkableAreaPoly) - unary_union(pathPolygon) - unary_union(list(usedSpacePolygonDict.values()))
@@ -120,11 +128,7 @@ class FactoryRating():
     def evaluateDeadends(self):
         '''Compares amount of deadends to amount of edges in simplified graph'''
         if self.reducedPathGraph:
-            pos=nx.get_node_attributes(self.fullPathGraph,'pos')
-            print(len(self.reducedPathGraph.edges()))
-
-
-            return 1-(len([x for x in self.reducedPathGraph.nodes() if self.reducedPathGraph.degree(x) == 1])/len(self.reducedPathGraph.edges()))
+            return np.clip(1-(len([x for x in self.reducedPathGraph.nodes() if self.reducedPathGraph.degree(x) == 1])/len(self.reducedPathGraph.edges())),0,1)
         else :
             return 0
  #------------------------------------------------------------------------------------------------------------
@@ -303,18 +307,11 @@ if __name__ == "__main__":
         maxMF_Elements=None
         )
 
-# 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
-# 3 - Stetigkeit	                    Richtungswechsel im Materialfluss
+
+
 # 	  Materialflusslänge                Entfernung (wegorientiert)
-
-
-# 	                                    
 # 	                                    Vorhandensein eindeutiger Wegachsen
-# 	                                    Wegeeffizienz - Flächenbedarf der Wege im Vergleich zu den Flächenbedarf der Maschinen
-# 6 - Zugänglichkeit	                Abdeckung Wegenetz
-# 	                                    Kontaktflächen Wegenetz
-# 7 - Flächennutzungsgrad	            genutzte Fabrikfläche (ohne zusammenhängende Freifläche)
-# 1 - Skalierbarkeit 	                Ausdehnung der größten verfügbaren Freifläche
+# 	                                    Kontaktflächen Wegenetz - Länge der Schnittkante zwischen erweitertem Wegpolygon und Maschine
 # 2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
 # 1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
 # 2 - Ruhe	                            Erfüllung der Arbeitsplatzanforderungen
@@ -327,9 +324,12 @@ if __name__ == "__main__":
 # Erledigt =================================================================
 
 # 1 - Materialflusslänge	            Entfernung (direkt)
-
+# 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
 # 4 - Intensität	                    Anzahl der Transporte
 # 5 - Wegekonzept	                    Auslegung Wegbreite
 # 	                                    Sackgassen
 #                                       Verwinkelung
-
+# 	                                    Wegeeffizienz - Flächenbedarf der Wege im Vergleich zu den Flächenbedarf der Maschinen          -->evtl überarbeiten
+# 6 - Zugänglichkeit	                Abdeckung Wegenetz
+# 7 - Flächennutzungsgrad	            genutzte Fabrikfläche (ohne zusammenhängende Freifläche)
+# 1 - Skalierbarkeit 	                Ausdehnung der größten verfügbaren Freifläche

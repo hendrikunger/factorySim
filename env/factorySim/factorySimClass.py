@@ -223,7 +223,8 @@ class FactorySim:
 
         self.pathPolygon, self.extendedPathPolygon = self.factoryRating.PathPolygon()
         self.MachinesFarFromPath = self.factoryRating.getMachinesFarFromPath(self.extendedPathPolygon)
-        self.RatingDict["routeAccess"] =self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath)
+        self.RatingDict["routeAccess"] = self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath)
+        self.RatingDict["pathEfficiency"] = self.factoryRating.PathEfficiency(self.pathPolygon)
         #20 % of the maximum dimension of the factory as grouping threshold
         self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
         self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
@@ -305,6 +306,7 @@ class FactorySim:
                 f"Route Width Variance: {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
                 f"Dead Ends           : {self.RatingDict.get('Deadends', 0): 1.2f}{con}"
                 f"Route Access        : {self.RatingDict.get('routeAccess', 0): 1.2f}{con}"
+                f"Path Efficiency     : {self.RatingDict.get('pathEfficiency', 0): 1.2f}{con}"
                 f"Area Utilization    : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
                 f"Scalability         : {self.RatingDict.get('Scalability', 0): 1.2f}{con}"
 
