@@ -224,7 +224,7 @@ class FactorySim:
         self.pathPolygon, self.extendedPathPolygon = self.factoryRating.PathPolygon()
         self.MachinesFarFromPath = self.factoryRating.getMachinesFarFromPath(self.extendedPathPolygon)
         self.RatingDict["routeAccess"] = self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath)
-        self.RatingDict["pathEfficiency"] = self.factoryRating.PathEfficiency(self.pathPolygon)
+        self.RatingDict["pathEfficiency"] = self.factoryRating.PathEfficiency()
         #20 % of the maximum dimension of the factory as grouping threshold
         self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
         self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)

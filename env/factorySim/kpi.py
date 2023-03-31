@@ -56,11 +56,11 @@ class FactoryRating():
                 farMachines.add(machine.gid) 
         return farMachines
  #------------------------------------------------------------------------------------------------------------
-    def PathEfficiency(self, PathPoly):
+    def PathEfficiency(self):
         '''Calculates the sum of machines sidelengths if they where squares and devides it by the total length of paths'''
         if self.reducedPathGraph:
             machineSquares = np.sqrt(np.array([x.poly.area for x in self.machine_dict.values()]))
-            return machineSquares.sum()/self.reducedPathGraph.size(weight='weight')
+            return np.clip(machineSquares.sum()/self.reducedPathGraph.size(weight='weight'),0,1)
         else:
             return 0      
  #------------------------------------------------------------------------------------------------------------
