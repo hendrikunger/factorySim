@@ -75,7 +75,7 @@ class factorySimLive(mglw.WindowConfig):
     selected = None
     currentScale = 1.0
     is_darkmode = True
-    is_EDF = False
+    is_EDF = True
     is_dirty = False
     is_calculating = False
     update_during_calculation = False
@@ -586,7 +586,10 @@ class factorySimLive(mglw.WindowConfig):
         index = topic.split("/")
         #safeguard against misformed topics
         if len(index) >=3:
-            return index[3]
+            if index[3].isnumeric:
+                return int(index[3])
+            else:
+                return index[3]
    
 
 
@@ -610,7 +613,7 @@ class factorySimLive(mglw.WindowConfig):
             scaled_v = pp["v"]* self.window_size[1] / self.currentScale
             self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
         else:
-            print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index")
+            print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index\n",index)
     
     def handleMQTT_Geometry(self, topic, payload):
         pp = json.loads(payload)
