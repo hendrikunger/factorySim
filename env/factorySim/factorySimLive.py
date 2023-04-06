@@ -586,7 +586,7 @@ class factorySimLive(mglw.WindowConfig):
         index = topic.split("/")
         #safeguard against misformed topics
         if len(index) >=3:
-            if index[3].isnumeric:
+            if index[3].isnumeric():
                 return int(index[3])
             else:
                 return index[3]
@@ -601,19 +601,21 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
         elif index in self.factory.machine_dict and "u" in pp and "v" in pp:
             #input 0-1 -> scale to window coordinates -> scale to current zoom
-            scaled_u = pp["u"]* self.window_size[0] / self.currentScale
-            scaled_v = pp["v"]* self.window_size[1] / self.currentScale
+            scaled_u = np.around(pp["u"],3) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
+            scaled_v = np.around(pp["v"],3) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
+            scaled_u = np.around(pp["u"],3) * self.window_size[0] / self.currentScale
+            scaled_v = np.around(pp["v"],3) * self.window_size[1] / self.currentScale
             self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
             self.update_needed()
         elif index in self.mobile_dict and "x" in pp and "y" in pp:
-            self.mobile_dict[index].translate_Item(pp["x"],pp["y"]) 
+            self.mobile_dict[index].translate_Item(pp["x"],pp["y"])
         elif index in self.mobile_dict and "u" in pp and "v" in pp:
             #input 0-1 -> scale to window coordinates -> scale to current zoom
-            scaled_u = pp["u"]* self.window_size[0] / self.currentScale
-            scaled_v = pp["v"]* self.window_size[1] / self.currentScale
-            self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
+            scaled_u = np.around(pp["u"],3) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
+            scaled_v = np.around(pp["v"],3) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
+            self.mobile_dict[index].translate_Item(scaled_u,scaled_v)
         else:
-            print("MQTT message malformed. Needs JSON Payload containing x and y coordinates and valid machine index\n",index)
+            print("MQTT message malformed. Needs JSON Payload containing x and y coordinates (u, v coordinates) and valid machine index\n",index)
     
     def handleMQTT_Geometry(self, topic, payload):
         pp = json.loads(payload)
