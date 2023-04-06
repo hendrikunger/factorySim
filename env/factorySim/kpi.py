@@ -171,7 +171,7 @@ class FactoryRating():
                         print(f"Kollision Wand {a.name} und Maschine {b.name} gefunden.")
                     col = a.poly.intersection(b.poly)
                     if col.type != "MultiPolygon":
-                        if col.type == "LineString" or col.type == "Point": continue
+                        if col.type in {"LineString", "MultiLineString","Point"}: continue
                         col = MultiPolygon([col])
                     self.wallCollisionList.append(col)
                     if(b.gid == lastUpdatedMachine): collisionAfterLastUpdate = True
