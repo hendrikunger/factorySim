@@ -595,24 +595,38 @@ class factorySimLive(mglw.WindowConfig):
     def handleMQTT_Position(self, topic, payload):
         pp = json.loads(payload)
         index = self.extractID(topic)
+
         if index in self.factory.machine_dict and "x" in pp and "y" in pp:        
-            self.factory.machine_dict[index].translate_Item(pp["x"],pp["y"])
-            self.update_needed()
+            #Calculate distance of change
+            machine = self.factory.machine_dict[index]
+            maxDelta = max(abs(pp["x"] - machine.origin[0]), abs(pp[ "y"] - machine.origin[1]))
+            #if change is larger than 2% of factory size, update
+            if maxDelta > max(*self.factory.FACTORYDIMENSIONS)*0.02:
+                self.factory.machine_dict[index].translate_Item(pp["x"],pp[ "y"])
+                self.update_needed()
+
         elif index in self.factory.machine_dict and "u" in pp and "v" in pp:
             #input 0-1 -> scale to window coordinates -> scale to current zoom
-            scaled_u = np.around(pp["u"],3) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
-            scaled_v = np.around(pp["v"],3) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
+            scaled_u = np.around(pp["u"],2) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
+            scaled_v = np.around(pp["v"],2) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
             #Grab machine center instead of origin
             scaled_u = scaled_u - self.factory.machine_dict[index].width/2
             scaled_v = scaled_v - self.factory.machine_dict[index].height/2
-            self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
-            self.update_needed()
+            #Calculate distance of change
+            machine = self.factory.machine_dict[index]
+            maxDelta = max(abs(scaled_u - machine.origin[0]),abs(scaled_v - machine.origin[1]))
+            #if change is larger than 2% of factory size, update
+            if maxDelta > max(*self.factory.FACTORYDIMENSIONS)*0.02:
+                self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
+                self.update_needed()
+
         elif index in self.mobile_dict and "x" in pp and "y" in pp:
             self.mobile_dict[index].translate_Item(pp["x"],pp["y"])
+
         elif index in self.mobile_dict and "u" in pp and "v" in pp:
             #input 0-1 -> scale to window coordinates -> scale to current zoom
-            scaled_u = np.around(pp["u"],3) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
-            scaled_v = np.around(pp["v"],3) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
+            scaled_u = np.around(pp["u"],2) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
+            scaled_v = np.around(pp["v"],2) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
             self.mobile_dict[index].translate_Item(scaled_u,scaled_v)
         else:
             print("MQTT message malformed. Needs JSON Payload containing x and y coordinates (u, v coordinates) and valid machine index\n",index)
