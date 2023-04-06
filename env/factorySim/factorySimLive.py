@@ -603,8 +603,9 @@ class factorySimLive(mglw.WindowConfig):
             #input 0-1 -> scale to window coordinates -> scale to current zoom
             scaled_u = np.around(pp["u"],3) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
             scaled_v = np.around(pp["v"],3) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
-            scaled_u = np.around(pp["u"],3) * self.window_size[0] / self.currentScale
-            scaled_v = np.around(pp["v"],3) * self.window_size[1] / self.currentScale
+            #Grab machine center instead of origin
+            scaled_u = scaled_u - self.factory.machine_dict[index].width/2
+            scaled_v = scaled_v - self.factory.machine_dict[index].height/2
             self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
             self.update_needed()
         elif index in self.mobile_dict and "x" in pp and "y" in pp:
