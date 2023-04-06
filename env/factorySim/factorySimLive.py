@@ -592,7 +592,6 @@ class factorySimLive(mglw.WindowConfig):
                 return index[3]
    
 
-
     def handleMQTT_Position(self, topic, payload):
         pp = json.loads(payload)
         index = self.extractID(topic)
