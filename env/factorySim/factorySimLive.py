@@ -75,14 +75,14 @@ class factorySimLive(mglw.WindowConfig):
     selected = None
     currentScale = 1.0
     is_darkmode = True
-    is_EDF = True
+    is_EDF = False
     is_dirty = False
     is_calculating = False
     update_during_calculation = False
     clickedPoints = []
-    #factoryConfig = baseConfigs.SMALLSQUARE
+    factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF_EMPTY
-    factoryConfig = baseConfigs.EDF
+    #factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
@@ -113,12 +113,12 @@ class factorySimLive(mglw.WindowConfig):
         # "2",  
         # "TestCaseZigZag" + ".ifc")
 
-        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",
-        "2",  
-        "EDF" + ".ifc")
+        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        # "..",
+        # "..",
+        # "Input",
+        # "2",  
+        # "EDF" + ".ifc")
         #self.ifcpath = None
         self.create_factory()
 
@@ -380,8 +380,9 @@ class factorySimLive(mglw.WindowConfig):
             drawCollisions(self.cctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
 
-        for key, mobile in self.mobile_dict.items():
-            draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
+        if self.is_EDF:
+            for key, mobile in self.mobile_dict.items():
+                draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
        
 
         if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
