@@ -635,7 +635,7 @@ class factorySimLive(mglw.WindowConfig):
     def handleMQTT_Geometry(self, topic, payload):
         pp = json.loads(payload)
         index = self.extractID(topic)
-        if index is not None and "topleft_x" in pp and "topleft_y" in pp and "bottomright_x" in pp and "bottomright_y" in pp:
+        if index is not None and "topleft_x5" in pp and "topleft_y" in pp and "bottomright_x" in pp and "bottomright_y" in pp:
             self.factory_add_rect((pp["topleft_x"],pp["topleft_y"]),(pp["bottomright_x"],pp["bottomright_y"]), gid=index)
             self.update_needed()
         elif index is not None and "points" in pp:

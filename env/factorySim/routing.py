@@ -13,6 +13,7 @@ warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning)
 
 import numpy as np
 import networkx as nx
+from scipy.spatial import KDTree
 
 DETAILPLOT = False
 
@@ -54,7 +55,8 @@ class FactoryPath():
             multi = MultiPolygon()
         else:
             print("Error: No valid Polygon in Machine Dictionary")
-            return self.fullPathGraph, self.reducedPathGraph
+            return self.fullPathGraph, self.reducedPathGraph, MultiPolygon() 
+
         walllist = [x.poly for x in wall_dict.values()]
         union = unary_union(walllist)
         if union.geom_type == "MultiPolygon":
@@ -83,7 +85,7 @@ class FactoryPath():
             walkableArea = walkableArea.geoms[0]
 
 
-        #   Create Voronoi -----------------------------------------------------------------------------------------------------------------
+#   Create Voronoi -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         #Points around boundary
 
         distances = np.arange(0,  walls.boundary.length, self.boundarySpacing * scale)
@@ -156,7 +158,7 @@ class FactoryPath():
         self.hit_tree = STRtree(self.hitpoints)
 
 
-        # Create Graph -----------------------------------------------------------------------------------------------------------------
+# Create Graph -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         self.fullPathGraph = nx.Graph()
         for index, line in enumerate(self.route_lines):
             lastPoint = None
@@ -206,7 +208,7 @@ class FactoryPath():
 
         if self.TIMING: self.timelog("Network generation")
 
-        # Filter  Graph -----------------------------------------------------------------------------------------------------------------
+# Filter  Graph -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         # Cleans road network created with voronoi method by 
         # - removing elements that are narrower than min_pathwidth
         # - removing any dangeling parts that might have been cut off
@@ -251,9 +253,10 @@ class FactoryPath():
 
         if self.PLOTTING: self.inter_filteredGraph = self.fullPathGraph.copy()
         if total:
+            total = MultiPoint(total)
             endpoints_to_prune = self.endpoints.copy()
             for point in repPoints:
-                hit = nearest_points(point, MultiPoint(total))[1]
+                hit = nearest_points(point, total)[1] # Get the nearest point from the total list
                 key = str((hit.x, hit.y))
                 if key in endpoints_to_prune: endpoints_to_prune.remove(key)
 
@@ -262,16 +265,50 @@ class FactoryPath():
                 if nodes_to_prune: self.fullPathGraph.remove_nodes_from(nodes_to_prune)
 
 
-        self.endpoints = [node for node, degree in self.fullPathGraph.degree() if degree == 1]
-        self.crossroads = [node for node, degree in self.fullPathGraph.degree() if degree >= 3]
-
         nx.set_node_attributes(self.fullPathGraph, self.findSupportNodes(self.fullPathGraph, cutoff=self.simplificationAngle))
         self.support = list(nx.get_node_attributes(self.fullPathGraph, "isSupport").keys())
 
 
         if self.TIMING: self.timelog("Network Filtering")
 
-        # Simpicification and Path Generation ------------------------------------------------------------------------------------
+        
+
+# Connect Machines to Network  -------------------------------------------------------------------------------------------------------------------------------------------------- 
+
+        #Create KDTree for fast nearest neighbor search from node positions
+        pos=nx.get_node_attributes(self.fullPathGraph,'pos')
+        tree = KDTree(np.array(list(pos.values())))
+        #Add machine center nodes to graph
+        self.fullPathGraph.add_nodes_from([(k, {"pos":[v.center.x, v.center.y], "isMachineConnection":True}) for k, v in machine_dict.items()])
+
+        #Find clostest node to machine center for every machine center
+        distances, indexes = tree.query([[v.center.x, v.center.y] for v in machine_dict.values()], k=1)
+
+        # print(np.array(list(pos.values())))
+        # print(list(machine_dict.keys()))
+        # print(indexes)
+
+        for index, distance, machine in zip(indexes, distances, machine_dict.keys()):
+            #Get the closest node
+            closest_node = list(pos.keys())[index]
+
+            #Add edge between the two
+            self.fullPathGraph.add_edge(machine, 
+                                        closest_node, 
+                                        weight=distance,
+                                        pathwidth=self.fullPathGraph.nodes[closest_node]["pathwidth"],
+                                        true_pathwidth=self.fullPathGraph.nodes[closest_node]["pathwidth"],
+                                        isMachineConnection=True,  
+                                        )
+
+        #Update positions of nodes
+        pos = nx.get_node_attributes(self.fullPathGraph,'pos')
+        self.endpoints = [node for node, degree in self.fullPathGraph.degree() if degree == 1]
+        self.crossroads = [node for node, degree in self.fullPathGraph.degree() if degree >= 3]
+
+        if self.TIMING: self.timelog("Machine Connection Calculation")
+
+# Simpicification and Path Generation --------------------------------------------------------------------------------------------------------------------------------------------------
 
         self.reducedPathGraph = nx.Graph()
 
@@ -312,7 +349,7 @@ class FactoryPath():
 
                 lastNode = currentOuterNode
                 currentInnerNode = outerNeighbor
-                tempPath.append(pos[currentOuterNode])
+                tempPath.append(currentOuterNode)
 
                 while True:
                     #check if next node is deadend or crossroad
@@ -325,8 +362,9 @@ class FactoryPath():
 
                     if currentInnerNode in stoppers:
                         #found a crossroad or deadend
-                        tempPath.append(pos[currentInnerNode])
-                        tempPath = self.filterZigZag(tempPath)
+                        tempPath.append(currentInnerNode)
+                        #tempPath = self.filterZigZag(tempPath, pos) 
+                        self.filterZigZag(tempPath, pos) 
                         
                         #Prevent going back and forth between direct connected crossroads 
                         if lastNode != currentOuterNode:
@@ -336,6 +374,10 @@ class FactoryPath():
                         pathtype = "oneway"
                         if minpath > self.minTwoWayPathWidth: pathtype = "twoway"
 
+                        if "isMachineConnection" in self.fullPathGraph.nodes[currentOuterNode] or "isMachineConnection" in self.fullPathGraph.nodes[currentInnerNode]:
+                            machineConnection = True
+                        else:
+                            machineConnection = False
 
                         self.reducedPathGraph.add_node(currentOuterNode, pos=pos[currentOuterNode])
                         self.reducedPathGraph.add_node(currentInnerNode, pos=pos[currentInnerNode])
@@ -345,14 +387,15 @@ class FactoryPath():
                             pathwidth=minpath, 
                             max_pathwidth=maxpath, 
                             nodelist=tempPath,
-                            pathtype=pathtype
+                            pathtype=pathtype,
+                            isMachineConnection=machineConnection
                         )
 
                         tempPath = [] 
                         break 
                     else:
                         #going along path
-                        tempPath.append(pos[currentInnerNode])
+                        tempPath.append(currentInnerNode)
 
                     for innerNeighbor in self.fullPathGraph.neighbors(currentInnerNode):
                         #Identifying next node (there will at most be two edges connected to every node)
@@ -365,14 +408,23 @@ class FactoryPath():
                             currentInnerNode = innerNeighbor
                             break
 
+        nx.set_node_attributes(self.fullPathGraph, self.calculateNodeAngles(self.fullPathGraph, self.reducedPathGraph))
+
         if self.TIMING: 
             self.timelog("Network Path Generation")
             print(f"Algorithm Total: {self.nextTime - self.totalTime}")
 
-        nx.set_node_attributes(self.fullPathGraph, self.calculateNodeAngles(self.fullPathGraph, self.reducedPathGraph))
         
         return self.fullPathGraph, self.reducedPathGraph, walkableArea
+    
 
+
+
+
+
+
+
+# Support Functions    --------------------------------------------------------------------------------------------------------------------------------------------------
     def calculateNodeAngles(self, fullPathGraph, reducedPathGraph):
         node_data ={}
         pos=nx.get_node_attributes(fullPathGraph, 'pos')
@@ -381,7 +433,7 @@ class FactoryPath():
 
             for index, node in enumerate(data['nodelist'][1:-1]):
                 node = str(node)
-                neighbors = [str(data['nodelist'][index]), str(data['nodelist'][index+2])]
+                neighbors = [data['nodelist'][index], data['nodelist'][index+2]]
                 
                 vector_1 = np.array(pos[neighbors[0]]) -np.array(pos[node])
                 vector_2 = np.array(pos[neighbors[1]]) - np.array(pos[node])
@@ -503,12 +555,41 @@ class FactoryPath():
         return shortDeadEnds
 
 
-    def filterZigZag(self, inputpaths):
-        temp = LineString(inputpaths).simplify(self.boundarySpacing/2, preserve_topology=False)
-        return list(temp.coords)
+    def filterZigZag(self, nodelist, pos):
+        coords = [pos[node] for node in nodelist]
+        temp = LineString(coords).simplify(self.boundarySpacing/2, preserve_topology=False)
+        print(nodelist)
+        print(temp)
+        return nodelist
 
 
-#%% TESTS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%% TESTS --------------------------------------------------------------------------------------------------------------------------------
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import os
@@ -521,21 +602,14 @@ if __name__ == "__main__":
     SAVEPLOT = True
     SAVEFORMAT = "svg"
     DETAILPLOT = True
-    PLOT = True
     ITERATIONS = 1
-    LINESCALER = 20
+    LINESCALER = 25
 
     rng = np.random.default_rng()
 
     for runs in tqdm(range(ITERATIONS)):
         factoryCreator = FactoryCreator(*baseConfigs.SMALLSQUARE.creationParameters())
 
-        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-            "..",
-            "..",
-            "Input",
-            "2",  
-            "TestCaseZigZag" + ".ifc")
         
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
             "..",
@@ -543,8 +617,14 @@ if __name__ == "__main__":
             "Input",
             "FAIM2023" + ".ifc")
    
-        
+        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+            "..",
+            "..",
+            "Input",
+            "2",  
+            "TestCaseZigZag" + ".ifc")
 
+ 
         wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
         bb = factoryCreator.bb  
         #machine_dict = factoryCreator.create_factory()
@@ -557,17 +637,17 @@ if __name__ == "__main__":
         factoryPath.TIMING = True
         factoryPath.PLOTTING = True
         factoryPath.calculateAll(machine_dict, wall_dict, bb)
-        pos=nx.get_node_attributes(factoryPath.inter_unfilteredGraph,'pos')
+        pos=nx.get_node_attributes(factoryPath.fullPathGraph,'pos')
 
            
         factoryRating = FactoryRating(machine_dict=factoryCreator.machine_dict, wall_dict=factoryCreator.wall_dict, fullPathGraph=factoryPath.fullPathGraph, reducedPathGraph=factoryPath.reducedPathGraph, prepped_bb=factoryCreator.prep_bb)
         pathPoly = factoryRating.PathPolygon()
 
-        if PLOT:
+        if factoryPath.PLOTTING:
     #  Filtered_Lines Plot -----------------------------------------------------------------------------------------------------------------
             if DETAILPLOT:
                 print("1 - Filtered_Lines")
-                fig, ax = plt.subplots(1,figsize=(16, 16))
+                fig, ax = plt.subplots(1,figsize=(8, 8))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
                 plt.gca().invert_yaxis()
@@ -598,12 +678,13 @@ if __name__ == "__main__":
             # Pathwidth_Calculation Plot -----------------------------------------------------------------------------------------------------------------
             if DETAILPLOT:
                 print("2 - Pathwidth_Calculation")
-                fig, ax = plt.subplots(1,figsize=(16, 16))
+                fig, ax = plt.subplots(1,figsize=(8, 8))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
                 plt.gca().invert_yaxis()
                 plt.autoscale(False)
                 plt.axis('off')
+                pos_u=nx.get_node_attributes(factoryPath.inter_unfilteredGraph,'pos')
 
                 for wall in wall_dict.values():
                     ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
@@ -611,7 +692,7 @@ if __name__ == "__main__":
                 for point in factoryPath.hitpoints:
                     ax.scatter(point.x, point.y, color='red')
 
-                nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="dimgrey", width=2)
+                nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, edge_color="dimgrey", width=2)
                 for line in factoryPath.route_lines:
                     for point in line.coords[::2]:
                         point = Point(point)
@@ -633,7 +714,7 @@ if __name__ == "__main__":
             #  Filtering Plot -----------------------------------------------------------------------------------------------------------------
             
             print("3 - Pruning")
-            fig, ax = plt.subplots(1,figsize=(16, 16))
+            fig, ax = plt.subplots(1,figsize=(8, 8))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()
@@ -650,17 +731,17 @@ if __name__ == "__main__":
                     ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
 
             pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.inter_unfilteredGraph,'pathwidth').values())))
-
-            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="silver", width=pathwidth/LINESCALER, alpha=0.6)
-            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edge_color="red", width=2, alpha=1)
-            nx.draw_networkx_edges(factoryPath.inter_filteredGraph, pos=pos, ax=ax, edge_color="lime", width=2, alpha=1)
+            
+            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, edge_color="silver", width=pathwidth/LINESCALER, alpha=0.6)
+            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, edge_color="red", width=2, alpha=1)
+            nx.draw_networkx_edges(factoryPath.inter_filteredGraph, pos=pos_u, ax=ax, edge_color="lime", width=2, alpha=1)
             nx.draw_networkx_edges(factoryPath.fullPathGraph, pos=pos, ax=ax, edge_color="dimgrey", width=5, alpha=1)
-            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, edgelist=factoryPath.narrowPaths, edge_color="blue", width=2, alpha=1)
+            nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, edgelist=factoryPath.narrowPaths, edge_color="blue", width=2, alpha=1)
 
 
-            nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, nodelist=factoryPath.shortDeadEnds, node_size=80, node_color='white', alpha=0.6, linewidths=4, edgecolors='green')
-            nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, nodelist=factoryPath.old_endpoints, node_size=150, node_color='green')
-            nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos, ax=ax, nodelist=factoryPath.old_crossroads, node_size=150, node_color='white', alpha=0.6, linewidths=4, edgecolors='red')
+            nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, nodelist=factoryPath.shortDeadEnds, node_size=80, node_color='white', alpha=0.6, linewidths=4, edgecolors='green')
+            nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, nodelist=factoryPath.old_endpoints, node_size=150, node_color='green')
+            nx.draw_networkx_nodes(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, nodelist=factoryPath.old_crossroads, node_size=150, node_color='white', alpha=0.6, linewidths=4, edgecolors='red')
 
             if SAVEPLOT: plt.savefig(f"{runs+1}_3_Pruning.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
             
@@ -669,7 +750,7 @@ if __name__ == "__main__":
             #  Clean Plot -----------------------------------------------------------------------------------------------------------------
 
             print("4 - Clean")
-            fig, ax = plt.subplots(1,figsize=(16, 16))
+            fig, ax = plt.subplots(1,figsize=(8, 8))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()
@@ -677,15 +758,10 @@ if __name__ == "__main__":
             plt.axis('off')
 
             for wall in wall_dict.values():
-                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
-
-            if multi.geom_type ==  'Polygon':
-                ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
-            else:
-                for j, poly in enumerate(multi.geoms):
-                    ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
+                ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
 
+            #TODO
             for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
                 ax.plot(*zip(*data['nodelist']), color="dimgray", linewidth=data['pathwidth']/LINESCALER, alpha=1.0, solid_capstyle='round')
 
@@ -700,6 +776,12 @@ if __name__ == "__main__":
             
             #ax.add_patch(descartes.PolygonPatch(pathPoly, fc='red', ec='#000000', alpha=0.9))
 
+            if multi.geom_type ==  'Polygon':
+                ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5, zorder = 2))
+            else:
+                for j, poly in enumerate(multi.geoms):
+                    ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5, zorder = 2))
+
             if SAVEPLOT: plt.savefig(f"{runs+1}_4_Clean.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
 
             plt.show()
@@ -707,7 +789,7 @@ if __name__ == "__main__":
             #  Simplification Plot -----------------------------------------------------------------------------------------------------------------
             print("5 - Simplification")
 
-            fig, ax = plt.subplots(1,figsize=(16, 16))
+            fig, ax = plt.subplots(1,figsize=(8, 8))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()
@@ -736,9 +818,8 @@ if __name__ == "__main__":
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, node_size=20, node_color='black')
             nx.draw_networkx_nodes(factoryPath.reducedPathGraph, pos=pos, ax=ax, node_size=120, node_color='red')
             nx.draw_networkx_nodes(factoryPath.fullPathGraph, pos=pos, ax=ax, nodelist=factoryPath.support, node_size=120, node_color='green')
-            #old simplification
-            #nx.draw_networkx_edges(factoryPath.PathGraph, pos=pos, ax=ax, width=max_pathwidth * 9, edge_color="dimgrey")
-            #nx.draw_networkx_edges(factoryPath.PathGraph, pos=pos, ax=ax, width=min_pathwidth * 9, edge_color="blue", alpha=0.5)
+
+
             nx.draw_networkx_edges(factoryPath.fullPathGraph, pos=pos, ax=ax, edge_color="dimgray", alpha=0.5)
 
             min_pathwidth = np.array(list((nx.get_edge_attributes(factoryPath.reducedPathGraph,'pathwidth').values())))
@@ -755,7 +836,7 @@ if __name__ == "__main__":
             #  Closest Edge Plot -----------------------------------------------------------------------------------------------------------------
             if DETAILPLOT:
                 print("6 - Closest_Edge")
-                fig, ax = plt.subplots(1,figsize=(16, 16))
+                fig, ax = plt.subplots(1,figsize=(8, 8))
                 plt.xlim(0,bb.bounds[2])
                 plt.ylim(0,bb.bounds[3])
                 plt.gca().invert_yaxis()
@@ -777,18 +858,13 @@ if __name__ == "__main__":
                 repPoints = [poly.representative_point() for poly in multi.geoms]
                 endpoint_pos = [pos[endpoint] for endpoint in factoryPath.endpoints ]
                 crossroad_pos = [pos[crossroad] for crossroad in factoryPath.crossroads]
-                total = endpoint_pos + crossroad_pos
-
-                endpoints_to_prune = factoryPath.endpoints.copy()
-
+                total = MultiPoint(endpoint_pos + crossroad_pos)
 
 
                 for point in repPoints:
                     ax.plot(point.x, point.y, 'o', color='green', ms=10)
-                    hit = nearest_points(point, MultiPoint(total))[1]
-                    ax.plot([point.x, hit.x],[ point.y, hit.y], color="green",linewidth=3)
-                    key = str((hit.x, hit.y))
-                    if key in endpoints_to_prune: endpoints_to_prune.remove(key)
+                    hit = nearest_points(point, total)[1]
+                    ax.plot([point.x, hit.x],[ point.y, hit.y], color="green",linewidth=20)
 
 
                 if SAVEPLOT: plt.savefig(f"{runs+1}_6_Closest_Edge.{SAVEFORMAT}", format=SAVEFORMAT, bbox_inches='tight', transparent=True)
@@ -796,7 +872,7 @@ if __name__ == "__main__":
 
             #  Path Plot --------------------------------------------------------------------------------------------------------
             print("7 - Path_Plot")
-            fig, ax = plt.subplots(1,figsize=(16, 16))
+            fig, ax = plt.subplots(1,figsize=(8, 8))
             plt.xlim(0,bb.bounds[2])
             plt.ylim(0,bb.bounds[3])
             plt.gca().invert_yaxis()

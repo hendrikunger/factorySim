@@ -33,9 +33,10 @@ class FactoryRating():
 
     def PathPolygon(self):
         polys = []
-        if self.reducedPathGraph:
+        if self.reducedPathGraph and self.fullPathGraph:
             for u,v,data in self.reducedPathGraph.edges(data=True):
-                line = LineString(data["nodelist"])
+                pos = nx.get_node_attributes(self.fullPathGraph,'pos')
+                line = LineString([pos[node] for node in data["nodelist"]])
                 polys.append(line.buffer(data['pathwidth']/2)) 
         if polys:
             walls = unary_union(list(x.poly for x in self.wall_dict.values()))
