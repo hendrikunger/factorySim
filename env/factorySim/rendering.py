@@ -21,30 +21,37 @@ def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
 
     if fullPathGraph and reducedPathGraph:
         modifer = 0.5 if asStreets else 1.0
+        pos = nx.get_node_attributes(fullPathGraph,'pos')
         for u,v,data in reducedPathGraph.edges(data=True):
-            #print(data['nodelist'][1])
-            ctx.set_line_width(data['pathwidth']*modifer)
-            ctx.move_to(*data['nodelist'][0])
-            for node in data['nodelist'][1:]:
-                ctx.line_to(*node)
-                node_data = fullPathGraph.nodes[str(node)]
+            if data.get("isMachineConnection", False):
+                ctx.set_line_width(ctx.device_to_user_distance(2, 1)[0])
+            else:
+                ctx.set_line_width(data['pathwidth']*modifer)
+            nodelist = [pos[node] for node in data["nodelist"]]
+            ctx.move_to(*nodelist[0])
+            for position, key in zip(nodelist[1:], data["nodelist"][1:]):
+                ctx.line_to(*position)
+                node_data = fullPathGraph.nodes[key]
                 if "edge_angle" in node_data:
                     #print(node_data["edge_angle"], node_data["arcstart"], node_data["arcend"]) 
-                    ctx.arc(node[0], node[1], 10, node_data["arcstart"], node_data["arcend"])
+                    ctx.arc(*position, 10, node_data["arcstart"], node_data["arcend"])
             ctx.stroke()        
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
 
         for u,v,data in reducedPathGraph.edges(data=True):
+            if data.get("isMachineConnection", False): continue
             if data['pathtype'] =="twoway":
+                nodelist = [pos[node] for node in data["nodelist"]]
                 ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
-                ctx.move_to(*data['nodelist'][0])
-                for node in data['nodelist'][1:]:
-                    ctx.line_to(*node)
+                ctx.move_to(*nodelist[0])
+                for position in nodelist[1:]:
+                    ctx.line_to(*position)
         ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
         ctx.stroke()
         ctx.set_dash([])
 
     return ctx
+
 #------------------------------------------------------------------------------------------------------------
 def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
     if fullPathGraph and reducedPathGraph:
@@ -88,25 +95,26 @@ def draw_node_angles(ctx, fullPathGraph, reducedPathGraph):
 
             for node in data['nodelist']:
 
-                node_data = fullPathGraph.nodes[str(node)]
-                ctx.move_to(*node)
-                ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
-                ctx.arc(*node, ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
-                ctx.fill()  
+                node_data = fullPathGraph.nodes[node]
+                if not node_data.get("isMachineConnection", False):
+                    ctx.move_to(*node_data["pos"])
+                    ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+                    ctx.arc(*node_data["pos"], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+                    ctx.fill()  
                 if "edge_angle" in node_data:
                     r = ctx.device_to_user_distance(30, 30)[0]
-                    ctx.move_to(node[0], node[1])
+                    ctx.move_to(*node_data["pos"])
                     if node_data["arcstart"] > node_data["arcend"]:
-                        ctx.arc_negative(node[0], node[1], r, node_data["arcstart"], node_data["arcend"])
+                        ctx.arc_negative(node_data["pos"][0], node_data["pos"][1], r, node_data["arcstart"], node_data["arcend"])
                         ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
                         
                     else:
-                        ctx.arc_negative(node[0], node[1], r, node_data["arcstart"], node_data["arcend"])
+                        ctx.arc_negative(node_data["pos"][0], node_data["pos"][1], r, node_data["arcstart"], node_data["arcend"])
                         ctx.set_source_rgba(0.0, 1.0, 0.0, 1.0)
                         
                     ctx.close_path()
                     ctx.stroke() 
-                    ctx.move_to(node[0], node[1])
+                    ctx.move_to(*node_data["pos"])
                     ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
                     ctx.show_text(str(round(node_data["edge_angle"], 2)))
   
@@ -162,8 +170,9 @@ def draw_points(ctx, points, color):
 def draw_pathwidth_circles(ctx, fullPathGraph):
     if fullPathGraph:
         for _ , data in fullPathGraph.nodes(data=True):
-            ctx.move_to(data['pos'][0] + data['pathwidth']/2, data['pos'][1])
-            ctx.arc(*data['pos'], data['pathwidth']/2, 0, 2*np.pi)
+            if "pathwidth" in data:
+                ctx.move_to(data['pos'][0] + data['pathwidth']/2, data['pos'][1])
+                ctx.arc(*data['pos'], data['pathwidth']/2, 0, 2*np.pi)
         ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
         ctx.set_source_rgba(0.0, 0.0, 0.8, 0.8)
         ctx.stroke()
@@ -173,8 +182,9 @@ def draw_pathwidth_circles2(ctx, fullPathGraph, reducedPathGraph):
     if fullPathGraph and reducedPathGraph:
         pathwidth = (nx.get_node_attributes(fullPathGraph,'pathwidth'))
         for node , data in reducedPathGraph.nodes(data=True):
-            ctx.move_to(data['pos'][0] + pathwidth[node]/2, data['pos'][1])
-            ctx.arc(*data['pos'], pathwidth[node]/2, 0, 2*np.pi)
+            if "pathwidth" in data:
+                ctx.move_to(data['pos'][0] + pathwidth[node]/2, data['pos'][1])
+                ctx.arc(*data['pos'], pathwidth[node]/2, 0, 2*np.pi)
         ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
         ctx.set_source_rgba(0.0, 0.0, 0.8, 0.8)
         ctx.stroke()
