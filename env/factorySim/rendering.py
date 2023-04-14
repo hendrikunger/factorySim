@@ -96,10 +96,11 @@ def draw_node_angles(ctx, fullPathGraph, reducedPathGraph):
             for node in data['nodelist']:
 
                 node_data = fullPathGraph.nodes[node]
-                ctx.move_to(*node_data["pos"])
-                ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
-                ctx.arc(*node_data["pos"], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
-                ctx.fill()  
+                if not node_data.get("isMachineConnection", False):
+                    ctx.move_to(*node_data["pos"])
+                    ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+                    ctx.arc(*node_data["pos"], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+                    ctx.fill()  
                 if "edge_angle" in node_data:
                     r = ctx.device_to_user_distance(30, 30)[0]
                     ctx.move_to(*node_data["pos"])

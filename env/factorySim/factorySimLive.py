@@ -241,7 +241,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.activeModes[Modes.DRAWING] = DrawingModes.NONE
                 self.wnd.exit_key = keys.ESCAPE
             # Del to delete
-            if key == keys.DELETE and self.selected is not None:
+            if key == keys.DELETE and self.selected is not None and not self.is_calculating:
                 self.factory_delete_item(self.selected)
                 self.selected = None
 
@@ -265,7 +265,7 @@ class factorySimLive(mglw.WindowConfig):
             self.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale) + self.factory.DRAWINGORIGIN[0]) + self.selected_offset_x,
                 ((y / self.currentScale) + self.factory.DRAWINGORIGIN[1]) + self.selected_offset_y)
             self.update_needed()
-
+            
 
     def mouse_press_event(self, x, y, button):
         #Highlight and prepare for Drag
@@ -419,7 +419,7 @@ class factorySimLive(mglw.WindowConfig):
 
 
 #--------------------------------------------------------------------------------------------------------------------------------
-    def update_needed(self):            
+    def update_needed(self):
         self.is_dirty = True
         if self.is_calculating:
             self.update_during_calculation = True 
@@ -637,10 +637,8 @@ class factorySimLive(mglw.WindowConfig):
         index = self.extractID(topic)
         if index is not None and "topleft_x5" in pp and "topleft_y" in pp and "bottomright_x" in pp and "bottomright_y" in pp:
             self.factory_add_rect((pp["topleft_x"],pp["topleft_y"]),(pp["bottomright_x"],pp["bottomright_y"]), gid=index)
-            self.update_needed()
         elif index is not None and "points" in pp:
             self.factory_add_poly(pp["points"], gid=index)
-            self.update_needed()
         elif index is not None and index in self.factory.machine_dict and pp == []:
             self.factory.machine_dict.pop(index)
             self.update_needed()

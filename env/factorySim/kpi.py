@@ -62,7 +62,8 @@ class FactoryRating():
         '''Calculates the sum of machines sidelengths if they where squares and devides it by the total length of paths'''
         if self.reducedPathGraph:
             machineSquares = np.sqrt(np.array([x.poly.area for x in self.machine_dict.values()]))
-            return np.clip(machineSquares.sum()/self.reducedPathGraph.size(weight='weight'),0,1)
+            subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()]) 
+            return np.clip(machineSquares.sum()/subview.size(weight='weight'),0,1)
         else:
             return 0      
  #------------------------------------------------------------------------------------------------------------
@@ -130,9 +131,8 @@ class FactoryRating():
     def evaluateDeadends(self):
         '''Compares amount of deadends to amount of edges in simplified graph'''
         if self.reducedPathGraph:
-
-            subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()])                     
-            return np.clip(1-(len([x for x in subview.nodes() if subview.degree(x) == 1])/(0.25*len(self.reducedPathGraph.edges()))),0,1)
+            subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()])            
+            return np.clip(1-(len([x for x in subview.nodes() if subview.degree(x) == 1])/(len(subview.edges()))),0,1)
         else :
             return 0
  #------------------------------------------------------------------------------------------------------------

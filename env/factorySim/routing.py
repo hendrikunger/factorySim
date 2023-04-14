@@ -302,7 +302,7 @@ class FactoryPath():
 
         ep = self.endpoints
         cross = self.crossroads
-        stoppers = set(ep + cross)
+        stoppers = set(ep + cross + self.old_endpoints)
 
         if ep: 
             nodes_to_visit = [ep[0]]
@@ -350,7 +350,7 @@ class FactoryPath():
                         tempPath.append(currentInnerNode)
                         #tempPath = self.filterZigZag(tempPath, pos) 
                         tempPath = {i:(node,pos[node]) for i, node in enumerate(tempPath)}
-                        tempPath = self.filterZigZag(tempPath, self.boundarySpacing * 3) 
+                        tempPath = self.filterZigZag(tempPath, self.boundarySpacing * 5) 
                         #Prevent going back and forth between direct connected crossroads 
                         if lastNode != currentOuterNode:
                             visited.add(lastNode)
