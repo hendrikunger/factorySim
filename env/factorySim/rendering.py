@@ -23,7 +23,6 @@ def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
         modifer = 0.5 if asStreets else 1.0
         pos = nx.get_node_attributes(fullPathGraph,'pos')
         for u,v,data in reducedPathGraph.edges(data=True):
-            #print(data['nodelist'][1])
             if data.get("isMachineConnection", False):
                 ctx.set_line_width(ctx.device_to_user_distance(2, 1)[0])
             else:
@@ -40,8 +39,9 @@ def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
         ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
 
         for u,v,data in reducedPathGraph.edges(data=True):
-            if node_data.get("isMachineConnection", False): continue
+            if data.get("isMachineConnection", False): continue
             if data['pathtype'] =="twoway":
+                nodelist = [pos[node] for node in data["nodelist"]]
                 ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
                 ctx.move_to(*nodelist[0])
                 for position in nodelist[1:]:
@@ -52,38 +52,6 @@ def draw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
 
     return ctx
 
-#------------------------------------------------------------------------------------------------------------
-def budraw_detail_paths(ctx, fullPathGraph, reducedPathGraph, asStreets=False):
-    ctx.set_source_rgba(0.3, 0.3, 0.3, 1.0)
-    ctx.set_line_join(cairo.LINE_JOIN_ROUND)
-    ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-
-    if fullPathGraph and reducedPathGraph:
-        modifer = 0.5 if asStreets else 1.0
-        for u,v,data in reducedPathGraph.edges(data=True):
-            #print(data['nodelist'][1])
-            ctx.set_line_width(data['pathwidth']*modifer)
-            ctx.move_to(*data['nodelist'][0])
-            for node in data['nodelist'][1:]:
-                ctx.line_to(*node)
-                node_data = fullPathGraph.nodes[str(node)]
-                if "edge_angle" in node_data:
-                    #print(node_data["edge_angle"], node_data["arcstart"], node_data["arcend"]) 
-                    ctx.arc(node[0], node[1], 10, node_data["arcstart"], node_data["arcend"])
-            ctx.stroke()        
-        ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
-
-        for u,v,data in reducedPathGraph.edges(data=True):
-            if data['pathtype'] =="twoway":
-                ctx.set_line_width(ctx.device_to_user_distance(1, 1)[0])
-                ctx.move_to(*data['nodelist'][0])
-                for node in data['nodelist'][1:]:
-                    ctx.line_to(*node)
-        ctx.set_dash(list(ctx.device_to_user_distance(10, 10)))
-        ctx.stroke()
-        ctx.set_dash([])
-
-    return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
     if fullPathGraph and reducedPathGraph:
