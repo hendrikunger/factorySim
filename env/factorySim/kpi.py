@@ -210,6 +210,22 @@ class FactoryRating():
             return 0
 
  #------------------------------------------------------------------------------------------------------------
+    def evaluateTrueMF(self, boundingBox):
+        if len(self.dfMF.index) > 0:
+            #sum of all costs /  maximum intensity (intensity sum norm * 1) 
+            #find longest distance possible in factory
+            maxDistance = max(boundingBox.bounds[2],  boundingBox.bounds[3])
+            subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()]) 
+            maxDistance = subview.size(weight='weight')
+            self.dfMF['trueDistance_norm'] = self.dfMF['trueDistances'] / maxDistance
+            self.dfMF['trueCosts'] = self.dfMF['trueDistance_norm'] * self.dfMF['intensity_sum_norm']
+            output = 1 - (np.power(self.dfMF['trueCosts'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
+            if(output < 0): output = 0
+
+            return np.power(output,2)
+        else:
+            return 0
+ #------------------------------------------------------------------------------------------------------------
     def evaluateMFIntersection(self):
         if len(self.dfMF.index) > 0:
             lines=[]

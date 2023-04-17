@@ -220,9 +220,9 @@ class FactorySim:
             self.printTime("Kollisionsbewertung abgeschlossen")
 
         self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.factoryCreator.bb) 
+        self.RatingDict["ratingTrueMF"] = self.factoryRating.evaluateTrueMF(self.factoryCreator.bb)
         #sort MF Dict for Rendering
         self.dfMF.sort_values(by=['intensity_sum_norm'], inplace=True, ascending=False) 
-        print(self.dfMF)
         self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()        
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Materialfluss abgeschlossen")
@@ -242,6 +242,7 @@ class FactorySim:
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
         self.RatingDict["Deadends"] =self.factoryRating.evaluateDeadends()
+        print(self.dfMF)
         
        
         #if(self.episodeCounter < len(self.machine_list)):
@@ -306,6 +307,7 @@ class FactorySim:
             con = " | "
         return (f"REWARD              : {self.RatingDict.get('TotalRating', 0): 1.2f}{con}"
                 f"Material Flow       : {self.RatingDict.get('ratingMF', 0): 1.2f}{con}"
+                f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', 0): 1.2f}{con}"
                 f"MF Intersections    : {self.RatingDict.get('MFIntersection', 0): 1.2f}{con}"
                 f"Collisions          : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
                 f"Route Continuity    : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
