@@ -196,7 +196,7 @@ class FactoryRating():
  #------------------------------------------------------------------------------------------------------------
     def evaluateMF(self, boundingBox):
         if len(self.dfMF.index) > 0:
-            self.dfMF['distance'] = self.dfMF.apply(lambda row: self.evaluateMF_Helper(row['from'], row['to']), axis=1)
+            self.dfMF['distance'] = self.dfMF.apply(lambda row: self.evaluateMF_Helper(row['source'], row['target']), axis=1)
             #sum of all costs /  maximum intensity (intensity sum norm * 1) 
             #find longest distance possible in factory
             maxDistance = max(boundingBox.bounds[2],  boundingBox.bounds[3])
@@ -222,8 +222,8 @@ class FactoryRating():
 
             #Check for intersections between all pairs of materialflow lines
             for row1, row2 in combinations(self.dfMF.itertuples(),2):
-                line1=LineString([self.machine_dict[row1._1].center, self.machine_dict[row1.to].center])
-                line2=LineString([self.machine_dict[row2._1].center, self.machine_dict[row2.to].center])
+                line1=LineString([self.machine_dict[row1.source].center, self.machine_dict[row1.target].center])
+                line2=LineString([self.machine_dict[row2.source].center, self.machine_dict[row2.target].center])
                 if line1.intersects(line2):
                     inter= line1.intersection(line2)
                     #check if intersection is a point and if it is an endpoint of one of the lines

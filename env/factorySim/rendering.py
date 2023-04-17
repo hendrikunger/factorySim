@@ -312,27 +312,49 @@ def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNam
 def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = True, isObs=False):
     if  materialflow_file is not None:
 
-        for index, row in materialflow_file.iterrows():
-            current_from_Machine = machine_dict[row['from']]
-            current_to_Machine = machine_dict[row['to']]
+        for row in materialflow_file.itertuples():
+            current_source_Machine = machine_dict[row.source]
+            current_target_Machine = machine_dict[row.target]
             try:
                 if(drawColors):
-                    ctx.set_source_rgba(*current_from_Machine.color, 0.7)
+                    ctx.set_source_rgba(*current_source_Machine.color, 0.7)
                 else:
                     ctx.set_source_rgba(0.6, 0.6, 0.6)
 
-                ctx.move_to(current_from_Machine.center.x, current_from_Machine.center.y)
-                ctx.line_to(current_to_Machine.center.x, current_to_Machine.center.y)
+                ctx.move_to(current_source_Machine.center.x, current_source_Machine.center.y)
+                ctx.line_to(current_target_Machine.center.x, current_target_Machine.center.y)
                 if isObs:
                     modifer = 3.0
                 else:
                     modifer = 20.0
-                ctx.set_line_width(ctx.device_to_user_distance(row["intensity_sum_norm"] * modifer, 0)[0] )
+                ctx.set_line_width(ctx.device_to_user_distance(row.intensity_sum_norm * modifer, 0)[0] )
                 ctx.stroke()   
             except KeyError:
-                print(f"Error in Material Flow Drawing - Machine {row[0]} or {row[1]} not defined")
+                print(f"Error in Material Flow Drawing - Machine {row.source} or {row.target} not defined")
                 continue
     
+
+    return ctx
+
+def drawRoutedMaterialFlow(ctx, machine_dict, fullPathGraph, materialflow_file=None, drawColors = True, selected=None):
+    if  materialflow_file is not None and fullPathGraph:
+        pos = nx.get_node_attributes(fullPathGraph,'pos')
+
+        for row in materialflow_file.itertuples():
+            if selected is not None and row.source != selected:
+                continue
+            current_source_Machine = machine_dict[row.source]
+
+            ctx.move_to(*pos[row.routes[0]])
+            for node in row.routes[1:]:
+                if(drawColors):
+                    ctx.set_source_rgba(*current_source_Machine.color, 0.7)
+                else:
+                    ctx.set_source_rgba(0.6, 0.6, 0.6)                   
+                ctx.line_to(*pos[node])
+
+            ctx.set_line_width(ctx.device_to_user_distance(row.intensity_sum_norm * 20.0, 0)[0] )
+            ctx.stroke()      
 
     return ctx
 

@@ -33,6 +33,8 @@ class FactoryPath():
         self.minTwoWayPathWidth = minTwoWayPathWidth  # Minimum Width of a Road to keep
         self.boundarySpacing = boundarySpacing # Spacing of Points used as Voronoi Kernels
         self.simplificationAngle = simplificationAngle # Angle in degrees, used for support point calculation in simple path
+        self.fullPathGraph = nx.Graph() # initialize the graph
+        self.reducedPathGraph = nx.Graph()# initialize the graph
 
     def timelog(self, text):
         self.nextTime = time.perf_counter()
@@ -415,6 +417,7 @@ class FactoryPath():
 
 
 
+
 # Support Functions    --------------------------------------------------------------------------------------------------------------------------------------------------
     def calculateNodeAngles(self):
         node_data ={}
@@ -608,17 +611,20 @@ class FactoryPath():
 
 
 
+# Shortest Path Calculation   --------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
 
 
+    def calculateRoutes(self, dfMF):
+        """
+        Calculates the routes for the given dataframe of machines and returns a list of routes and distances
+        """   
+        dfMF['routes'] = dfMF.apply(lambda x:nx.shortest_path(self.reducedPathGraph, source=x.source, target=x.target, weight='weight', method='dijkstra'), axis=1)
+        dfMF['trueDistances'] = dfMF.apply(lambda x:nx.path_weight(self.reducedPathGraph, x.routes, weight='weight'), axis=1)
 
-
-
-
-
-
+        return dfMF
 
 
 

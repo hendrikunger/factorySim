@@ -364,21 +364,22 @@ class factorySimLive(mglw.WindowConfig):
             draw_poly(self.cctx, self.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
         if self.activeModes[Modes.MODE_N0]: draw_poly(self.cctx, self.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
         if self.activeModes[Modes.MODE_N8]: draw_poly(self.cctx, self.factory.extendedPathPolygon, (0.0, 0.3, 0.0, 1.0))
-        if self.activeModes[Modes.MODE8]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
+        if self.activeModes[Modes.MODE3]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        if self.activeModes[Modes.MODE3]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
-        if self.activeModes[Modes.MODE9]:   
+        if self.activeModes[Modes.MODE_N2]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
+        if self.activeModes[Modes.MODE8]:   
             for key, poly in self.factory.usedSpacePolygonDict.items():
                 draw_poly(self.cctx, poly, (*self.cmap[key], 0.3))
-        if self.activeModes[Modes.MODE4]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
+        if self.activeModes[Modes.MODE_N1]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
         if self.activeModes[Modes.MODE0]:draw_node_angles(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        if self.activeModes[Modes.MODE6]: 
+        if self.activeModes[Modes.MODE5]: 
             drawMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
             draw_points(self.cctx, self.factory.MFIntersectionPoints, (1.0, 1.0, 0.0, 1.0))
-        if self.activeModes[Modes.MODE5]: 
+        if self.activeModes[Modes.MODE4]: 
             drawCollisions(self.cctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
-
+        if self.activeModes[Modes.MODE6]: 
+            drawRoutedMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.fullPathGraph, materialflow_file=self.factory.dfMF, selected=None)
 
         if self.is_EDF:
             for key, mobile in self.mobile_dict.items():
@@ -528,7 +529,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def factory_delete_item(self, index):
             self.factory.machine_dict.pop(index)
-            indexNames = self.factory.dfMF[ (self.factory.dfMF['from'] == index) | (self.factory.dfMF['to'] == index) ].index
+            indexNames = self.factory.dfMF[ (self.factory.dfMF['source'] == index) | (self.factory.dfMF['target'] == index) ].index
             self.factory.dfMF = self.factory.dfMF.drop(indexNames).reset_index(drop=True)
             self.update_needed()
             

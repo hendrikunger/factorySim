@@ -87,7 +87,7 @@ class FactoryCreator():
             bbox = poly.bounds
             poly = MultiPolygon([poly])
             #origin is lower left corner
-            self.machine_dict[i] = FactoryObject(gid=i, 
+            self.machine_dict[str(i)] = FactoryObject(gid=str(i), 
                                             name="creative_name_" + str(i),
                                             origin=(bbox[0],bbox[1]),
                                             poly=poly)
@@ -233,7 +233,7 @@ class FactoryCreator():
             if random.random() >= 0.9:
                 sample = random.choice(list(self.machine_dict.values()))
                 names.append([start.name, sample.name])                 
-        self.dfMF = pd.DataFrame(data=names, columns=["from", "to"])
+        self.dfMF = pd.DataFrame(data=names, columns=["source", "target"])
         self.dfMF['intensity'] = np.random.randint(1,100, size=len(self.dfMF))
 
         return self.dfMF

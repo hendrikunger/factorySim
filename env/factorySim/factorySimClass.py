@@ -126,7 +126,7 @@ class FactorySim:
             self.dfMF = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
             #Rename Colums
             indexes = self.dfMF.columns.tolist()
-            self.dfMF.rename(columns={indexes[0]:'from', indexes[1]:'to', indexes[2]:'intensity'}, inplace=True)
+            self.dfMF.rename(columns={indexes[0]:'source', indexes[1]:'target', indexes[2]:'intensity'}, inplace=True)
         else:
             #Create Random Materialflow
             self.dfMF = self.factoryCreator.createRandomMaterialFlow()
@@ -140,24 +140,24 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
     def addMaterialFlow(self, fromMachine, toMachine, intensity):
         #Add new Materialflow
-        #self.dfMF = self.dfMF.concat({'from': fromMachine, 'to': toMachine, 'intensity': intensity}, ignore_index=True)
-        newDF = pd.DataFrame({'from': [fromMachine], 'to': [toMachine], 'intensity': [intensity]})
+        newDF = pd.DataFrame({'source': [fromMachine], 'target': [toMachine], 'intensity': [intensity]})
         self.dfMF = pd.concat([self.dfMF, newDF], ignore_index=True)
         self.cleanMaterialFLow()
 
     def cleanMaterialFLow(self):
         #Group by from and two, add up intensity of all duplicates in intensity_sum
-        self.dfMF['intensity_sum'] = self.dfMF.groupby(by=['from', 'to'])['intensity'].transform('sum')
+        self.dfMF['intensity_sum'] = self.dfMF.groupby(by=['source', 'target'])['intensity'].transform('sum')
         #drop the duplicates and refresh index
-        self.dfMF = self.dfMF.drop_duplicates(subset=['from', 'to']).reset_index(drop=True)
+        self.dfMF = self.dfMF.drop_duplicates(subset=['source', 'target']).reset_index(drop=True)
         #normalise intensity sum 
         self.dfMF['intensity_sum_norm'] = self.dfMF['intensity_sum'] / self.dfMF.max()["intensity_sum"]
         #use machine index as sink and source for materialflow
         #Replace Machine Names in Material flow (From Sketchup Import) with machine dict key
         machine_dict = {machine.name: key for key, machine in self.machine_dict.items()}
-        self.dfMF[['from','to']] = self.dfMF[['from','to']].replace(machine_dict)
+        self.dfMF[['source','target']] = self.dfMF[['source','target']].replace(machine_dict)
         #set initial values for costs
         self.dfMF['costs'] = 0
+        self.dfMF['trueCosts'] = 0  # using the true distances
         
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
@@ -205,6 +205,9 @@ class FactorySim:
     def evaluate(self):
         
         self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
+        self.dfMF = self.factoryPath.calculateRoutes(self.dfMF)
+        
+
         self.walkableArea = MultiPolygon([self.walkableArea])
 
         if(self.verboseOutput >= 3):
@@ -216,7 +219,10 @@ class FactorySim:
         if(self.verboseOutput >= 3):
             self.printTime("Kollisionsbewertung abgeschlossen")
 
-        self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.factoryCreator.bb)  
+        self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.factoryCreator.bb) 
+        #sort MF Dict for Rendering
+        self.dfMF.sort_values(by=['intensity_sum_norm'], inplace=True, ascending=False) 
+        print(self.dfMF)
         self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()        
         if(self.verboseOutput >= 3):
             self.printTime("Bewertung des Materialfluss abgeschlossen")
