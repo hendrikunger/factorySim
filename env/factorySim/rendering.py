@@ -65,23 +65,36 @@ def draw_simple_paths(ctx, fullPathGraph, reducedPathGraph):
             ctx.move_to(*pos[u])
             ctx.line_to(*pos[v])
         ctx.stroke()
+
+        
+        for node in reducedPathGraph.nodes():
+            node_data = fullPathGraph.nodes[node]
+            if "isMachineConnection" in node_data:
+                ctx.set_source_rgba(1.0, 1.0, 0.0, 1.0)
+            elif "isCrossroads" in node_data:
+                ctx.set_source_rgba(0.0, 1.0, 0.0, 1.0)
+            else:
+                ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+            ctx.move_to(*pos[node])
+            ctx.arc(*pos[node], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+            ctx.fill()
         
         #crossroads = list(nx.get_node_attributes(G, "isCrossroads").keys())
 
-        endpoints=[node for node, degree in fullPathGraph.degree() if degree == 1]
-        crossroads= [node for node, degree in fullPathGraph.degree() if degree >= 3]
+        # endpoints=[node for node, degree in fullPathGraph.degree() if degree == 1]
+        # crossroads= [node for node, degree in fullPathGraph.degree() if degree >= 3]
 
-        ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
-        for point in crossroads:
-            ctx.move_to(*pos[point])
-            ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
-        ctx.fill()
+        # ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
+        # for point in crossroads:
+        #     ctx.move_to(*pos[point])
+        #     ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+        # ctx.fill()
 
-        ctx.set_source_rgba(0.0, 1.0, 0.0, 1.0)
-        for point in endpoints:
-            ctx.move_to(*pos[point])
-            ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
-        ctx.fill()
+        # ctx.set_source_rgba(0.0, 1.0, 0.0, 1.0)
+        # for point in endpoints:
+        #     ctx.move_to(*pos[point])
+        #     ctx.arc(*pos[point], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)
+        # ctx.fill()
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
@@ -96,7 +109,7 @@ def draw_node_angles(ctx, fullPathGraph, reducedPathGraph):
             for node in data['nodelist']:
 
                 node_data = fullPathGraph.nodes[node]
-                if not node_data.get("isMachineConnection", False):
+                if not "isMachineConnection" in node_data:
                     ctx.move_to(*node_data["pos"])
                     ctx.set_source_rgba(1.0, 0.0, 0.0, 1.0)
                     ctx.arc(*node_data["pos"], ctx.device_to_user_distance(10, 10)[0], 0, 2*np.pi)

@@ -286,6 +286,8 @@ class FactoryPath():
             
             self.endpoints = [node for node, degree in self.fullPathGraph.degree() if degree == 1]
             self.crossroads = [node for node, degree in self.fullPathGraph.degree() if degree >= 3]
+            # #Set isCrossroads attribute on cross road nodes
+            nx.set_node_attributes(self.fullPathGraph, dict.fromkeys(self.crossroads, True), 'isCrossroads')
 
         if self.TIMING: self.timelog("Dead End Pruning")
 
