@@ -214,7 +214,6 @@ class FactoryRating():
         if len(self.dfMF.index) > 0:
             #sum of all costs /  maximum intensity (intensity sum norm * 1) 
             #find longest distance possible in factory
-            maxDistance = max(boundingBox.bounds[2],  boundingBox.bounds[3])
             subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()]) 
             maxDistance = subview.size(weight='weight')
             self.dfMF['trueDistance_norm'] = self.dfMF['trueDistances'] / maxDistance

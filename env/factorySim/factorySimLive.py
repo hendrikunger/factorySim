@@ -379,7 +379,7 @@ class factorySimLive(mglw.WindowConfig):
         if self.activeModes[Modes.MODE4]: 
             drawCollisions(self.cctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
         if self.activeModes[Modes.MODE6]: 
-            drawRoutedMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.fullPathGraph, materialflow_file=self.factory.dfMF, selected=None)
+            drawRoutedMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.fullPathGraph, self.factory.reducedPathGraph, materialflow_file=self.factory.dfMF, selected=None)
 
         if self.is_EDF:
             for key, mobile in self.mobile_dict.items():

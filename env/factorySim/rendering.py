@@ -336,7 +336,7 @@ def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = Tr
 
     return ctx
 
-def drawRoutedMaterialFlow(ctx, machine_dict, fullPathGraph, materialflow_file=None, drawColors = True, selected=None):
+def drawRoutedMaterialFlow(ctx, machine_dict, fullPathGraph, reducedPathGraph, materialflow_file=None, drawColors = True, selected=None):
     if  materialflow_file is not None and fullPathGraph:
         pos = nx.get_node_attributes(fullPathGraph,'pos')
 
@@ -345,16 +345,17 @@ def drawRoutedMaterialFlow(ctx, machine_dict, fullPathGraph, materialflow_file=N
                 continue
             current_source_Machine = machine_dict[row.source]
 
-            ctx.move_to(*pos[row.routes[0]])
-            for node in row.routes[1:]:
+            for index, node in enumerate(row.routes[0:-1]):
                 if(drawColors):
                     ctx.set_source_rgba(*current_source_Machine.color, 0.7)
                 else:
-                    ctx.set_source_rgba(0.6, 0.6, 0.6)                   
-                ctx.line_to(*pos[node])
-
-            ctx.set_line_width(ctx.device_to_user_distance(row.intensity_sum_norm * 20.0, 0)[0] )
-            ctx.stroke()      
+                    ctx.set_source_rgba(0.6, 0.6, 0.6) 
+                nodelist = reducedPathGraph.edges[node, row.routes[index + 1]]['nodelist']
+                ctx.move_to(*pos[nodelist[0]])
+                for nodeToDraw in nodelist[1:]:
+                    ctx.line_to(*pos[nodeToDraw]) 
+                ctx.set_line_width(ctx.device_to_user_distance(row.intensity_sum_norm * 20.0, 0)[0] )
+                ctx.stroke()      
 
     return ctx
 

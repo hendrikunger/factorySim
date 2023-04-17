@@ -242,7 +242,6 @@ class FactorySim:
         self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
         self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
         self.RatingDict["Deadends"] =self.factoryRating.evaluateDeadends()
-        print(self.dfMF)
         
        
         #if(self.episodeCounter < len(self.machine_list)):

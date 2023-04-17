@@ -623,7 +623,6 @@ class FactoryPath():
         """   
         dfMF['routes'] = dfMF.apply(lambda x:nx.shortest_path(self.reducedPathGraph, source=x.source, target=x.target, weight='weight', method='dijkstra'), axis=1)
         dfMF['trueDistances'] = dfMF.apply(lambda x:nx.path_weight(self.reducedPathGraph, x.routes, weight='weight'), axis=1)
-
         return dfMF
 
 
