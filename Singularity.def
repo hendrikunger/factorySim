@@ -1,0 +1,47 @@
+Bootstrap: docker
+From: rayproject/ray-ml:latest-gpu
+Stage: spython-base
+
+%files
+requirements_factorySim.txt .
+. .
+%post
+# syntax=docker/dockerfile:1
+
+
+# EXPOSE 8265
+#Tensorboard  run tensorboard --bind_all --logdir .
+# EXPOSE 6006 
+
+su -  root # USER root
+
+apt-get update && apt-get install -y --no-install-recommends \
+build-essential \
+libc6 \
+libcairo2-dev \
+pkg-config \
+python3-dev \
+ffmpeg \
+&& runuser -l  ray -c '$HOME/anaconda3/bin/pip --no-cache-dir install -U -r requirements_factorySim.txt' \
+&& apt-get clean \
+&& rm -rf /tmp/* \
+&& rm -rf /var/lib/apt/lists/*
+ 
+mkdir -p $HOME/factorySim
+cd $HOME/factorySim
+
+
+
+mkdir -p $HOME/factorySim/env
+cd $HOME/factorySim/env
+$HOME/anaconda3/bin/pip install .
+su -  ray # USER ray
+mkdir -p $HOME/factorySim
+cd $HOME/factorySim
+
+%runscript
+cd $HOME/factorySim
+exec /bin/bash "$@"
+%startscript
+cd $HOME/factorySim
+exec /bin/bash "$@"
