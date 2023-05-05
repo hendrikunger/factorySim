@@ -1,47 +1,42 @@
 Bootstrap: docker
-From: rayproject/ray-ml:latest-gpu
+From: nvcr.io/nvidia/tensorflow:23.04-tf2-py3
 Stage: spython-base
 
 %files
-requirements_factorySim.txt .
-. .
+* /workspace/factorySim/
+
 %post
 # syntax=docker/dockerfile:1
 
+
+#FROM rayproject/ray-ml:latest-gpu
 
 # EXPOSE 8265
 #Tensorboard  run tensorboard --bind_all --logdir .
 # EXPOSE 6006 
 
-su -  root # USER root
+
+cd /workspace/factorySim
 
 apt-get update && apt-get install -y --no-install-recommends \
 build-essential \
-libc6 \
 libcairo2-dev \
 pkg-config \
 python3-dev \
 ffmpeg \
-&& runuser -l  ray -c '$HOME/anaconda3/bin/pip --no-cache-dir install -U -r requirements_factorySim.txt' \
-&& apt-get clean \
-&& rm -rf /tmp/* \
-&& rm -rf /var/lib/apt/lists/*
+&& python3 -m pip install --upgrade pip \
+&& /usr/local/bin/pip3 --no-cache-dir install -U -r requirements_factorySim.txt
  
-mkdir -p $HOME/factorySim
-cd $HOME/factorySim
 
 
+cd /workspace/factorySim/env
+/usr/local/bin/pip3 install .
 
-mkdir -p $HOME/factorySim/env
-cd $HOME/factorySim/env
-$HOME/anaconda3/bin/pip install .
-su -  ray # USER ray
-mkdir -p $HOME/factorySim
-cd $HOME/factorySim
+cd /workspace//factorySim
 
 %runscript
-cd $HOME/factorySim
+cd /workspace//factorySim
 exec /bin/bash "$@"
 %startscript
-cd $HOME/factorySim
+cd /workspace//factorySim
 exec /bin/bash "$@"

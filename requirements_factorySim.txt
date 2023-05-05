@@ -8,3 +8,5 @@ pycairo
 gputil
 wandb
 tensorboardx
+scipy
+tqdm

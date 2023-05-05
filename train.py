@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
         stop = {
         "training_iteration": 100000,
-        "timesteps_total": 6500000,
+        "timesteps_total": 6500,
         "episode_reward_mean": 5,
         }
 
