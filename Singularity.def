@@ -1,0 +1,42 @@
+Bootstrap: docker
+From: nvcr.io/nvidia/tensorflow:23.04-tf2-py3
+Stage: spython-base
+
+%files
+* /workspace/factorySim/
+
+%post
+# syntax=docker/dockerfile:1
+
+
+#FROM rayproject/ray-ml:latest-gpu
+
+# EXPOSE 8265
+#Tensorboard  run tensorboard --bind_all --logdir .
+# EXPOSE 6006 
+
+
+cd /workspace/factorySim
+
+apt-get update && apt-get install -y --no-install-recommends \
+build-essential \
+libcairo2-dev \
+pkg-config \
+python3-dev \
+ffmpeg \
+&& python3 -m pip install --upgrade pip \
+&& /usr/local/bin/pip3 --no-cache-dir install -U -r requirements_factorySim.txt
+ 
+
+
+cd /workspace/factorySim/env
+/usr/local/bin/pip3 install .
+
+cd /workspace//factorySim
+
+%runscript
+cd /workspace//factorySim
+exec /bin/bash "$@"
+%startscript
+cd /workspace//factorySim
+exec /bin/bash "$@"

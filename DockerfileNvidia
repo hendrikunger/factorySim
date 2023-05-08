@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM nvcr.io/nvidia/tensorflow:22.10-tf2-py3
+FROM nvcr.io/nvidia/tensorflow:23.04-tf2-py3
 #FROM rayproject/ray-ml:latest-gpu
 
 EXPOSE 8265
