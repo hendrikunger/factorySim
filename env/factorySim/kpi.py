@@ -131,8 +131,11 @@ class FactoryRating():
     def evaluateDeadends(self):
         '''Compares amount of deadends to amount of edges in simplified graph'''
         if self.reducedPathGraph:
-            subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()])            
-            return np.clip(1-(len([x for x in subview.nodes() if subview.degree(x) == 1])/(len(subview.edges()))),0,1)
+            subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()])
+            if len(subview.edges()) > 0:            
+                return np.clip(1-(len([x for x in subview.nodes() if subview.degree(x) == 1])/(len(subview.edges()))),0,1)
+            else:
+                return 0
         else :
             return 0
  #------------------------------------------------------------------------------------------------------------
@@ -328,7 +331,6 @@ if __name__ == "__main__":
 
 
 
-# 	  Materialflusslänge                Entfernung (wegorientiert)
 # 	                                    Vorhandensein eindeutiger Wegachsen
 # 	                                    Kontaktflächen Wegenetz - Länge der Schnittkante zwischen erweitertem Wegpolygon und Maschine
 # 2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
@@ -342,6 +344,7 @@ if __name__ == "__main__":
 
 # Erledigt =================================================================
 
+# 	  Materialflusslänge                Entfernung (wegorientiert)
 # 1 - Materialflusslänge	            Entfernung (direkt)
 # 2 - Überschneidungsfreiheit	        Materialflussschnittpunkte
 # 4 - Intensität	                    Anzahl der Transporte

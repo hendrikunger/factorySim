@@ -54,7 +54,7 @@ class FactoryCreator():
         
         #Create Recangles
         for x,y in topLeftCornersRect:
-            singlePoly = box(x,y,x + self.rng.integers(self.maxShapeWidth*0.2, self.maxShapeWidth+1), y + self.rng.integers(self.maxShapeHeight*0.2, self.maxShapeHeight+1))
+            singlePoly = box(x,y,x + self.rng.integers(self.maxShapeWidth*0.2, self.maxShapeWidth+1), y + self.rng.integers(self.maxShapeHeight*0.2), self.maxShapeHeight+1)
             singlePoly= rotate(singlePoly, self.rng.choice([0,90,180,270]))  
             polygons.append(singlePoly)
 

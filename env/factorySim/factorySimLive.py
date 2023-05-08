@@ -113,13 +113,13 @@ class factorySimLive(mglw.WindowConfig):
         # "2",  
         # "TestCaseZigZag" + ".ifc")
 
-        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",
-        "2",  
-        "EDF" + ".ifc")
-        #self.ifcpath = None
+        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        # "..",
+        # "..",
+        # "Input",
+        # "2",  
+        # "EDF" + ".ifc")
+
         self.create_factory()
 
 

@@ -2,7 +2,6 @@ import os
 import random
 import yaml
 
-
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
@@ -17,8 +16,7 @@ from ray.rllib.env.multi_agent_env import make_multi_agent
 
 
 import factorySim.baseConfigs as baseConfigs
-from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text_topleft, drawMaterialFlow
-
+from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
 
  
 class FactorySimEnv(gym.Env):  
@@ -122,11 +120,16 @@ class FactorySimEnv(gym.Env):
 
     def render(self, mode='rgb_array'):
         draw_BG(self.rctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.rctx, self.factory, None, drawNames=False, highlight=self.currentMachine)
+        drawFactory(self.rctx, self.factory, drawColors=True, drawNames=False, highlight=self.currentMachine)
+        
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
-        drawCollisions(self.rctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
+        drawCollisions(self.rctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
-        draw_text_topleft(self.rctx, f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.info.get('ratingMF', -100):1.2f} | {self.info.get('ratingCollision', -100):1.2f}",(1,0,0))
+        draw_text(self.rctx, 
+                  f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.factory.generateRatingText(multiline=False)}",
+                  (1,0,0),
+                  (20, 20),
+                  factoryCoordinates=False)
         
         if mode == 'human' or self.rendermode == 'human':
             outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
@@ -154,12 +157,12 @@ class FactorySimEnv(gym.Env):
         #new Version greyscale
 
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
-        drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList)
+        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True, wallInteriorColor = (1, 1, 1),)
+        drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
         buf = self.surface.get_data()
         machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
-        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
+        self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
@@ -168,7 +171,7 @@ class FactorySimEnv(gym.Env):
         
         buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
-        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
+        self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
 
         return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) 
   
@@ -199,11 +202,11 @@ def main():
         "2",  
         filename + ".ifc")
 
-    # ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-    # "..",
-    # "..",
-    # "Input",
-    # "2")
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+    "..",
+    "..",
+    "Input",
+    "2")
 
     
     configpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -220,9 +223,9 @@ def main():
         
     env = FactorySimEnv( env_config = config['env_config'])
 
-    #env.prefix="test"
+    env.prefix="test"
 
-    for _ in tqdm(range(0,10)):
+    for _ in tqdm(range(0,20)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
         env.render(mode='human')
         if done:
@@ -230,8 +233,6 @@ def main():
             env.render(mode='human')
 
 
-
-        
     
 if __name__ == "__main__":
     main()

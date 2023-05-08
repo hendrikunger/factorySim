@@ -29,8 +29,8 @@ class FactorySim:
         self.factoryCreator = FactoryCreator(self.FACTORYDIMENSIONS,
             factoryConfig.MAXSHAPEWIDTH,
             factoryConfig.MAXSHAPEHEIGHT, 
-            np.floor(0.8*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
-            np.ceil(0.2*self.MAXMF_ELEMENTS) if maxMF_Elements else factoryConfig.AMOUNTPOLY, 
+            int(np.floor(0.8*self.MAXMF_ELEMENTS)) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
+            int(np.ceil(0.2*self.MAXMF_ELEMENTS)) if maxMF_Elements else factoryConfig.AMOUNTPOLY, 
             factoryConfig.MAXCORNERS
             )
         self.verboseOutput = verboseOutput
