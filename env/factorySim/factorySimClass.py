@@ -288,7 +288,8 @@ class FactorySim:
             done = True
             self.RatingDict["done"] = True
         else:
-            done = False     
+            done = False  
+            self.RatingDict["done"] = False   
         #done = False      
 
 

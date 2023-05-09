@@ -63,7 +63,11 @@ class FactoryRating():
         if self.reducedPathGraph:
             machineSquares = np.sqrt(np.array([x.poly.area for x in self.machine_dict.values()]))
             subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()]) 
-            return np.clip(machineSquares.sum()/subview.size(weight='weight'),0,1)
+            totalWeight = subview.size(weight='weight')
+            if totalWeight > 0:
+                return np.clip(machineSquares.sum()/totalWeight,0,1)
+            else:
+                return 0
         else:
             return 0      
  #------------------------------------------------------------------------------------------------------------

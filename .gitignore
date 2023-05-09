@@ -1,6 +1,7 @@
 #Singularity Containers
 *.sif
-
+#wandb files
+wandb/
 #Images
 *.png
 #Videos

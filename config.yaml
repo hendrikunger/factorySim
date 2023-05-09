@@ -8,7 +8,7 @@ env_config:
   heigth: 84
   maxMF_Elements: 3
   outputScale: 10
-  rendermode: null
+  render_mode: human
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
 model:

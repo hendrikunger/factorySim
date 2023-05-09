@@ -2,9 +2,9 @@ import os
 import random
 import yaml
 
-import gym
-from gym import error, spaces, utils
-from gym.utils import seeding
+import gymnasium as gym
+from gymnasium import error, spaces
+
 
 import numpy as np
 import cairo
@@ -20,10 +20,10 @@ from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_det
 
  
 class FactorySimEnv(gym.Env):  
-    metadata = {'render.modes': ['human', 'rgb_array']}
+    metadata = {'render_modes': ['human', 'rgb_array']}
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
-    def __init__(self, env_config: EnvContext):
+    def __init__(self, env_config: EnvContext, render_mode=None):
         super()
         print(env_config)
         self.factory = None
@@ -41,8 +41,10 @@ class FactorySimEnv(gym.Env):
             exit("No inputfile given.")
         self.inputfile = env_config["inputfile"]
         self.materialflowpath = None #file_name + "_Materialflow.csv"
-        self.rendermode = env_config["rendermode"]
         self.factoryConfig = baseConfigs.BaseFactoryConf.byStringName(env_config["factoryconfig"])
+        self.render_mode = render_mode if not render_mode is None else env_config.get("render_mode", None)
+        assert self.render_mode is None or self.render_mode in self.metadata["render_modes"]
+        
         self.surface = None
         self.rsurface = None
         self.prefix = env_config.get("prefix", "0")
@@ -82,7 +84,8 @@ class FactorySimEnv(gym.Env):
         if(self.currentMachine >= self.machineCount):
             self.currentMachine = 0
 
-    
+        if self.render_mode == "human":
+            self._render_frame()
         return (self._get_obs(), self.currentMappedReward, done, self.info)
         
     def reset(self):
@@ -116,9 +119,17 @@ class FactorySimEnv(gym.Env):
         self.uid +=1
 
         self.factory.evaluate()
+        if self.render_mode == "human":
+            self._render_frame()
         return self._get_obs()
+    
+    def render(self):
+        if self.render_mode == "rgb_array":
+            return self._render_frame()
 
-    def render(self, mode='rgb_array'):
+
+    def _render_frame(self):
+        
         draw_BG(self.rctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, darkmode=False)
         drawFactory(self.rctx, self.factory, drawColors=True, drawNames=False, highlight=self.currentMachine)
         
@@ -131,22 +142,16 @@ class FactorySimEnv(gym.Env):
                   (20, 20),
                   factoryCoordinates=False)
         
-        if mode == 'human' or self.rendermode == 'human':
+        if self.render_mode == 'human':
             outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
             self.rsurface.write_to_png(outputPath)
-            return True
-        elif mode == 'rgb_array':
+        elif self.render_mode == 'rgb_array':
             buf = self.rsurface.get_data()
             #bgra to rgb
             #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
             rgb = np.ndarray(shape=(self.width * self.scale, self.heigth * self.scale, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
             return rgb
-        elif mode == None or self.rendermode == None:
-            return
-        else:
-            print(F"Error -  Unkown Render Mode: {mode}")
-            return -1
-
+        
 
     def _get_obs(self):
 
@@ -162,7 +167,7 @@ class FactorySimEnv(gym.Env):
 
         buf = self.surface.get_data()
         machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
-        self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
+        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
@@ -171,7 +176,7 @@ class FactorySimEnv(gym.Env):
         
         buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
-        self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
+        #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
 
         return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) 
   
@@ -187,7 +192,19 @@ MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 
 #------------------------------------------------------------------------------------------------------------
 
+
+
+
 def main():
+
+    
+    import wandb
+    import datetime
+
+    def logging(env):
+        image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+        wandb.log({"output": image})
+
 
     #filename = "Long"
     #filename = "Basic"
@@ -218,19 +235,30 @@ def main():
         config = yaml.load(f, Loader=yaml.FullLoader)
     config['env_config']['inputfile'] = ifcpath
     config['env_config']['Loglevel'] = 0
-    config['env_config']['rendermode'] = "human"
+    config['env_config']['render_mode'] = "rgb_array"
+    
 
+    run = wandb.init(
+        project="factorySim",
+        name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
+        config=config,
+        save_code=True,
+    )
         
     env = FactorySimEnv( env_config = config['env_config'])
-
     env.prefix="test"
-
+ 
     for _ in tqdm(range(0,20)):
         observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
-        env.render(mode='human')
+        info['image'] = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+        #logging(env)
+        wandb.log(info)
         if done:
             env.reset()
-            env.render(mode='human')
+            #logging(env)
+
+
+    wandb.finish()
 
 
     
