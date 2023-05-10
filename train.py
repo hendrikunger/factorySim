@@ -51,9 +51,6 @@ if __name__ == "__main__":
     ray.init(num_gpus=1, local_mode=False, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
 
-
-
-
     stop = {
     "training_iteration": 50000,
     "timesteps_total": 2000000,

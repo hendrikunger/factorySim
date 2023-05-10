@@ -249,7 +249,7 @@ class FactorySim:
         #el
 ## Total Rating Calculation 
 
-        partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "done" and k != "ratingCollision"])
+        partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "ratingCollision"])
         weights = np.ones_like(partialRatings)
 
         if(self.RatingDict["ratingCollision"] == 1):
@@ -285,11 +285,11 @@ class FactorySim:
 
         #if(self.episodeCounter >= 3 * len(self.machine_list)):
         if(self.episodeCounter >= len(self.machine_dict)+1):
-            done = True
-            self.RatingDict["done"] = True
+            terminated = True
+            self.RatingDict["terminated"] = True
         else:
-            done = False  
-            self.RatingDict["done"] = False   
+            terminated = False  
+            self.RatingDict["terminated"] = False   
         #done = False      
 
 
@@ -298,7 +298,7 @@ class FactorySim:
         if(self.verboseOutput >= 1):
             print(self.generateRatingText(multiline=True))
 
-        return self.currentMappedRating, self.currentRating, self.RatingDict, done
+        return self.currentMappedRating, self.currentRating, self.RatingDict, terminated
 
     def generateRatingText(self, multiline=False):
         if(multiline):

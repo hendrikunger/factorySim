@@ -76,7 +76,7 @@ class FactorySimEnv(gym.Env):
 
     def step(self, action):
         self.factory.update(self.currentMachine, action[0], action[1], action[2], 0)
-        self.currentMappedReward, self.currentReward, self.info, done = self.factory.evaluate()
+        self.currentMappedReward, self.currentReward, self.info, terminated = self.factory.evaluate()
         #print(F"Reward: {self.currentMappedReward}")
         self.stepCount += 1
         self.currentMachine += 1
@@ -86,7 +86,7 @@ class FactorySimEnv(gym.Env):
 
         if self.render_mode == "human":
             self._render_frame()
-        return (self._get_obs(), self.currentMappedReward, done, self.info)
+        return (self._get_obs(), self.currentMappedReward, terminated, False, self.info)
         
     def reset(self):
         #print("\nReset")
@@ -137,7 +137,7 @@ class FactorySimEnv(gym.Env):
         drawCollisions(self.rctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
         draw_text(self.rctx, 
-                  f"{self.uid:02d}.{self.stepCount:02d}       {self.currentMappedReward:1.2f} | {self.currentReward:1.2f} | {self.factory.generateRatingText(multiline=False)}",
+                  f"{self.uid:02d}.{self.stepCount:02d}       Mapped Reward: {self.currentMappedReward:1.2f} | Reward: {self.currentReward:1.2f}",
                   (1,0,0),
                   (20, 20),
                   factoryCoordinates=False)
@@ -244,21 +244,26 @@ def main():
         config=config,
         save_code=True,
     )
-        
+
+            
     env = FactorySimEnv( env_config = config['env_config'])
     env.prefix="test"
+    
+    ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
+    tbl = wandb.Table(columns=["image"] + ratingkeys)
+    for key in ratingkeys:
+        wandb.define_metric(key, summary="mean")
  
-    for _ in tqdm(range(0,20)):
-        observation, reward, done, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
-        info['image'] = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
-        #logging(env)
-        wandb.log(info)
-        if done:
+    for _ in tqdm(range(0,50)):
+        observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
+        image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+        tbl.add_data(image, *[info[key] for key in ratingkeys])
+        if terminated:
+            wandb.log(info)
             env.reset()
-            #logging(env)
 
-
-    wandb.finish()
+    run.log({'results': tbl})
+    run.finish()
 
 
     
