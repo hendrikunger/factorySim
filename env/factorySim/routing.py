@@ -648,18 +648,15 @@ if __name__ == "__main__":
 
     SAVEPLOT = False
     SAVEFORMAT = "svg"
-    DETAILPLOT = False
+    DETAILPLOT = True
     ITERATIONS = 1
     LINESCALER = 25
 
 
     rng = np.random.default_rng()
 
-    print("Starting")
     for runs in tqdm(range(ITERATIONS)):
-        print("Run: ", runs)
-        factoryCreator = FactoryCreator(*baseConfigs.BIG.creationParameters())
-        #factoryCreator.amountRect= 20
+        factoryCreator = FactoryCreator(*baseConfigs.SMALLSQUARE.creationParameters())
 
         
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -668,25 +665,25 @@ if __name__ == "__main__":
             "Input",
             "FAIM2023" + ".ifc")
    
-        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-            "..",
-            "..",
-            "Input",
-            "2",  
-            "TestCaseZigZag" + ".ifc")
+        # ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        #     "..",
+        #     "..",
+        #     "Input",
+        #     "2",  
+        #     "TestCaseZigZag" + ".ifc")
 
  
-        #wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
-         
-        machine_dict = factoryCreator.create_factory()
+        wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
         bb = factoryCreator.bb 
-        wall_dict = {}
+        machine_dict = factoryCreator.create_factory()
+        
+
         #machine_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
 
 
         factoryPath = FactoryPath(boundarySpacing=500, minDeadEndLength=2000, minPathWidth=1000, maxPathWidth=2500, minTwoWayPathWidth=2000, simplificationAngle=35)
         factoryPath.TIMING = True
-        factoryPath.PLOTTING = False
+        factoryPath.PLOTTING = True
         factoryPath.calculateAll(machine_dict, wall_dict, bb)
         pos=nx.get_node_attributes(factoryPath.fullPathGraph,'pos')
 
