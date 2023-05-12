@@ -7,7 +7,6 @@ shapely
 pycairo
 gputil
 wandb
-tensorboardx
 scipy
 tqdm
 gymnasium
