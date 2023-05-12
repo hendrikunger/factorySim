@@ -110,6 +110,8 @@ class FactoryPath():
 
         if self.TIMING: self.timelog("Voronoi")
 
+        #TODO try STRTree Querry
+
         self.route_lines = []
         self.lines_touching_machines = []
         self.lines_to_machines = []
@@ -163,14 +165,14 @@ class FactoryPath():
 
 # Create Graph -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         self.fullPathGraph = nx.Graph()
-        for index, line in enumerate(self.route_lines):
+        for index, line in enumerate(self.route_lines.geoms):
             lastPoint = None
             currentPath = [] 
             for currentPoint in line.coords:
                 currentPoint = Point(currentPoint)
                 if lastPoint:
-                    currentBoundaryPoint = self.hit_tree.nearest_geom(currentPoint)
-                    currentPathWidth = currentPoint.distance(currentBoundaryPoint) * 2
+                    index, distance = self.hit_tree.query_nearest(currentPoint, return_distance=True, all_matches=False)
+                    currentPathWidth = distance.item() * 2
 
                     lastPointTuple = (lastPoint.x, lastPoint.y)
                     lastPoint_str = str(lastPointTuple)
@@ -197,12 +199,13 @@ class FactoryPath():
                         )
                     currentPath.append((lastPoint_str,currentPoint_str,currentPoint.distance(lastPoint)))
                     lastPoint = currentPoint
-                    lastBoundaryPoint = currentBoundaryPoint
                     lastPathWidth = currentPathWidth
                 else:
                     lastPoint = currentPoint
-                    lastBoundaryPoint = self.hit_tree.nearest_geom(currentPoint)
-                    lastPathWidth = currentPoint.distance(lastBoundaryPoint) * 2
+
+                    index, distance = self.hit_tree.query_nearest(currentPoint, return_distance=True, all_matches=False)
+                    lastPathWidth = distance.item() * 2
+                    
                     lastPointTuple = (lastPoint.x, lastPoint.y)
                     lastPoint_str = str(lastPointTuple)
 
@@ -649,10 +652,14 @@ if __name__ == "__main__":
     ITERATIONS = 1
     LINESCALER = 25
 
+
     rng = np.random.default_rng()
 
+    print("Starting")
     for runs in tqdm(range(ITERATIONS)):
-        factoryCreator = FactoryCreator(*baseConfigs.SMALLSQUARE.creationParameters())
+        print("Run: ", runs)
+        factoryCreator = FactoryCreator(*baseConfigs.BIG.creationParameters())
+        #factoryCreator.amountRect= 20
 
         
         ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -669,23 +676,27 @@ if __name__ == "__main__":
             "TestCaseZigZag" + ".ifc")
 
  
-        wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
-        bb = factoryCreator.bb  
+        #wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
+         
         machine_dict = factoryCreator.create_factory()
+        bb = factoryCreator.bb 
+        wall_dict = {}
         #machine_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
 
-        multi = MultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
 
-        machine_colors = [rng.random(size=3) for _ in multi.geoms]
         factoryPath = FactoryPath(boundarySpacing=500, minDeadEndLength=2000, minPathWidth=1000, maxPathWidth=2500, minTwoWayPathWidth=2000, simplificationAngle=35)
         factoryPath.TIMING = True
-        factoryPath.PLOTTING = True
+        factoryPath.PLOTTING = False
         factoryPath.calculateAll(machine_dict, wall_dict, bb)
         pos=nx.get_node_attributes(factoryPath.fullPathGraph,'pos')
 
            
         factoryRating = FactoryRating(machine_dict=factoryCreator.machine_dict, wall_dict=factoryCreator.wall_dict, fullPathGraph=factoryPath.fullPathGraph, reducedPathGraph=factoryPath.reducedPathGraph, prepped_bb=factoryCreator.prep_bb)
         pathPoly = factoryRating.PathPolygon()
+
+        multi = factoryRating.makeMultiPolygon(unary_union([x.poly for x in machine_dict.values()]))
+
+        machine_colors = [rng.random(size=3) for _ in multi.geoms]
 
         if factoryPath.PLOTTING:
             pos_u=nx.get_node_attributes(factoryPath.inter_unfilteredGraph,'pos')
@@ -707,7 +718,7 @@ if __name__ == "__main__":
                 else:
                     for j, poly in enumerate(multi.geoms):
                         ax.add_patch(descartes.PolygonPatch(poly, fc=machine_colors[j], ec='#000000', alpha=0.5))
-                for line in factoryPath.route_lines:
+                for line in factoryPath.route_lines.geoms:
                     ax.plot(line.xy[0], line.xy[1], color='dimgrey', linewidth=3)
                 for line in factoryPath.lines_touching_machines:
                     ax.plot(line.xy[0], line.xy[1], color='green', alpha=0.5)
@@ -738,13 +749,13 @@ if __name__ == "__main__":
                     ax.scatter(point.x, point.y, color='red')
 
                 nx.draw_networkx_edges(factoryPath.inter_unfilteredGraph, pos=pos_u, ax=ax, edge_color="dimgrey", width=2)
-                for line in factoryPath.route_lines:
+                for line in factoryPath.route_lines.geoms:
                     for point in line.coords[::2]:
                         point = Point(point)
                         # Plot Circle for every line Endpoint, since Startpoint is likely connected to other line segment
-                        nearest_point = factoryPath.hit_tree.nearest_geom(point)
+                        index, distance = factoryPath.hit_tree.query_nearest(point, return_distance=True, all_matches=False)
                         #ax.plot([point.x, nearest_point.x], [point.y, nearest_point.y], color='green', alpha=1)
-                        ax.add_patch(plt.Circle((point.x , point.y), point.distance(nearest_point), color='blue', fill=False, alpha=0.6))
+                        ax.add_patch(plt.Circle((point.x , point.y), distance, color='blue', fill=False, alpha=0.6))
                         #ax.add_patch(descartes.PolygonPatch(line.buffer(1), fc="black", ec='#000000', alpha=0.5))
                 
                 if multi.geom_type ==  'Polygon':

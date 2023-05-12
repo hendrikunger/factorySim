@@ -41,9 +41,12 @@ class FactoryRating():
                     polys.append(line.buffer(data['pathwidth']/2)) 
         if polys:
             walls = unary_union(list(x.poly for x in self.wall_dict.values()))
-            wallpoints = walls.boundary.interpolate(100)
-            pathPoly = snap(MultiPolygon(polys),wallpoints,400)
-            pathPoly = self.makeMultiPolygon(pathPoly)
+            if walls:
+                wallpoints = walls.boundary.interpolate(100)
+                pathPoly = snap(MultiPolygon(polys),wallpoints,400)
+                pathPoly = self.makeMultiPolygon(pathPoly)
+            else:
+                pathPoly = self.makeMultiPolygon(polys)
             extendedPathPoly = self.makeMultiPolygon(pathPoly.buffer(500))
             return pathPoly, extendedPathPoly
         else:

@@ -10,3 +10,5 @@ wandb
 tensorboardx
 scipy
 tqdm
+gymnasium
+yaml
