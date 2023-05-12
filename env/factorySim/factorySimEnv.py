@@ -24,7 +24,7 @@ class FactorySimEnv(gym.Env):
 
     #Expects input ifc file. Other datafiles have to have the same path and filename. 
     def __init__(self, env_config: EnvContext, render_mode=None):
-        super()
+        super().__init__()
         print(env_config)
         self.factory = None
         self.stepCount = 0
@@ -88,7 +88,8 @@ class FactorySimEnv(gym.Env):
             self._render_frame()
         return (self._get_obs(), self.currentMappedReward, terminated, False, self.info)
         
-    def reset(self):
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         #print("\nReset")
         del(self.factory)
         self.factory = FactorySim(self.inputfile,
@@ -96,6 +97,7 @@ class FactorySimEnv(gym.Env):
         factoryConfig=self.factoryConfig,
         randomPos=False,
         createMachines=True,
+        randseed = seed,
         verboseOutput=self.Loglevel,
         maxMF_Elements = self.maxMF_Elements)
         if self.surface:
@@ -121,7 +123,7 @@ class FactorySimEnv(gym.Env):
         self.factory.evaluate()
         if self.render_mode == "human":
             self._render_frame()
-        return self._get_obs()
+        return (self._get_obs(), self.info)
     
     def render(self):
         if self.render_mode == "rgb_array":

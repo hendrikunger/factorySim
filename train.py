@@ -1,27 +1,30 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
 
 import ray
 
-
-from ray.tune.logger import pretty_print
 from ray import air, tune
-import ray.rllib.algorithms.ppo as ppo
-
+from ray.tune.registry import get_trainable_cls
+from ray.tune import Tuner
+from ray.train.rl.rl_trainer import RLTrainer
+from ray.air import Checkpoint
+from ray.air.config import RunConfig, ScalingConfig, CheckpointConfig
+from ray.air.result import Result
+from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.models import ModelCatalog
 from factorySim.customModels import MyXceptionModel
 
 import wandb
 import yaml
-
-import warnings
-from shapely.errors import ShapelyDeprecationWarning
-warnings.filterwarnings("ignore", category=ShapelyDeprecationWarning) 
+import pprint 
 
 
-RESUME = True
+
+
+RESUME = False
 
 #filename = "Overlapp"
 filename = "Basic"
@@ -37,12 +40,12 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2"
 ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 with open('config.yaml', 'r') as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
+    f_config = yaml.load(f, Loader=yaml.FullLoader)
 
-config['env'] = MultiFactorySimEnv
-#config['callbacks'] = TraceMallocCallback
-config['callbacks'] = None
-config['env_config']['inputfile'] = ifcpath
+f_config['env'] = FactorySimEnv
+#file_config['callbacks'] = TraceMallocCallback
+f_config['callbacks'] = None
+f_config['env_config']['inputfile'] = ifcpath
 
 
 
@@ -53,40 +56,58 @@ if __name__ == "__main__":
 
     stop = {
     "training_iteration": 50000,
-    "timesteps_total": 2000000,
+    "timesteps_total": 5000,
     "episode_reward_mean": 5,
     }
 
+    checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
+                                         checkpoint_frequency=10, 
+                                         checkpoint_score_order="max", 
+                                         checkpoint_score_attribute="episode_reward_mean", 
+                                         num_to_keep=10 
+    )
 
-    if not RESUME:
-  
+    ppo_config = (
+        get_trainable_cls("PPO")
+        .get_default_config()
+        # or "corridor" if registered above
+        .environment(FactorySimEnv, env_config=f_config['env_config'])
+        .framework("tf2")
+        .rollouts(num_rollout_workers=1)
+        .training(
+            model={
+                "custom_model": "my_model",
+                
+            }
+        )
+        # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
+        .resources(num_gpus=1)
+    )
 
-        tuner = tune.Tuner(ppo.PPO,
-                param_space=config,
-                run_config=air.RunConfig(stop=stop, checkpoint_config=air.CheckpointConfig(checkpoint_at_end=True, checkpoint_frequency=10, checkpoint_score_order="max", checkpoint_score_attribute="episode_reward_mean", num_to_keep=10 ))
-                )
-        results = tuner.fit()
+
+
+    trainer = RLTrainer(
+        run_config=RunConfig(name="klaus",
+                                         stop=stop,
+                                         checkpoint_config=checkpoint_config
+                            ),
+        scaling_config=ScalingConfig(num_workers=f_config['num_workers'], 
+                                     use_gpu=True,
+                                    ),
+        algorithm="PPO",
+        config=ppo_config,
+
+    )
+    if Tuner.can_restore("/root/ray_results/PPO_2022-11-29_21-36-58/PPO_MultiEnv_f3c8f_00000_0_2022-11-29_21-36-58"):
+
+        #Continuing training
+        tuner = Tuner.restore("/root/ray_results/PPO_2022-11-29_21-36-58/PPO_MultiEnv_f3c8f_00000_0_2022-11-29_21-36-58", trainable=trainer)
+        results = tuner.fit() 
 
     else:
-    #Continuing training
-        config['env_config']['prefix'] = 1
 
-
-        stop = {
-        "training_iteration": 100000,
-        "timesteps_total": 6500,
-        "episode_reward_mean": 5,
-        }
-
-        results = ray.tune.run(ppo.PPO, 
-                    config=config, 
-                    stop=stop, 
-                    reuse_actors=True, 
-                    checkpoint_freq=10,
-                    keep_checkpoints_num=10,
-                    checkpoint_score_attr="episode_reward_mean", 
-                    restore="/root/ray_results/PPO_2022-11-29_21-36-58/PPO_MultiEnv_f3c8f_00000_0_2022-11-29_21-36-58/checkpoint_002040/")
-
+        tuner = tune.Tuner(trainer)
+        results = tuner.fit()
 
     #Loading for Evaluation
 
@@ -97,13 +118,3 @@ if __name__ == "__main__":
 
     ray.shutdown()
 
-
-    # for _ in range(500): #args.stop_iters,
-    #     result = trainer.train()
-    #     print(pretty_print(result))
-    #     # stop training of the target train steps or reward are reached
-    #     if (
-    #         result["timesteps_total"] >= 2000000#args.stop_timesteps
-    #         or result["episode_reward_mean"] >= 50000 #args.stop_reward
-    #     ):
-    #         break
