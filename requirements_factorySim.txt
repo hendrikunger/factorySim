@@ -10,4 +10,4 @@ wandb
 scipy
 tqdm
 gymnasium
-yaml
+pyyaml
