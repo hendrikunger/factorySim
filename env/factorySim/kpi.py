@@ -131,7 +131,11 @@ class FactoryRating():
     def evaluateScalability(self, freeSpacePolygon):
         '''Compares the area of a polygon against the Area of the minimum bounding rectangle of the polygon.'''
         if freeSpacePolygon.area > 0:
-            return np.clip(freeSpacePolygon.area / freeSpacePolygon.minimum_rotated_rectangle.area, 0, 1)
+            rectArea = freeSpacePolygon.minimum_rotated_rectangle.area
+            if rectArea > 0:
+                return np.clip(freeSpacePolygon.area / rectArea, 0, 1)
+            else:
+                return 0    
         else:
             return 0
  #------------------------------------------------------------------------------------------------------------

@@ -84,7 +84,12 @@ class FactoryPath():
             self.totalTime = self.startTime
 
         machinesAndwalls = unary_union(machinelist + walllist)
-        walkableArea = bb.difference(machinesAndwalls)
+        try:
+            walkableArea = multi.difference(machinesAndwalls)
+        except:
+            print("Error: Could not calculate walkable area")
+            return None, None, None
+
         if walkableArea.geom_type ==  'MultiPolygon':
             walkableArea = walkableArea.geoms[0]
 
@@ -579,6 +584,8 @@ class FactoryPath():
             elif end <= start:
                 # Degenerate case: no nodes
                 return []
+            elif start == end:
+                return [start]
             else:
                 # Compute the perpendicular distance of all nodes to the line segment
                 dmax = -1
