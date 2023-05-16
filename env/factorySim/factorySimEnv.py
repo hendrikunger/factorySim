@@ -237,7 +237,7 @@ def main():
         config = yaml.load(f, Loader=yaml.FullLoader)
     config['env_config']['inputfile'] = ifcpath
     config['env_config']['Loglevel'] = 0
-    config['env_config']['render_mode'] = "rgb_array"
+    #config['env_config']['render_mode'] = "rgb_array"
     
 
     run = wandb.init(
@@ -256,10 +256,13 @@ def main():
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
  
-    for _ in tqdm(range(0,50)):
-        observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)])    
-        image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
-        tbl.add_data(image, *[info[key] for key in ratingkeys])
+    for _ in tqdm(range(0,5000)):
+        observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)]) 
+        if env.render_mode is not None:   
+            image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+        else:
+            image = None
+        tbl.add_data(image, *[info.get(key, -1) for key in ratingkeys])
         if terminated:
             wandb.log(info)
             env.reset()

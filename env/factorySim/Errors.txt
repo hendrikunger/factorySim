@@ -1,0 +1,6 @@
+2023-05-16 14:10:48,624      WARNING env.py:155 -- Your env doesn't have a .spec.max_episode_steps attribute. Your horizon will default to infinity, and your environment will not be reset.
+
+2023-05-16 14:10:48,624      WARNING env.py:155 -- Your env doesn't have a .spec.max_episode_steps attribute. Your horizon will default to infinity, and your environment will not be reset.
+/home/unhe/gitRepo/factorySim/env/factorySim/routing.py:592: RuntimeWarning: invalid value encountered in double_scalars
+  d0 = abs(d1 * (p1[1] - p0[1]) - (p1[0] - p0[0]) * d2) / dist(p1, p0)
+| 923/5000 [00:47<03:29, 19.51it/s]/home/unhe/mambaforge/envs/factorysim/lib/python3.10/site-packages/shapely/set_operations.py:77: RuntimeWarning: divide by zero encountered in difference

@@ -2,6 +2,8 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+from pathlib import Path
+
 from factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
 
 import ray
@@ -76,7 +78,7 @@ if __name__ == "__main__":
         .rollouts(num_rollout_workers=1)
         .training(
             model={
-                "custom_model": "my_model",
+                #"custom_model": "my_model",
                 
             }
         )
@@ -95,13 +97,16 @@ if __name__ == "__main__":
                                      use_gpu=True,
                                     ),
         algorithm="PPO",
-        config=ppo_config,
+        config=ppo_config.to_dict(),
 
     )
-    if Tuner.can_restore("/root/ray_results/PPO_2022-11-29_21-36-58/PPO_MultiEnv_f3c8f_00000_0_2022-11-29_21-36-58"):
+
+    path = Path.home() /"ray_results"
+    print(path)
+    if Tuner.can_restore(path):
 
         #Continuing training
-        tuner = Tuner.restore("/root/ray_results/PPO_2022-11-29_21-36-58/PPO_MultiEnv_f3c8f_00000_0_2022-11-29_21-36-58", trainable=trainer)
+        tuner = Tuner.restore(path, trainable=trainer)
         results = tuner.fit() 
 
     else:

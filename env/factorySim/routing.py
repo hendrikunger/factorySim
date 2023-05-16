@@ -43,10 +43,11 @@ class FactoryPath():
 
     def calculateAll(self, machine_dict, wall_dict, bb):
         #Check if we have enough machines to make a path
-        if len(machine_dict) <= 1:
+        if len(machine_dict) < 1:
             self.fullPathGraph = nx.Graph()
             self.reducedPathGraph = nx.Graph()
-            return self.fullPathGraph, self.reducedPathGraph, MultiPolygon()
+            print("Error: Not enough machines to calculate path")
+            return None, None, None
         
         machinelist = [x.poly for x in machine_dict.values()]
         union = unary_union(machinelist)
@@ -58,7 +59,7 @@ class FactoryPath():
             multi = MultiPolygon()
         else:
             print("Error: No valid Polygon in Machine Dictionary")
-            return self.fullPathGraph, self.reducedPathGraph, MultiPolygon() 
+            return None, None, None
 
         walllist = [x.poly for x in wall_dict.values()]
         union = unary_union(walllist)
@@ -70,7 +71,7 @@ class FactoryPath():
             walls = multi.boundary
         else:
             print("Error: No valid Polygon in Wall Dictionary")
-            return self.fullPathGraph, self.reducedPathGraph, MultiPolygon()
+            return None, None, None
 
 
         #Scale boundary spacing according to factory size
@@ -106,7 +107,7 @@ class FactoryPath():
             voronoiArea = voronoi_diagram(voronoiBase, edges=True, envelope=bb)
         except:
             print("Error: Could not create Voronoi Diagram")
-            return self.fullPathGraph, self.reducedPathGraph, MultiPolygon()
+            return None, None, None
 
         if self.TIMING: self.timelog("Voronoi")
 
