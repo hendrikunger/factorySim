@@ -11,6 +11,7 @@ import ray
 from ray import air, tune
 from ray.tune.registry import get_trainable_cls
 from ray.tune import Tuner
+from ray.tune import Callback
 from ray.train.rl.rl_trainer import RLTrainer
 from ray.air import Checkpoint
 from ray.air.config import RunConfig, ScalingConfig, CheckpointConfig
@@ -19,14 +20,13 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.models import ModelCatalog
 from factorySim.customModels import MyXceptionModel
 
+
 import wandb
 import yaml
-import pprint 
 
 
 
 
-RESUME = False
 
 #filename = "Overlapp"
 filename = "Basic"
@@ -40,6 +40,12 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2"
 
 #Import Custom Models
 ModelCatalog.register_custom_model("my_model", MyXceptionModel)
+
+class MyCallback(Callback):
+    def on_trial_result(self, iteration, trials, trial, result, **info):
+        print(f"Got result: {result}")
+        print(f"Got info: {info}")
+
 
 with open('config.yaml', 'r') as f:
     f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -78,7 +84,7 @@ if __name__ == "__main__":
         .rollouts(num_rollout_workers=1)
         .training(
             model={
-                #"custom_model": "my_model",
+                "custom_model": "my_model",
                 
             }
         )
