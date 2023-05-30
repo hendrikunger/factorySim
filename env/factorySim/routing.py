@@ -84,14 +84,18 @@ class FactoryPath():
             self.totalTime = self.startTime
 
         machinesAndwalls = unary_union(machinelist + walllist)
+
+
         try:
-            walkableArea = multi.difference(machinesAndwalls)
+            walkableArea = walls.convex_hull - machinesAndwalls
         except:
             print("Error: Could not calculate walkable area")
             return None, None, None
 
-        if walkableArea.geom_type ==  'MultiPolygon':
-            walkableArea = walkableArea.geoms[0]
+
+
+        if walkableArea.geom_type ==  'Polygon':
+            walkableArea = MultiPolygon([walkableArea])
 
 
 #   Create Voronoi -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -174,8 +178,6 @@ class FactoryPath():
 
 
         # Find closest points in voronoi cells
-        if walkableArea.geom_type ==  'Polygon':
-            walkableArea = MultiPolygon([walkableArea])
         exteriorPoints = []
         for x in walkableArea.geoms:
             exteriorPoints.extend(list(x.exterior.coords))
@@ -431,6 +433,8 @@ class FactoryPath():
         if self.TIMING: 
             self.timelog("Network Path Generation")
             print(f"Algorithm Total: {self.nextTime - self.totalTime}")
+        
+        
 
         
         return self.fullPathGraph, self.reducedPathGraph, walkableArea

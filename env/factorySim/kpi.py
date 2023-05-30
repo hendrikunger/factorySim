@@ -77,7 +77,9 @@ class FactoryRating():
     def FreeSpacePolygon(self, pathPolygon, walkableAreaPoly, usedSpacePolygonDict):
 
         temp = unary_union(walkableAreaPoly) - unary_union(pathPolygon) - unary_union(list(usedSpacePolygonDict.values()))
+        
         temp = self.makeMultiPolygon(temp)
+        
 
         maxArea = 0
         maxAreaIndex = None
