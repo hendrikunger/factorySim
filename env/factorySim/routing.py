@@ -125,12 +125,27 @@ class FactoryPath():
         processed_multi = prep(multi)
         processed_machinesAndwalls = prep(machinesAndwalls)
 
-        for line in voronoiArea.geoms[0].geoms:
-            #find routes close to machines
-            if not (processed_machinesAndwalls.intersects(line)): 
-                self.route_lines.append(line)
+        try:
+            if voronoiArea.geoms[0].geom_type ==  'MultiLineString':    
+                for line in voronoiArea.geoms[0].geoms:
+                    #find routes close to machines
+                    if not (processed_machinesAndwalls.intersects(line)): 
+                        self.route_lines.append(line)
+                    else:
+                        self.lines_touching_machines.append(line)
+            elif voronoiArea.geoms[0].geom_type ==  'LineString':
+                line = voronoiArea.geoms[0]
+                #find routes close to machines
+                if not (processed_machinesAndwalls.intersects(line)): 
+                    self.route_lines.append(line)
+                else:
+                    self.lines_touching_machines.append(line)
             else:
-                self.lines_touching_machines.append(line)
+                print("Error: Voronoi Diagram is not a MultiLineString or LinesString")
+                return None, None, None
+        except:
+            print("Error: Voronoi Diagram is not a MultiLineString")
+            return None, None, None
 
         if self.TIMING: self.timelog("Find Routes")
 
@@ -154,16 +169,17 @@ class FactoryPath():
         #Simplify Lines
         self.route_lines = linemerge(self.route_lines)
         #self.simple_route_lines = self.route_lines.simplify(self.boundarySpacing/2, preserve_topology=False)
-
+        if self.route_lines.geom_type ==  'LineString':
+            self.route_lines = MultiLineString([self.route_lines])
 
 
         # Find closest points in voronoi cells
-        if walkableArea.geom_type ==  'MultiPolygon':
-            exteriorPoints = []
-            for x in walkableArea.geoms:
-                exteriorPoints.extend(list(x.exterior.coords))
-        else:
-            exteriorPoints = list(walkableArea.exterior.coords)
+        if walkableArea.geom_type ==  'Polygon':
+            walkableArea = MultiPolygon([walkableArea])
+        exteriorPoints = []
+        for x in walkableArea.geoms:
+            exteriorPoints.extend(list(x.exterior.coords))
+
         self.hitpoints = points + list(MultiPoint(exteriorPoints).geoms)
         #hitpoints = MultiPoint(points+list(walkableArea.exterior.coords))
         self.hit_tree = STRtree(self.hitpoints)
@@ -590,14 +606,16 @@ class FactoryPath():
                 # Compute the perpendicular distance of all nodes to the line segment
                 dmax = -1
                 idx_max = -1
+                # dict is {0: (node_id, (x,y)), 1: (node_id, (x,y)), ...}
+                p0 = np.array(d[start][1])
+                p1 = np.array(d[end][1])
                 for i in range(start + 1, end):
-                    # dict is {0: (node_id, (x,y)), 1: (node_id, (x,y)), ...}
-                    p0 = (d[start][1][0], d[start][1][1])
-                    p1 = (d[end][1][0], d[end][1][1])
-                    p = (d[i][1][0], d[i][1][1])
-                    d1 = dist(p, p0)
-                    d2 = dist(p, p1)
-                    d0 = abs(d1 * (p1[1] - p0[1]) - (p1[0] - p0[0]) * d2) / dist(p1, p0)
+
+                    p = np.array(d[i][1])
+                    d1 = np.linalg.norm(p-p0)
+                    d2 = np.linalg.norm(p-p1)
+
+                    d0 = np.abs(d1 * (p1[1] - p0[1]) - (p1[0] - p0[0]) * d2) / (dist(p1, p0)+0.00000001)
                     if d0 > dmax:
                         dmax = d0
                         idx_max = i

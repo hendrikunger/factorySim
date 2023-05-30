@@ -45,6 +45,9 @@ class FactorySim:
         self.MachinesFarFromPath = set()
         self.machine_dict = None
         self.wall_dict = None
+        self.machineCollisionList = []
+        self.wallCollisionList = []
+        self.outsiderList = []
 
         #Importing Walls
         if path_to_ifc_file:
@@ -210,8 +213,6 @@ class FactorySim:
         if self.fullPathGraph and self.reducedPathGraph and self.walkableArea is not None:
             self.dfMF = self.factoryPath.calculateRoutes(self.dfMF)
             
-
-            self.walkableArea = MultiPolygon([self.walkableArea])
 
             if(self.verboseOutput >= 3):
                 self.printTime("Pfadbewertung abgeschlossen")
@@ -416,7 +417,7 @@ def main():
     surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
     draw_BG(ctx, demoFactory.DRAWINGORIGIN, *img_resolution)
-    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawColors = True, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",

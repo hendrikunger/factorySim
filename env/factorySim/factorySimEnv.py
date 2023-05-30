@@ -245,6 +245,7 @@ def main():
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=config,
         save_code=True,
+        mode="disabled",
     )
 
             
@@ -256,7 +257,7 @@ def main():
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
  
-    for _ in tqdm(range(0,5000)):
+    for _ in tqdm(range(0,50000)):
         observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)]) 
         if env.render_mode is not None:   
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
