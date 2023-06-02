@@ -68,11 +68,10 @@ class FactoryPath():
         elif union.geom_type == "Polygon":
             walls = MultiPolygon([union])
         elif union.geom_type == "GeometryCollection":
-            walls = multi.boundary
+            walls = multi.envelope
         else:
             print("Error: No valid Polygon in Wall Dictionary")
             return None, None, None
-
 
         #Scale boundary spacing according to factory size
         bbox = bb.bounds
@@ -83,7 +82,8 @@ class FactoryPath():
             self.startTime = time.perf_counter()
             self.totalTime = self.startTime
 
-        machinesAndwalls = unary_union(machinelist + walllist)
+        machinesAndwalls = unary_union(machinelist + walllist + [bb.buffer(100)- bb]) 
+
 
 
         try:

@@ -112,13 +112,15 @@ class factorySimLive(mglw.WindowConfig):
         # "Input",
         # "2",  
         # "TestCaseZigZag" + ".ifc")
-
+ 
         # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
         # "..",
         # "..",
         # "Input",
         # "2",  
         # "EDF" + ".ifc")
+
+        self.ifcpath=None
 
         self.create_factory()
 
@@ -136,6 +138,7 @@ class factorySimLive(mglw.WindowConfig):
         print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.factory.machine_dict)
         self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+
 
 
         self.setupKeys()
@@ -368,6 +371,7 @@ class factorySimLive(mglw.WindowConfig):
         if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
         if self.activeModes[Modes.MODE_N2]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
+        drawFactory(self.cctx, self.factory, drawColors=True, highlight=self.selected, drawNames=True, drawWalls=False)
         if self.activeModes[Modes.MODE8]:   
             for key, poly in self.factory.usedSpacePolygonDict.items():
                 draw_poly(self.cctx, poly, (*self.cmap[key], 0.3))
@@ -393,7 +397,7 @@ class factorySimLive(mglw.WindowConfig):
 
         color = (1.0, 1.0, 1.0) if self.is_darkmode else (0.0, 0.0, 0.0)
         mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
-        draw_text(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color, (20, 20))
+        draw_text(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color, (20, 200))
 
         #Draw every rating on a new line
         textwidth = None

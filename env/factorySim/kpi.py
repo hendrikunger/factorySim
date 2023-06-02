@@ -46,7 +46,8 @@ class FactoryRating():
                 pathPoly = snap(MultiPolygon(polys),wallpoints,400)
                 pathPoly = self.makeMultiPolygon(pathPoly)
             else:
-                pathPoly = self.makeMultiPolygon(polys)
+                pathPoly = MultiPolygon(polys)
+                
             extendedPathPoly = self.makeMultiPolygon(pathPoly.buffer(500))
             return pathPoly, extendedPathPoly
         else:
