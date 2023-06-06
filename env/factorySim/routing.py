@@ -738,7 +738,11 @@ if __name__ == "__main__":
                 plt.axis('off')
 
                 for wall in wall_dict.values():
-                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                    if wall.poly.geom_type ==  'Polygon':
+                        ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                    else:
+                        for poly in wall.poly.geoms:
+                            ax.add_patch(descartes.PolygonPatch(poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
                 if multi.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -768,9 +772,12 @@ if __name__ == "__main__":
                 plt.autoscale(False)
                 plt.axis('off')
                
-
                 for wall in wall_dict.values():
-                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                    if wall.poly.geom_type ==  'Polygon':
+                        ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                    else:
+                        for poly in wall.poly.geoms:
+                            ax.add_patch(descartes.PolygonPatch(poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
                 for point in factoryPath.hitpoints:
                     ax.scatter(point.x, point.y, color='red')
@@ -805,7 +812,11 @@ if __name__ == "__main__":
             plt.axis('off')
 
             for wall in wall_dict.values():
+                if wall.poly.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                else:
+                    for poly in wall.poly.geoms:
+                        ax.add_patch(descartes.PolygonPatch(poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
             if multi.geom_type ==  'Polygon':
                 ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -841,7 +852,11 @@ if __name__ == "__main__":
             plt.axis('off')
 
             for wall in wall_dict.values():
-                ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                if wall.poly.geom_type ==  'Polygon':
+                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                else:
+                    for poly in wall.poly.geoms:
+                        ax.add_patch(descartes.PolygonPatch(poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
 
             for u,v,data in factoryPath.reducedPathGraph.edges(data=True):
@@ -881,7 +896,11 @@ if __name__ == "__main__":
             plt.axis('off')
 
             for wall in wall_dict.values():
+                if wall.poly.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                else:
+                    for poly in wall.poly.geoms:
+                        ax.add_patch(descartes.PolygonPatch(poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
             # for u,v,a in factoryPath.reducedPathGraph.edges(data=True):
             #     linecolor = rng.random(size=3)
@@ -929,7 +948,11 @@ if __name__ == "__main__":
                 plt.axis('off')
 
                 for wall in wall_dict.values():
-                    ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                    if wall.poly.geom_type ==  'Polygon':
+                        ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                    else:
+                        for poly in wall.poly.geoms:
+                            ax.add_patch(descartes.PolygonPatch(poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
                 if multi.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(multi, fc=machine_colors[0], ec='#000000', alpha=0.5))
@@ -959,7 +982,11 @@ if __name__ == "__main__":
             plt.axis('off')
 
             for wall in wall_dict.values():
+                if wall.poly.geom_type ==  'Polygon':
                     ax.add_patch(descartes.PolygonPatch(wall.poly, fc="darkgrey", ec='#000000', alpha=0.5))
+                else:
+                    for poly in wall.poly.geoms:
+                        ax.add_patch(descartes.PolygonPatch(poly, fc="darkgrey", ec='#000000', alpha=0.5))
 
             nx.draw(factoryPath.fullPathGraph, pos=pos, ax=ax, node_size=80, node_color='black')
 
