@@ -1,15 +1,13 @@
-#!/usr/bin/env python
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from pathlib import Path
 
-from factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
+from env.factorySim.factorySimEnv import FactorySimEnv, MultiFactorySimEnv
 
 import ray
 
 from ray import air, tune
-from ray.tune.registry import get_trainable_cls
 from ray.tune import Tuner
 from ray.tune import Callback
 from ray.train.rl.rl_trainer import RLTrainer
@@ -17,16 +15,22 @@ from ray.air import Checkpoint
 from ray.air.config import RunConfig, ScalingConfig, CheckpointConfig
 from ray.air.result import Result
 from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.models import ModelCatalog
 from factorySim.customModels import MyXceptionModel
-
-
+from ray.air.integrations.wandb import setup_wandb
 import wandb
+from ray.air.integrations.wandb import WandbLoggerCallback
+
+from ray.rllib.env import BaseEnv
+from ray.rllib.evaluation import Episode, RolloutWorker
+from ray.rllib.policy import Policy
+from typing import Dict
+from ray.rllib.algorithms.algorithm import Algorithm
+
+import datetime
 import yaml
-
-
-
-
+from  typing import Any
 
 #filename = "Overlapp"
 filename = "Basic"
@@ -41,20 +45,115 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2"
 #Import Custom Models
 ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
+class MyAlgoCallback(DefaultCallbacks):
+    def __init__(self, legacy_callbacks_dict: Dict[str, Any] = None):
+        super().__init__(legacy_callbacks_dict)    
+        self.ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
+        self.tbl = wandb.Table(columns=["image"] + self.ratingkeys)
+
+    def on_episode_start(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index:  None,
+        **kwargs,
+    ):  
+        episode.media["tabledata"] = {}
+        episode.media["tabledata"]["ratings"] = []
+        episode.media["tabledata"]["images"] = []
+        episode.media["tabledata"]["captions"] = []
+
+    def on_episode_step(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs
+    ):
+        if "Evaluation" in episode._last_infos['agent0']:
+            info = episode._last_infos['agent0']
+            episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
+            episode.media["tabledata"]["images"] += [info.get("Image", None)]
+            episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
+            
+
+
+    def on_episode_end(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs
+    ):
+        if "Evaluation" in episode._last_infos['agent0']:
+            info = episode._last_infos['agent0']
+            for key in self.ratingkeys:
+                episode.custom_metrics[key] = info.get(key, -1)
+        else:
+            episode.media.pop("tabledata", None)
+
+
+
+        
+    def on_evaluate_start(
+        self,
+        *,
+        algorithm: "Algorithm",
+        **kwargs,
+    ):
+        print("\n\n")
+        print(f"--------------------------------------------EVAL START")
+
+
+
+    def on_evaluate_end(
+        self,
+        *,
+        algorithm: "Algorithm",
+        evaluation_metrics: dict,
+        **kwargs,
+    ):
+        print("\n\n")
+        print(f"EVAL END")
+        print(f"--------------------------------------------")
+
+        data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
+        tbl = wandb.Table(columns=["image"] + self.ratingkeys)
+        images = []
+        for episode_id, episode in enumerate(data):
+            for image, caption , rating in zip(episode["images"], episode["captions"], episode["ratings"]):
+                logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
+                images += [logImage]
+                tbl.add_data(logImage, *rating)
+
+        evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
+        evaluation_metrics["evaluation"]["episode_media"]["Eval_Images"] = images
+       
+
+    
+
+
 class MyCallback(Callback):
     def on_trial_result(self, iteration, trials, trial, result, **info):
-        print(f"Got result: {result}")
-        print(f"Got info: {info}")
+        print("\n\n")
+        #print(f"Got result: {result}")
+        print("\n\n")
 
 
 with open('config.yaml', 'r') as f:
     f_config = yaml.load(f, Loader=yaml.FullLoader)
 
-f_config['env'] = FactorySimEnv
-#file_config['callbacks'] = TraceMallocCallback
-f_config['callbacks'] = None
+#f_config['env'] = FactorySimEnv
 f_config['env_config']['inputfile'] = ifcpath
-
 
 
 
@@ -64,7 +163,7 @@ if __name__ == "__main__":
 
     stop = {
     "training_iteration": 50000,
-    "timesteps_total": 5000,
+    "timesteps_total": 4000,
     "episode_reward_mean": 5,
     }
 
@@ -75,29 +174,22 @@ if __name__ == "__main__":
                                          num_to_keep=10 
     )
 
-    ppo_config = (
-        get_trainable_cls("PPO")
-        .get_default_config()
-        # or "corridor" if registered above
-        .environment(FactorySimEnv, env_config=f_config['env_config'])
-        .framework("tf2")
-        .rollouts(num_rollout_workers=1)
-        .training(
-            model={
-                "custom_model": "my_model",
-                
-            }
-        )
-        # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
-        .resources(num_gpus=1)
-    )
-
+    ppo_config = PPOConfig()
+    ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'])
+    ppo_config.training(model={"custom_model": "my_model"})    
+    ppo_config.update_from_dict(f_config)
+    ppo_config.callbacks(MyAlgoCallback)
 
 
     trainer = RLTrainer(
         run_config=RunConfig(name="klaus",
                                          stop=stop,
-                                         checkpoint_config=checkpoint_config
+                                         checkpoint_config=checkpoint_config,
+                                         log_to_file=False,
+                                         callbacks=[
+                                                WandbLoggerCallback(project="factorySimTest_Train"),
+                                                MyCallback(),
+                                        ],
                             ),
         scaling_config=ScalingConfig(num_workers=f_config['num_workers'], 
                                      use_gpu=True,

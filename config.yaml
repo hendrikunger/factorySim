@@ -1,5 +1,3 @@
-env: '' #Gets populated on runtime
-callbacks: '' #Gets populated on runtime
 env_config:
   inputfile: '' #Gets populated on runtime
   obs_type: image
@@ -11,43 +9,13 @@ env_config:
   render_mode: null
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
-model:
-  custom_model: my_model
-  dim: 256
-  # Change individual keys in that dict by overriding them, e.g.
-  conv_filters: null
-  conv_activation: relu
-  # == Attention Nets (experimental: torch-version is untested) ==
-  # Whether to use a GTrXL ("Gru transformer XL"; attention net) as the
-  # wrapper Model around the default Model.
-  use_attention: false
-  # The number of transformer units within GTrXL.
-  # A transformer unit in GTrXL consists of a) MultiHeadAttention module and
-  # b) a position-wise MLP.
-  attention_num_transformer_units: 1
-  # The input and output size of each transformer unit.
-  attention_dim: 64
-  # The number of attention heads within the MultiHeadAttention units.
-  attention_num_heads: 1
-  # The dim of a single head (within the MultiHeadAttention units).
-  attention_head_dim: 32
-  # The memory sizes for inference and training.
-  attention_memory_inference: 50
-  attention_memory_training: 50
-  # The output dim of the position-wise MLP.
-  attention_position_wise_mlp_dim: 32
-  # The initial bias values for the 2 GRU gates within a transformer unit.
-  attention_init_gru_gate_bias: 2.0
-  # Whether to feed a_{t-n:t-1} to GTrXL (one-hot encoded if discrete).
-  attention_use_n_prev_actions: 0
-  # Whether to feed r_{t-n:t-1} to GTrXL.
-  attention_use_n_prev_rewards: 0
+  evaluation: false
 
 
 # Evaluate once per training iteration.
 evaluation_interval: 1
 # Run evaluation on (at least) ten episodes
-evaluation_duration: 100
+evaluation_duration: 50
 # ... using one evaluation worker (setting this to 0 will cause
 # evaluation to run on the local evaluation worker, blocking
 # training until evaluation is done).
@@ -65,13 +33,12 @@ evaluation_config:
 # Render the env while evaluating.
 # Note that this will always only render the 1st RolloutWorker's
 # env and only the 1st sub-env in a vectorized env.
-  render_env: true
+  render_env: false
   env_config:
-    rendermode: human
-
+    render_mode: rgb_array
+    evaluation: true
 
 render_env: false
-#"tf", "tf2", "tfe", "torch"
 framework: tf2
 eager_tracing: true
 num_workers: 20  # parallelism  #12

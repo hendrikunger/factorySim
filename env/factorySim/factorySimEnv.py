@@ -14,7 +14,6 @@ from factorySim.factorySimClass import FactorySim
 from ray.rllib.env.env_context import EnvContext
 from ray.rllib.env.multi_agent_env import make_multi_agent
 
-
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
 
@@ -26,6 +25,10 @@ class FactorySimEnv(gym.Env):
     def __init__(self, env_config: EnvContext, render_mode=None):
         super().__init__()
         print(env_config)
+        self.evaluationMode = env_config["evaluation"]
+        if self.evaluationMode:  
+            print("\n\n-----------------------------------------------Evaluation Mode-----------------------------------------------\n\n")
+
         self.factory = None
         self.stepCount = 0
         self._obs_type = env_config["obs_type"]
@@ -51,6 +54,7 @@ class FactorySimEnv(gym.Env):
         
 
         self.info = {}
+
         if(os.path.isdir(env_config["inputfile"])):
             self.output_path = os.path.join(os.path.dirname(os.path.realpath(env_config["inputfile"])),
             "..", 
@@ -86,6 +90,12 @@ class FactorySimEnv(gym.Env):
 
         if self.render_mode == "human":
             self._render_frame()
+
+        if self.evaluationMode:
+            self.info["Evaluation"] = True
+            self.info["Image"] = self.render()
+            self.info["Step"] = self.stepCount
+
         return (self._get_obs(), self.currentMappedReward, terminated, False, self.info)
         
     def reset(self, seed=None, options=None):
@@ -100,6 +110,7 @@ class FactorySimEnv(gym.Env):
         randseed = seed,
         verboseOutput=self.Loglevel,
         maxMF_Elements = self.maxMF_Elements)
+        self.info = {}
         if self.surface:
             self.surface.finish()
             del(self.surface)
@@ -127,7 +138,10 @@ class FactorySimEnv(gym.Env):
     
     def render(self):
         if self.render_mode == "rgb_array":
+
             return self._render_frame()
+        else:
+            raise error.Error('Unrecognized render mode: {}'.format(self.render_mode))
 
 
     def _render_frame(self):
@@ -147,6 +161,7 @@ class FactorySimEnv(gym.Env):
         if self.render_mode == 'human':
             outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
             self.rsurface.write_to_png(outputPath)
+            return np.array([])
         elif self.render_mode == 'rgb_array':
             buf = self.rsurface.get_data()
             #bgra to rgb
@@ -183,12 +198,16 @@ class FactorySimEnv(gym.Env):
         return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) 
   
     def close(self):
-        self.surface.finish()
-        del(self.surface)
-        del(self.ctx)
-        self.rsurface.finish()
-        del(self.rsurface)
-        del(self.rctx)
+        if self.surface:
+            self.surface.finish()
+            del(self.surface)
+            del(self.ctx)
+        if self.rsurface:
+            self.rsurface.finish()
+            del(self.rsurface)
+            del(self.rctx)
+        
+        
 
 MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 
@@ -237,15 +256,15 @@ def main():
         config = yaml.load(f, Loader=yaml.FullLoader)
     config['env_config']['inputfile'] = ifcpath
     config['env_config']['Loglevel'] = 0
-    #config['env_config']['render_mode'] = "rgb_array"
-    
+    config['env_config']['render_mode'] = "rgb_array"
+    config['env_config']['evaluation'] = True    
 
     run = wandb.init(
         project="factorySim",
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=config,
         save_code=True,
-        mode="disabled",
+        mode="online",
     )
 
             
@@ -257,7 +276,7 @@ def main():
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
  
-    for _ in tqdm(range(0,50000)):
+    for _ in tqdm(range(0,50)):
         observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)]) 
         if env.render_mode is not None:   
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
@@ -267,6 +286,8 @@ def main():
         if terminated:
             wandb.log(info)
             env.reset()
+
+    env.close()
 
     run.log({'results': tbl})
     run.finish()
