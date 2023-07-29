@@ -18,7 +18,6 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.models import ModelCatalog
 from factorySim.customModels import MyXceptionModel
-from ray.air.integrations.wandb import setup_wandb
 import wandb
 from ray.air.integrations.wandb import WandbLoggerCallback
 
@@ -40,7 +39,7 @@ filename = "Basic"
 #filename = "LShape"
 
 #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
-ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "2")
+ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
 
 #Import Custom Models
 ModelCatalog.register_custom_model("my_model", MyXceptionModel)
@@ -49,7 +48,6 @@ class MyAlgoCallback(DefaultCallbacks):
     def __init__(self, legacy_callbacks_dict: Dict[str, Any] = None):
         super().__init__(legacy_callbacks_dict)    
         self.ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
-        self.tbl = wandb.Table(columns=["image"] + self.ratingkeys)
 
     def on_episode_start(
         self,
@@ -110,7 +108,6 @@ class MyAlgoCallback(DefaultCallbacks):
         algorithm: "Algorithm",
         **kwargs,
     ):
-        print("\n\n")
         print(f"--------------------------------------------EVAL START")
 
 
@@ -122,21 +119,24 @@ class MyAlgoCallback(DefaultCallbacks):
         evaluation_metrics: dict,
         **kwargs,
     ):
-        print("\n\n")
-        print(f"EVAL END")
-        print(f"--------------------------------------------")
+
+
+        print(f"--------------------------------------------EVAL END")
 
         data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
         tbl = wandb.Table(columns=["image"] + self.ratingkeys)
         images = []
-        for episode_id, episode in enumerate(data):
-            for image, caption , rating in zip(episode["images"], episode["captions"], episode["ratings"]):
-                logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
-                images += [logImage]
-                tbl.add_data(logImage, *rating)
+        if data:
+            for episode_id, episode in enumerate(data):
+                for image, caption , rating in zip(episode["images"], episode["captions"], episode["ratings"]):
+                    logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
+                    images += [logImage]
+                    tbl.add_data(logImage, *rating)
 
-        evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
-        evaluation_metrics["evaluation"]["episode_media"]["Eval_Images"] = images
+            evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
+            evaluation_metrics["evaluation"]["episode_media"]["Eval_Images"] = images
+
+            print(evaluation_metrics)
        
 
     
@@ -158,13 +158,13 @@ f_config['env_config']['inputfile'] = ifcpath
 
 
 if __name__ == "__main__":
-    ray.init(num_gpus=1, local_mode=False, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+    ray.init(num_gpus=1, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
 
     stop = {
-    "training_iteration": 50000,
-    "timesteps_total": 4000,
-    "episode_reward_mean": 5,
+    "training_iteration": 10,
+    #"timesteps_total": 5000000,
+    #"episode_reward_mean": 5,
     }
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
@@ -185,9 +185,13 @@ if __name__ == "__main__":
         run_config=RunConfig(name="klaus",
                                          stop=stop,
                                          checkpoint_config=checkpoint_config,
-                                         log_to_file=False,
+                                         log_to_file=True,
                                          callbacks=[
-                                                WandbLoggerCallback(project="factorySimTest_Train"),
+                                                WandbLoggerCallback(project="factorySimTest_Train",
+                                                                    log_config=True,
+                                                                    upload_checkpoints=False,
+                                                                    save_checkpoints=False,
+                                                                    ),
                                                 MyCallback(),
                                         ],
                             ),
