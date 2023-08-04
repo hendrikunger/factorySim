@@ -125,18 +125,17 @@ class MyAlgoCallback(DefaultCallbacks):
 
         data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
         tbl = wandb.Table(columns=["image"] + self.ratingkeys)
-        images = []
         if data:
             for episode_id, episode in enumerate(data):
                 for image, caption , rating in zip(episode["images"], episode["captions"], episode["ratings"]):
                     logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
-                    images += [logImage]
                     tbl.add_data(logImage, *rating)
 
             evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
-            evaluation_metrics["evaluation"]["episode_media"]["Eval_Images"] = images
 
-            print(evaluation_metrics)
+
+        #try to release the memory
+            #print(evaluation_metrics)
        
 
     
@@ -144,9 +143,9 @@ class MyAlgoCallback(DefaultCallbacks):
 
 class MyCallback(Callback):
     def on_trial_result(self, iteration, trials, trial, result, **info):
-        print("\n\n")
+        pass
         #print(f"Got result: {result}")
-        print("\n\n")
+
 
 
 with open('config.yaml', 'r') as f:
@@ -185,7 +184,7 @@ if __name__ == "__main__":
         run_config=RunConfig(name="klaus",
                                          stop=stop,
                                          checkpoint_config=checkpoint_config,
-                                         log_to_file=True,
+                                         log_to_file="./wandb/latest-run/files/stdoutanderr.log",
                                          callbacks=[
                                                 WandbLoggerCallback(project="factorySimTest_Train",
                                                                     log_config=True,
@@ -225,3 +224,7 @@ if __name__ == "__main__":
 
     ray.shutdown()
 
+
+#Todo:
+# Eval crashes - why?, eval metrics returns nan
+# std log and std error need to go to wandb, they are in the main folder of the run

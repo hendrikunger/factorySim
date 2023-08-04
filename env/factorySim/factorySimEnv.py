@@ -2,6 +2,7 @@ import os
 import random
 import yaml
 
+
 import gymnasium as gym
 from gymnasium import error, spaces
 
@@ -221,6 +222,10 @@ def main():
     
     import wandb
     import datetime
+    from PIL import Image
+
+
+
 
     def logging(env):
         image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
@@ -251,6 +256,11 @@ def main():
         "..",
         "..",
         "config.yaml")
+    
+    putputpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+    "..",
+    "..",
+    "Output")
 
     with open(configpath, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
@@ -264,7 +274,7 @@ def main():
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=config,
         save_code=True,
-        mode="online",
+        mode="offline",
     )
 
             
@@ -273,6 +283,8 @@ def main():
     
     ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
     tbl = wandb.Table(columns=["image"] + ratingkeys)
+
+
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
  
@@ -280,6 +292,9 @@ def main():
         observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)]) 
         if env.render_mode is not None:   
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+
+            #new_image = Image.fromarray(element)
+            #new_image.save(os.path.join(putputpath, f'{index}.png'))
         else:
             image = None
         tbl.add_data(image, *[info.get(key, -1) for key in ratingkeys])

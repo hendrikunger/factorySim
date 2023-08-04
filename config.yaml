@@ -19,7 +19,7 @@ evaluation_duration: 50
 # ... using one evaluation worker (setting this to 0 will cause
 # evaluation to run on the local evaluation worker, blocking
 # training until evaluation is done).
-evaluation_num_workers: 1
+evaluation_num_workers: 2
 
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
@@ -41,7 +41,7 @@ evaluation_config:
 render_env: false
 framework: tf2
 eager_tracing: true
-num_workers: 20  # parallelism  #12
+num_workers: 16  # parallelism  #12
 num_envs_per_worker: 1
 
 # Should be one of DEBUG, INFO, WARN, or ERROR
@@ -55,7 +55,7 @@ recreate_failed_workers: true
 restart_failed_sub_environments: true
 
 rollout_fragment_length: 200
-train_batch_size:  4000
+train_batch_size:  3200
 sgd_minibatch_size: 100
 num_sgd_iter: 4
 gamma: 0.99
