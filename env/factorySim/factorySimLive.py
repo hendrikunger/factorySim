@@ -64,10 +64,10 @@ class factorySimLive(mglw.WindowConfig):
     fps_counter = 30
     #window_size = (3840, 4320)
     #window_size = (3840, 2160)
-    #window_size = (1920, 1080)
-    window_size = (1280, 720)
+    window_size = (1920, 1080)
+    #window_size = (1280, 720)
     #window_size = (1920*6, 1080)
-    mqtt_broker = "broker.hivemq.com"
+    mqtt_broker = "broker.emqx.io"
     #mqtt_broker = "10.54.129.47"
     aspect_ratio = None
     fullscreen = False
@@ -80,9 +80,10 @@ class factorySimLive(mglw.WindowConfig):
     is_calculating = False
     update_during_calculation = False
     clickedPoints = []
-    factoryConfig = baseConfigs.SMALLSQUARE
+    #
+    #factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF_EMPTY
-    #factoryConfig = baseConfigs.EDF
+    factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
@@ -113,14 +114,14 @@ class factorySimLive(mglw.WindowConfig):
         # "2",  
         # "TestCaseZigZag" + ".ifc")
  
-        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        # "..",
-        # "..",
-        # "Input",
-        # "2",  
-        # "EDF" + ".ifc")
+        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+        "..",
+        "..",
+        "Input",
+        "2",  
+        "EDF" + ".ifc")
 
-        self.ifcpath=None
+        #self.ifcpath=None
 
         self.create_factory()
 
@@ -591,16 +592,17 @@ class factorySimLive(mglw.WindowConfig):
     def extractID(self, topic):
         index = topic.split("/")
         #safeguard against misformed topics
+        
         if len(index) >=3:
             if index[3].isnumeric():
-                return int(index[3])
+                return int(index[3].strip())
             else:
-                return index[3]
+                return index[3].strip()
    
 
     def handleMQTT_Position(self, topic, payload):
         pp = json.loads(payload)
-        index = self.extractID(topic)
+        index = str(self.extractID(topic))
 
         if index in self.factory.machine_dict and "x" in pp and "y" in pp:        
             #Calculate distance of change
