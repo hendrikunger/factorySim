@@ -1,4 +1,4 @@
-ray[rllib]
+ray[data,train,tune,rllib]
 pandas
 pandas-datareader
 networkx

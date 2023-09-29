@@ -270,11 +270,11 @@ def main():
     config['env_config']['evaluation'] = True    
 
     run = wandb.init(
-        project="factorySim",
+        project="factorySim_ENVTEST",
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=config,
         save_code=True,
-        mode="offline",
+        mode="online",
     )
 
             

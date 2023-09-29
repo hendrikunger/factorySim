@@ -186,7 +186,7 @@ if __name__ == "__main__":
                                          checkpoint_config=checkpoint_config,
                                          log_to_file="./wandb/latest-run/files/stdoutanderr.log",
                                          callbacks=[
-                                                WandbLoggerCallback(project="factorySimTest_Train",
+                                                WandbLoggerCallback(project="factorySim_TRAIN",
                                                                     log_config=True,
                                                                     upload_checkpoints=False,
                                                                     save_checkpoints=False,
