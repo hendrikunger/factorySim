@@ -28,7 +28,7 @@ class FactorySim:
         self.MAXMF_ELEMENTS = maxMF_Elements
         self.factoryCreator = FactoryCreator(self.FACTORYDIMENSIONS,
             factoryConfig.MAXSHAPEWIDTH,
-            factoryConfig.MAXSHAPEHEIGHT, 
+            factoryConfig.MAXSHAPEHEIGHT,
             int(np.floor(0.8*self.MAXMF_ELEMENTS)) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
             int(np.ceil(0.2*self.MAXMF_ELEMENTS)) if maxMF_Elements else factoryConfig.AMOUNTPOLY, 
             factoryConfig.MAXCORNERS
