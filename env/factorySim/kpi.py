@@ -180,7 +180,14 @@ class FactoryRating():
                 col = a.poly.intersection(b.poly)
                 if col.type != "MultiPolygon":
                     if col.type == "LineString" or col.type == "Point": continue
-                    col = MultiPolygon([col])
+                    if col.type == "GeometryCollection":
+                        for geom in col.geoms:
+                            if geom.type == "Polygon":
+                                temp = MultiPolygon([geom])
+                                self.machineCollisionList.append(temp)
+        
+                    else:
+                        col = MultiPolygon([col])
                 self.machineCollisionList.append(col)
                 if(a.gid == lastUpdatedMachine or b.gid == lastUpdatedMachine): collisionAfterLastUpdate = True
         #Machines with Walls     
