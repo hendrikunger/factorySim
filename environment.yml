@@ -23,4 +23,4 @@ dependencies:
   - moderngl
   - moderngl-window
   - paho-mqtt
-prefix: /home/unhe/mambaforge/envs/factorysim
+
