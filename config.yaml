@@ -3,7 +3,7 @@ env_config:
   obs_type: image
   Loglevel: 0
   width: 84
-  heigth: 84
+  height: 84
   maxMF_Elements: 5
   outputScale: 10
   render_mode: null

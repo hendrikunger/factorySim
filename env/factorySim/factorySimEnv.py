@@ -17,6 +17,8 @@ from ray.rllib.env.multi_agent_env import make_multi_agent
 
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
+from torchvision.tv_tensors import Image
+
 
  
 class FactorySimEnv(gym.Env):  
@@ -36,7 +38,7 @@ class FactorySimEnv(gym.Env):
         self.Loglevel = env_config["Loglevel"]
         self.uid = 0
         self.width = env_config["width"]
-        self.heigth = env_config["heigth"]
+        self.height = env_config["height"]
         self.maxMF_Elements = env_config["maxMF_Elements"]
         self.scale = env_config["outputScale"]
         if env_config["inputfile"] is not None:
@@ -69,20 +71,19 @@ class FactorySimEnv(gym.Env):
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
-        self.action_space = spaces.Box(low=np.array([-1, -1, -1], dtype=np.float32), high=np.array([1,1,1], dtype=np.float32))
+        self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]),dtype=np.float64)
 
         if self._obs_type == 'image':
-            #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.heigth,))
-            self.observation_space = spaces.Box(low=np.float32(0), high=np.float32(255), shape=(self.width, self.heigth, 2))
+            #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.height,))
+            self.observation_space = spaces.Box(low=np.full((self.width, self.height, 2), 0, dtype=np.uint8), high=np.full((self.width, self.height, 2), 255, dtype=np.uint8), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
-
         self.reset()
 
     def step(self, action):
-        self.factory.update(self.currentMachine, action[0], action[1], action[2], 0)
+        if not np.isnan(action[0]) :
+            self.factory.update(self.currentMachine, action[0], action[1], action[2], 0)
         self.currentMappedReward, self.currentReward, self.info, terminated = self.factory.evaluate()
-        #print(F"Reward: {self.currentMappedReward}")
         self.stepCount += 1
         self.currentMachine += 1
         
@@ -96,12 +97,11 @@ class FactorySimEnv(gym.Env):
             self.info["Evaluation"] = True
             self.info["Image"] = self.render()
             self.info["Step"] = self.stepCount
-
+     
         return (self._get_obs(), self.currentMappedReward, terminated, False, self.info)
         
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        #print("\nReset")
         del(self.factory)
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
@@ -118,8 +118,8 @@ class FactorySimEnv(gym.Env):
         if self.rsurface:
             self.rsurface.finish()
             del(self.rsurface)
-        self.surface, self.ctx = self.factory.provideCairoDrawingData(self.width, self.heigth)
-        self.rsurface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width * self.scale, self.heigth*self.scale)
+        self.surface, self.ctx = self.factory.provideCairoDrawingData(self.width, self.height)
+        self.rsurface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width * self.scale, self.height*self.scale)
         self.rctx = cairo.Context(self.rsurface)
 
         self.rctx.scale(self.scale*self.factory.scale, self.scale*self.factory.scale)
@@ -132,9 +132,10 @@ class FactorySimEnv(gym.Env):
         self.currentMappedReward = 0
         self.uid +=1
 
-        self.factory.evaluate()
+        self.currentMappedReward, self.currentReward, self.info, terminated = self.factory.evaluate()
         if self.render_mode == "human":
             self._render_frame()
+
         return (self._get_obs(), self.info)
     
     def render(self):
@@ -166,8 +167,8 @@ class FactorySimEnv(gym.Env):
         elif self.render_mode == 'rgb_array':
             buf = self.rsurface.get_data()
             #bgra to rgb
-            #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
-            rgb = np.ndarray(shape=(self.width * self.scale, self.heigth * self.scale, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+            #rgb = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0,3]]
+            rgb = np.ndarray(shape=(self.width * self.scale, self.height * self.scale, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
             return rgb
         
 
@@ -175,7 +176,7 @@ class FactorySimEnv(gym.Env):
 
         #old colorimage
         #bgra to rgb
-        #rgb = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        #rgb = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
 
         #new Version greyscale
 
@@ -184,7 +185,7 @@ class FactorySimEnv(gym.Env):
         drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
         buf = self.surface.get_data()
-        machines_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        machines_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
@@ -193,10 +194,11 @@ class FactorySimEnv(gym.Env):
         drawFactory(self.ctx, self.factory, self.factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
         
         buf = self.surface.get_data()
-        materialflow_greyscale = np.ndarray(shape=(self.width, self.heigth, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        materialflow_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
-
-        return np.concatenate((machines_greyscale, materialflow_greyscale), axis=2) 
+        #Format (width, height, 2)
+        output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
+        return output
   
     def close(self):
         if self.surface:
@@ -211,6 +213,7 @@ class FactorySimEnv(gym.Env):
         
 
 MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
+
 
 #------------------------------------------------------------------------------------------------------------
 
@@ -274,7 +277,7 @@ def main():
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=config,
         save_code=True,
-        mode="online",
+        mode="offline",
     )
 
             

@@ -179,7 +179,7 @@ class FactoryRating():
                     print(f"Kollision Maschinen {a.name} und {b.name} gefunden.")
                 col = a.poly.intersection(b.poly)
                 if col.type != "MultiPolygon":
-                    if col.type == "LineString" or col.type == "Point": continue
+                    if col.type == "LineString" or col.type == "Point" or "LinearRing": continue
                     if col.type == "GeometryCollection":
                         for geom in col.geoms:
                             if geom.type == "Polygon":
