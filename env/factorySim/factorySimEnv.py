@@ -83,7 +83,17 @@ class FactorySimEnv(gym.Env):
     def step(self, action):
         if not np.isnan(action[0]) :
             self.factory.update(self.currentMachine, action[0], action[1], action[2], 0)
-        self.currentMappedReward, self.currentReward, self.info, terminated = self.factory.evaluate()
+
+        try:
+            self.currentMappedReward, self.currentReward, self.info, terminated = self.factory.evaluate()
+        except Exception as e:
+            print(e)
+            print("Error in evaluate")
+            self.currentMappedReward = -10
+            self.currentReward = -10
+            self.info = {}
+            terminated = True
+
         self.stepCount += 1
         self.currentMachine += 1
         
