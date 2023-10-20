@@ -14,10 +14,13 @@ pkg-config \
 python3-dev \
 ffmpeg \
 bash-completion \
+
 python3 -m pip install --upgrade pip
 python3 -m pip install --no-cache-dir -U -r requirements_factorySim.txt
-python3 -m pip install --no-cache-dir  -U lark
-python3 -m pip install --no-cache-dir  -U typing_extensions
+python3 -m pip install --no-cache-dir -U \
+lark\
+typing_extensions\
+
 
 
 %environment
