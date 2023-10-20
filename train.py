@@ -83,7 +83,7 @@ class MyAlgoCallback(DefaultCallbacks):
             episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
             episode.media["tabledata"]["images"] += [info.get("Image", None)]
             episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
-            
+            episode.media["tabledata"]["currentStep"] += [info.get('Step', 0)]        
 
 
     def on_episode_end(
@@ -131,9 +131,9 @@ class MyAlgoCallback(DefaultCallbacks):
         tbl = wandb.Table(columns=["image"] + self.ratingkeys)
         if data:
             for episode_id, episode in enumerate(data):
-                for image, caption , rating in zip(episode["images"], episode["captions"], episode["ratings"]):
+                for step, image, caption , rating in zip(episode["currentStep"], episode["images"], episode["captions"], episode["ratings"]):
                     logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
-                    tbl.add_data(logImage, *rating)
+                    tbl.add_data(step, logImage, *rating)
 
             evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
 
