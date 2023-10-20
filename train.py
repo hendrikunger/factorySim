@@ -190,7 +190,7 @@ if __name__ == "__main__":
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
     #ppo_config.update_from_dict(f_config)
     ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.rollouts(num_rollout_workers=22,  #f_config['num_workers'], 
+    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "22")),  #f_config['num_workers'], 
                         num_envs_per_worker=1,  #2
                         )
     #ppo_config.train_batch_size=256
