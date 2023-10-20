@@ -2,7 +2,7 @@
 #SBATCH --partition=clara
 #SBATCH --job-name=FactorySimContainerBuilder
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=20
+#SBATCH --cpus-per-task=32
 #SBATCH --mem-per-cpu=1GB
 #SBATCH --time=1:00:00
 export SLURM_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
@@ -14,7 +14,7 @@ git clone https://github.com/hendrikunger/factorySim.git
 
 cd ~/factorySim
 
-apptainer build "$HOME/factorySim/factorysim.sif" "$HOME/factorySim/Singularity.def"
+apptainer build "$HOME/factorySim/factorySim.sif" "$HOME/factorySim/Singularity.def"
 #clara cluster
 # run with sbatch slurm-buildContainer.job
 #X2VQtEV?vmYH3S9KPS%

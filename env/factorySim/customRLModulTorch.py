@@ -11,7 +11,7 @@ from ray.rllib.core.models.configs import MLPHeadConfig
 
 torch, nn = try_import_torch()
 
-import timm 
+
 
 
 class MyPPOTorchRLModule(PPOTorchRLModule):

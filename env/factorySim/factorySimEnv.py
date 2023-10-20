@@ -17,7 +17,6 @@ from ray.rllib.env.multi_agent_env import make_multi_agent
 
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
-from torchvision.tv_tensors import Image
 
 
  

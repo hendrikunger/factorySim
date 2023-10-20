@@ -14,9 +14,10 @@ pkg-config \
 python3-dev \
 ffmpeg \
 bash-completion \
-&& python3 -m pip install --upgrade pip \
-&& python3 -m pip --no-cache-dir install -U -r requirements_factorySim.txt
- 
+python3 -m pip install --upgrade pip
+python3 -m pip --no-cache-dir install -U -r requirements_factorySim.txt
+python3 -m pip --no-cache-dir install -U lark
+python3 -m pip --no-cache-dir install -U typing_extensions
 
 
 %environment
@@ -24,9 +25,9 @@ bash-completion \
 
 %runscript
 cd $HOME/factorySim
-./python3 - u train.py "$SLURM_CPUS_PER_TASK"
+python3 -u train.py "$SLURM_CPUS_PER_TASK"
 
 %startscript
 cd $HOME/factorySim
-./python3 train.py 
+python3 -u train.py "$SLURM_CPUS_PER_TASK"
 

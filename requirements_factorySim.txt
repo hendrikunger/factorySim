@@ -11,4 +11,3 @@ scipy
 tqdm
 gymnasium
 pyyaml
-tensorflow-probability
