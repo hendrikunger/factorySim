@@ -18,7 +18,7 @@ bash-completion \
 python3 -m pip install --upgrade pip
 python3 -m pip install --no-cache-dir -U -r requirements_factorySim.txt
 python3 -m pip install --no-cache-dir -U \
-lark\
+lark,\
 typing_extensions\
 
 
