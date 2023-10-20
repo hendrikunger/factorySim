@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH --partition=clara
+#SBATCH --job-name=FactorySimContainerBuilder
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32
+#SBATCH --mem-per-cpu=1GB
+#SBATCH --time=1:00:00
+
+
+rm -R -f factorySim 
+
+git clone https://github.com/hendrikunger/factorySim.git
+
+cd ~/factorySim
+
+apptainer build "$HOME/factorySim/factorySim.sif" "$HOME/factorySim/Singularity.def"
+#clara cluster
+# run with sbatch slurm-buildContainer.job
+#X2VQtEV?vmYH3S9KPS%

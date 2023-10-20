@@ -17,7 +17,6 @@ from ray.rllib.env.multi_agent_env import make_multi_agent
 
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
-from torchvision.tv_tensors import Image
 
 
  
@@ -74,8 +73,8 @@ class FactorySimEnv(gym.Env):
         self.action_space = spaces.Box(low=np.array([-1, -1, -1]), high=np.array([1,1,1]),dtype=np.float64)
 
         if self._obs_type == 'image':
-            #self.observation_space = spaces.Box(low=0, high=256**4 -1, shape=(self.width *self.height,))
-            self.observation_space = spaces.Box(low=np.full((self.width, self.height, 2), 0, dtype=np.uint8), high=np.full((self.width, self.height, 2), 255, dtype=np.uint8), dtype=np.uint8)
+            #self.observation_space = spaces.Box(low=np.full((self.width, self.height, 2), 0, dtype=np.uint8), high=np.full((self.width, self.height, 2), 255, dtype=np.uint8), dtype=np.uint8)
+            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
         self.reset()
