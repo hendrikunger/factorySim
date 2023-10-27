@@ -67,6 +67,7 @@ class MyAlgoCallback(DefaultCallbacks):
         episode.media["tabledata"]["ratings"] = []
         episode.media["tabledata"]["images"] = []
         episode.media["tabledata"]["captions"] = []
+        episode.media["tabledata"]["currentStep"] = []
 
     def on_episode_step(
         self,
@@ -128,7 +129,7 @@ class MyAlgoCallback(DefaultCallbacks):
         print(f"--------------------------------------------EVAL END")
 
         data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
-        tbl = wandb.Table(columns=["image"] + self.ratingkeys)
+        tbl = wandb.Table(columns=["id", "image"] + self.ratingkeys)
         if data:
             for episode_id, episode in enumerate(data):
                 for step, image, caption , rating in zip(episode["currentStep"], episode["images"], episode["captions"], episode["ratings"]):
@@ -222,7 +223,7 @@ if __name__ == "__main__":
                                                     upload_checkpoints=False,
                                                     save_checkpoints=False,
                                                     ),
-                                MyCallback(),
+                                #MyCallback(),
                         ],
                         )
     
