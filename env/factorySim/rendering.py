@@ -214,8 +214,8 @@ def draw_route_lines(ctx, route_lines):
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
-def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNames = True, wallInteriorColor = (0, 0, 0), drawWalls = True, drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
-
+def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNames = True, darkmode = True, drawWalls = True, drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
+    
     #Walls
     if factory.wall_dict and drawWalls:
         ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
@@ -229,7 +229,10 @@ def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNam
                 ctx.close_path()
                 ctx.fill()
             #draw all holes
-                ctx.set_source_rgb(*wallInteriorColor)
+                if darkmode:
+                    ctx.set_source_rgba(0.0, 0.0, 0.0)
+                else:
+                    ctx.set_source_rgb(1.0, 1.0, 1.0)
                 for loop in poly.interiors:
                     ctx.move_to(*loop.coords[0])
                     for point in loop.coords[1:]:

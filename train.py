@@ -135,12 +135,12 @@ class MyAlgoCallback(DefaultCallbacks):
         print(f"--------------------------------------------EVAL END")
 
         data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
-        tbl = wandb.Table(columns=["id", "image"] + self.ratingkeys)
+        tbl = wandb.Table(columns=["id", "episode", "image"] + self.ratingkeys)
         if data:
             for episode_id, episode in enumerate(data):
                 for step, image, caption , rating in zip(episode["currentStep"], episode["images"], episode["captions"], episode["ratings"]):
                     logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
-                    tbl.add_data(f"{episode_id}_{step}", logImage, *rating)
+                    tbl.add_data(f"{episode_id}_{step}", episode_id, logImage, *rating)
 
             evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
 

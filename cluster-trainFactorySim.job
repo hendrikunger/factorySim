@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --partition=clara
-#SBATCH --FactorySimTraining
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gres=gpu:rtx2080ti:1

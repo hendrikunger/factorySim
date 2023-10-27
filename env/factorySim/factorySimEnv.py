@@ -101,9 +101,6 @@ class FactorySimEnv(gym.Env):
         if(self.currentMachine >= self.machineCount):
             self.currentMachine = 0
 
-        if self.render_mode == "human":
-            self._render_frame()
-
         if self.evaluationMode:
             self.info["Evaluation"] = True
             self.info["Image"] = self.render()
@@ -150,8 +147,7 @@ class FactorySimEnv(gym.Env):
         return (self._get_obs(), self.info)
     
     def render(self):
-        if self.render_mode == "rgb_array":
-
+        if self.render_mode == "rgb_array" or self.render_mode == "human":
             return self._render_frame()
         else:
             raise error.Error('Unrecognized render mode: {}'.format(self.render_mode))
@@ -160,7 +156,7 @@ class FactorySimEnv(gym.Env):
     def _render_frame(self):
         
         draw_BG(self.rctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.rctx, self.factory, drawColors=True, drawNames=False, highlight=self.currentMachine)
+        drawFactory(self.rctx, self.factory, drawColors=True, darkmode=False, drawNames=False, highlight=str(self.currentMachine))
         
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         drawCollisions(self.rctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
@@ -192,7 +188,7 @@ class FactorySimEnv(gym.Env):
         #new Version greyscale
 
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True, wallInteriorColor = (1, 1, 1),)
+        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=str(self.currentMachine), isObs=True, darkmode=False,)
         drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
         buf = self.surface.get_data()
@@ -237,7 +233,6 @@ def main():
     
     import wandb
     import datetime
-    from PIL import Image
 
 
 
@@ -282,7 +277,7 @@ def main():
     config['env_config']['inputfile'] = ifcpath
     config['env_config']['Loglevel'] = 0
     config['env_config']['render_mode'] = "rgb_array"
-    config['env_config']['evaluation'] = True    
+    config['env_config']['evaluation'] = False    
 
     run = wandb.init(
         project="factorySim_ENVTEST",
@@ -303,13 +298,10 @@ def main():
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
  
-    for _ in tqdm(range(0,50)):
+    for index in tqdm(range(0,50)):
         observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)]) 
-        if env.render_mode is not None:   
+        if env.render_mode == "rgb_array":   
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
-
-            #new_image = Image.fromarray(element)
-            #new_image.save(os.path.join(putputpath, f'{index}.png'))
         else:
             image = None
         tbl.add_data(image, *[info.get(key, -1) for key in ratingkeys])
