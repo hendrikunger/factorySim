@@ -16,4 +16,4 @@ cd ~/factorySim
 apptainer build "$HOME/factorySim/factorySim.sif" "$HOME/factorySim/Singularity.def"
 #clara cluster
 # run with sbatch slurm-buildContainer.job
-#X2VQtEV?vmYH3S9KPS%
+#X2VQtEV?vmYH3S9KPS% 
