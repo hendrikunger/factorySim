@@ -28,6 +28,11 @@ from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
 from typing import Dict
 
+from ray.rllib.connectors.agent.lambdas import register_lambda_agent_connector
+from ray.rllib.policy.sample_batch import SampleBatch
+from ray.rllib.utils.typing import TensorStructType
+
+
 import wandb
 import yaml
 from  typing import Any
@@ -152,6 +157,20 @@ class MyCallback(Callback):
 
 
 
+def preprocessObs(data: Dict[str, TensorStructType]) -> Dict[str, TensorStructType]:
+    #data[SampleBatch.NEXT_OBS] = data[SampleBatch.NEXT_OBS][:-2]
+    print(data[SampleBatch.NEXT_OBS].shape)
+    print(data[SampleBatch.NEXT_OBS].max())
+    print(data[SampleBatch.NEXT_OBS].max())
+    return data
+
+MyAgentConnector = register_lambda_agent_connector(
+    "MyAgentConnector", preprocessObs
+)
+
+#policy.agent_connectors.prepend(MyAgentConnector(ctx))
+
+
 with open('config.yaml', 'r') as f:
     f_config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -170,7 +189,7 @@ if __name__ == "__main__":
     ray.init(num_gpus=1, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 10,
+    "training_iteration": 100,
     #"timesteps_total": 5000000,
     #"episode_reward_mean": 5,
     }
@@ -184,7 +203,8 @@ if __name__ == "__main__":
 
     ppo_config = PPOConfig()
     ppo_config.exploration_config={}
-    ppo_config.lr=0.00001
+    ppo_config.lr=0.0005
+                 #0.003
                  #0.000005
     ppo_config.rl_module(_enable_rl_module_api=True,)
                             #rl_module_spec=myRLModule,)
@@ -210,6 +230,9 @@ if __name__ == "__main__":
     ppo_config.resources(num_learner_workers=0,
                          num_gpus_per_learner_worker=1,
                          )
+    ppo_config._disable_preprocessor_api=True
+    ppo_config.rollouts(enable_connectors=True,)
+    
     
 
     #my_ppo = ppo_config.build(use_copy=False)
@@ -233,7 +256,6 @@ if __name__ == "__main__":
     
 
     path = Path.home() /"ray_results"
-    print(path)
 
     if Tuner.can_restore(path):
         pass
@@ -256,6 +278,5 @@ if __name__ == "__main__":
     ray.shutdown()
 
 
-#Todo:
-# Eval crashes - why?, eval metrics returns nan
+
 # std log and std error need to go to wandb, they are in the main folder of the run

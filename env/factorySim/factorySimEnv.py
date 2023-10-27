@@ -19,6 +19,8 @@ import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
 
 
+
+
  
 class FactorySimEnv(gym.Env):  
     metadata = {'render_modes': ['human', 'rgb_array']}
@@ -73,8 +75,8 @@ class FactorySimEnv(gym.Env):
         self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float64)
 
         if self._obs_type == 'image':
-            #self.observation_space = spaces.Box(low=np.full((self.width, self.height, 2), 0, dtype=np.uint8), high=np.full((self.width, self.height, 2), 255, dtype=np.uint8), dtype=np.uint8)
-            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
+            #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
+            self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(self.width, self.height, 2), dtype=np.float64)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
         self.reset()
@@ -207,7 +209,8 @@ class FactorySimEnv(gym.Env):
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         #Format (width, height, 2)
         output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
-        return output
+        
+        return output/ 255.0
   
     def close(self):
         if self.surface:
