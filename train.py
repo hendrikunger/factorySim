@@ -189,7 +189,7 @@ if __name__ == "__main__":
     ray.init(num_gpus=1, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 100,
+    "training_iteration": 1800,
     #"timesteps_total": 5000000,
     #"episode_reward_mean": 5,
     }
@@ -244,8 +244,7 @@ if __name__ == "__main__":
                             callbacks=[
                                 WandbLoggerCallback(project="factorySim_TRAIN",
                                                     log_config=True,
-                                                    upload_checkpoints=False,
-                                                    save_checkpoints=False,
+                                                    upload_checkpoints=True,
                                                     ),
                                 #MyCallback(),
                         ],
