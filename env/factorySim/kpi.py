@@ -178,17 +178,18 @@ class FactoryRating():
                 if(DEBUG):
                     print(f"Kollision Maschinen {a.name} und {b.name} gefunden.")
                 col = a.poly.intersection(b.poly)
-                if col.type != "MultiPolygon":
-                    if col.type == "LineString" or col.type == "Point" or "LinearRing": continue
-                    if col.type == "GeometryCollection":
-                        for geom in col.geoms:
-                            if geom.type == "Polygon":
-                                temp = MultiPolygon([geom])
-                                self.machineCollisionList.append(temp)
-        
-                    else:
-                        col = MultiPolygon([col])
-                self.machineCollisionList.append(col)
+                if col.type == "Polygon":
+                    self.machineCollisionList.append(MultiPolygon([col]))
+                elif col.type == "MultiPolygon":
+                    self.machineCollisionList.append(col)
+                elif col.type == "GeometryCollection":
+                    for geom in col.geoms:
+                        if geom.type == "Polygon":
+                            self.machineCollisionList.append(MultiPolygon([geom]))
+                        if geom.type == "MultiPolygon":
+                            self.machineCollisionList.append(geom)
+                else:
+                    print("Machine Collision not supported")
                 if(a.gid == lastUpdatedMachine or b.gid == lastUpdatedMachine): collisionAfterLastUpdate = True
         #Machines with Walls     
         self.wallCollisionList = []
@@ -198,10 +199,18 @@ class FactoryRating():
                     if(DEBUG):
                         print(f"Kollision Wand {a.name} und Maschine {b.name} gefunden.")
                     col = a.poly.intersection(b.poly)
-                    if col.type != "MultiPolygon":
-                        if col.type in {"LineString", "MultiLineString","Point", 'GeometryCollection'}: continue
-                        col = self.makeMultiPolygon(col)
-                    self.wallCollisionList.append(col)
+                    if col.type == "Polygon":
+                        self.wallCollisionList.append(MultiPolygon([col]))
+                    elif col.type == "MultiPolygon":
+                        self.wallCollisionList.append(col)
+                    elif col.type == "GeometryCollection":
+                        for geom in col.geoms:
+                            if geom.type == "Polygon":
+                                self.wallCollisionList.append(MultiPolygon([geom]))
+                            if geom.type == "MultiPolygon":
+                                self.wallCollisionList.append(geom)
+                    else:
+                        print("Wall Collision not supported")
                     if(b.gid == lastUpdatedMachine): collisionAfterLastUpdate = True
 
         #Find machines just outside the factory (rewardgaming)
