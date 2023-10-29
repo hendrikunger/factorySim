@@ -188,8 +188,6 @@ class FactoryRating():
                             self.machineCollisionList.append(MultiPolygon([geom]))
                         if geom.type == "MultiPolygon":
                             self.machineCollisionList.append(geom)
-                else:
-                    print("Machine Collision not supported")
                 if(a.gid == lastUpdatedMachine or b.gid == lastUpdatedMachine): collisionAfterLastUpdate = True
         #Machines with Walls     
         self.wallCollisionList = []
@@ -209,8 +207,6 @@ class FactoryRating():
                                 self.wallCollisionList.append(MultiPolygon([geom]))
                             if geom.type == "MultiPolygon":
                                 self.wallCollisionList.append(geom)
-                    else:
-                        print("Wall Collision not supported")
                     if(b.gid == lastUpdatedMachine): collisionAfterLastUpdate = True
 
         #Find machines just outside the factory (rewardgaming)
