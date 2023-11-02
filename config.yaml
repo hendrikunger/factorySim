@@ -4,7 +4,7 @@ env_config:
   Loglevel: 0
   width: 84
   height: 84
-  maxMF_Elements: 5
+  maxMF_Elements: 4
   outputScale: 10
   render_mode: null
   factoryconfig: SMALLSQUARE
