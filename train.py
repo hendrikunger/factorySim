@@ -195,7 +195,7 @@ if __name__ == "__main__":
     }
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
-                                         checkpoint_frequency=10, 
+                                         checkpoint_frequency=50, 
                                          checkpoint_score_order="max", 
                                          checkpoint_score_attribute="episode_reward_mean", 
                                          num_to_keep=10 
