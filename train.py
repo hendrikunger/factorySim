@@ -1,8 +1,6 @@
 
 
 
-
-
 from pathlib import Path
 import os
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
@@ -195,7 +193,7 @@ if __name__ == "__main__":
     }
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
-                                         checkpoint_frequency=50, 
+                                         checkpoint_frequency=5, 
                                          checkpoint_score_order="max", 
                                          checkpoint_score_attribute="episode_reward_mean", 
                                          num_to_keep=10 
@@ -254,14 +252,17 @@ if __name__ == "__main__":
 
     
 
-    path = Path.home() /"ray_results"
+    path = Path.joinpath(Path.home(), "ray_results/klaus")
+    path = "/home/unhe/gitRepo/factorySim/artifacts/checkpoint_PPO_FactorySimEnv_038cc_00000:v5"
 
     if Tuner.can_restore(path):
-        pass
+        print("--------------------------------------------------------------------------------------------------------")
+        print(f"Restoring from {path.as_posix()}")
+        print("--------------------------------------------------------------------------------------------------------")
         #Continuing training
 
-        #tuner = Tuner.restore(path, trainable=my_ppo)
-        #results = tuner.fit() 
+        tuner = Tuner.restore(path.as_posix(), "PPO", param_space=ppo_config)
+        results = tuner.fit() 
 
     else:
         tuner = Tuner("PPO", run_config=run_config, param_space=ppo_config)
@@ -271,6 +272,7 @@ if __name__ == "__main__":
 
     #agent = ppo.PPO(config=config, env=MultiFactorySimEnv)
     #agent.restore("/root/ray_results/PPO/PPO_MultiEnv_2fa55_00000_0_2022-11-19_10-08-59/checkpoint_000667/")
+
 
 
 
