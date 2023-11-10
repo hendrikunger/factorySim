@@ -235,61 +235,38 @@ def main():
     import datetime
 
 
-
-
-    def logging(env):
-        image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
-        wandb.log({"output": image})
-
-
     #filename = "Long"
     #filename = "Basic"
-    #filename = "Simple"
-    filename = "EDF"
+    filename = "Simple"
+    #filename = "EDF"
     #filename = "SimpleNoCollisions"
 
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",
-        "2",  
-        filename + ".ifc")
-
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-    "..",
-    "..",
-    "Input",
-    "2")
-
+    basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..")
     
-    configpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "config.yaml")
+    ifcPath = os.path.join(basePath, "Input", "2", f"{filename}.ifc")
+    #ifcPath = os.path.join(basePath, "Input", "2")
+
+    configpath = os.path.join(basePath,"config.yaml")
     
-    putputpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-    "..",
-    "..",
-    "Output")
+
 
     with open(configpath, 'r') as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-    config['env_config']['inputfile'] = ifcpath
-    config['env_config']['Loglevel'] = 0
-    config['env_config']['render_mode'] = "rgb_array"
-    config['env_config']['evaluation'] = False    
+        f_config = yaml.load(f, Loader=yaml.FullLoader)
+
 
     run = wandb.init(
         project="factorySim_ENVTEST",
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
-        config=config,
+        config=f_config,
         save_code=True,
         mode="offline",
     )
 
-            
-    env = FactorySimEnv( env_config = config['env_config'])
+    env = FactorySimEnv( env_config = f_config['env_config'])
     env.prefix="test"
+
+           
+
     
     ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
     tbl = wandb.Table(columns=["image"] + ratingkeys)
@@ -297,13 +274,17 @@ def main():
 
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
+
+    obs = env.reset()
  
     for index in tqdm(range(0,50)):
-        observation, reward, terminated, truncated, info = env.step([random.uniform(-1,1),random.uniform(-1,1), random.uniform(-1, 1), random.uniform(0, 1)]) 
+
+        obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
         else:
             image = None
+
         tbl.add_data(image, *[info.get(key, -1) for key in ratingkeys])
         if terminated:
             wandb.log(info)
