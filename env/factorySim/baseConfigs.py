@@ -1,4 +1,5 @@
 class BaseFactoryConf():
+    NAME="BASE"
     WIDTH = 30000
     HEIGHT = 3000
     MAXSHAPEWIDTH = 500
@@ -35,9 +36,13 @@ class BaseFactoryConf():
         elif name == "EDF_EMPTY":
             return EDF
         else:
-            raise ValueError("Unknown Factory Configuration")     
+            raise ValueError("Unknown Factory Configuration")    
+
+
+
 
 class BIG(BaseFactoryConf):
+    NAME="BIG"
     WIDTH = 128000
     HEIGHT = 70000
     MAXSHAPEWIDTH = 5000
@@ -50,6 +55,7 @@ class BIG(BaseFactoryConf):
     MINDEADENDLENGTH = 4000
 
 class SMALL(BaseFactoryConf):
+    NAME="SMALL"
     WIDTH = 32000
     HEIGHT = 18000
     MAXSHAPEWIDTH = 2500
@@ -59,6 +65,7 @@ class SMALL(BaseFactoryConf):
     MAXCORNERS = 3
 
 class SMALLSQUARE(BaseFactoryConf):
+    NAME="SMALLSQUARE"
     WIDTH = 10000
     HEIGHT = 10000
     MAXSHAPEWIDTH = 2000
@@ -70,6 +77,7 @@ class SMALLSQUARE(BaseFactoryConf):
     BOUNDARYSPACING = 500
 
 class EDF(BaseFactoryConf):
+    NAME="EDF"
     WIDTH = 6000 #9,60m
     HEIGHT = 6700 #11,20m
     MAXSHAPEWIDTH = 1000
@@ -82,6 +90,7 @@ class EDF(BaseFactoryConf):
     #MINDEADENDLENGTH = 1000
 
 class EDF_EMPTY(BaseFactoryConf):
+    NAME="EDF_EMPTY"
     WIDTH = 6000 #9,60m
     HEIGHT = 6700 #10,84m
     MAXSHAPEWIDTH = 1000
