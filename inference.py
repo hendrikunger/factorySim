@@ -75,6 +75,7 @@ def inference():
         action = np.clip(action, env.action_space.low, env.action_space.high)
 
         obs, reward, terminated, truncated, info = env.step(action) 
+
         if env.render_mode == "rgb_array":   
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
         else:
