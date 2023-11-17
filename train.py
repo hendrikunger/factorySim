@@ -200,17 +200,23 @@ if __name__ == "__main__":
     )
 
     ppo_config = PPOConfig()
-    ppo_config.exploration_config={}
+    ppo_config.experimental(_enable_new_api_stack=False)
     ppo_config.lr=0.0005
                  #0.003
                  #0.000005
-    ppo_config.rl_module(_enable_rl_module_api=True,)
-                            #rl_module_spec=myRLModule,)
-    ppo_config.training(_enable_learner_api=True,)
+    #ppo_config.rl_module(rl_module_spec=myRLModule,))
+        
+
+    ppo_config.training(model={
+                                        "use_attention": False,
+                                        "use_lstm": True,
+
+                                    },
+                        )
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
-    #ppo_config.update_from_dict(f_config)
+
     ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "23"))-1,  #f_config['num_workers'], 
+    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "24"))-1,  #f_config['num_workers'], 
                         num_envs_per_worker=1,  #2
                         )
     #ppo_config.train_batch_size=256
@@ -225,15 +231,14 @@ if __name__ == "__main__":
                           evaluation_interval=1,
                           evaluation_config={"env_config": eval_config},
                         )   
-    ppo_config.resources(num_learner_workers=0,
+    ppo_config.resources(num_gpus=1,
+                         num_learner_workers=0,
                          num_gpus_per_learner_worker=1,
                          )
     ppo_config._disable_preprocessor_api=True
     ppo_config.rollouts(enable_connectors=True,)
     
     
-
-    #my_ppo = ppo_config.build(use_copy=False)
 
     run_config=RunConfig(name="klaus",
                             stop=stop,

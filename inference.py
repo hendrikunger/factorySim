@@ -1,4 +1,4 @@
-from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
+from factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
 import ray.rllib.algorithms.ppo as ppo
 from ray.rllib.policy.policy import Policy
 import yaml
