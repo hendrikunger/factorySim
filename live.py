@@ -362,7 +362,7 @@ class factorySimLive(mglw.WindowConfig):
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
         
         
-        drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawOrigin=True, drawWalls=True)
+        drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True)
         if self.activeModes[Modes.MODE7]: 
             draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
             draw_poly(self.cctx, self.env.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
