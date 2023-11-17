@@ -18,6 +18,12 @@ from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
 from factorySim.factoryObject import FactoryObject
 
+import ray.rllib.algorithms.ppo as ppo
+from ray.rllib.policy.policy import Policy
+import yaml
+import ray
+
+
 
 class DrawingModes(Enum):
     NONE = None
@@ -102,21 +108,16 @@ class factorySimLive(mglw.WindowConfig):
 
         self.create_factory()
 
-
         self.factoryCreator.bb = self.factory.factoryCreator.bb
         self.factoryCreator.factoryWidth = self.factory.factoryCreator.factoryWidth
         self.factoryCreator.factoryHeight = self.factory.factoryCreator.factoryHeight
 
-        ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",  
-        "FTS" + ".ifc")
-        self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcpath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
+        ifcPath = os.path.join(basePath, "FTS.ifc")
+
+        self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcPath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
         print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.factory.machine_dict)
         self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
-
 
 
         self.setupKeys()
@@ -131,6 +132,9 @@ class factorySimLive(mglw.WindowConfig):
         self.mqtt_client.connect(self.mqtt_broker, 1883)
         self.mqtt_client.loop_start()
         
+        #Agent 
+        checkpointPath = os.path.join(basePath, "..", "artifacts", "checkpoint_PPO_latest")
+        self.Agent = Policy.from_checkpoint(checkpointPath)["default_policy"]
         
 
         self.prog = self.ctx.program(
@@ -199,6 +203,9 @@ class factorySimLive(mglw.WindowConfig):
             # Toggle Text Rendering under selection
             if key == keys.E:
                 self.is_EDF = not self.is_EDF    
+            # Agent Prediction
+            if key == keys.A:
+                self.agentInference()   
             # Zoom
             if key == 43: # +
                 self.currentScale += 0.005
@@ -411,8 +418,7 @@ class factorySimLive(mglw.WindowConfig):
         self.surface, self.cctx = self.factory.provideCairoDrawingData(self.window_size[0], self.window_size[1], scale=self.currentScale)
 
     def setupKeys(self):
-        keys = self.wnd.keys
-
+ 
         self.activeModes = {Modes.MODE0 : False,
                         Modes.MODE1 : True,
                         Modes.MODE2 : False,
@@ -526,6 +532,18 @@ class factorySimLive(mglw.WindowConfig):
         )
         self.future = self.executor.submit(self.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()
+
+
+    def agentInference(self):
+        print("Agent Inference")
+        if self.selected:
+            print(self.selected)
+            action = self.Agent.compute_single_action(obs)[0]
+            self.factory.update(self.selected, action[0], action[1], action[2], 0)
+            self.update_needed()
+            
+
+
 
 
 

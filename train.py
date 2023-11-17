@@ -209,7 +209,7 @@ if __name__ == "__main__":
         
 
     ppo_config.training(model={
-                                        "use_attention": True,
+                                        "use_attention": False,
                                         "use_lstm": False,
 
                                     },
