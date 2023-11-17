@@ -34,6 +34,7 @@ from ray.rllib.utils.typing import TensorStructType
 import wandb
 import yaml
 from  typing import Any
+from datetime import datetime
 
 #filename = "Overlapp"
 filename = "Basic"
@@ -240,6 +241,9 @@ if __name__ == "__main__":
     
     
 
+    name = os.getenv("SLURM_JOB_ID", f"D-{datetime.now().strftime('%Y%m%d_%H-%M-%S')}")
+
+
     run_config=RunConfig(name="klaus",
                             stop=stop,
                             checkpoint_config=checkpoint_config,
@@ -248,6 +252,7 @@ if __name__ == "__main__":
                                 WandbLoggerCallback(project="factorySim_TRAIN",
                                                     log_config=True,
                                                     upload_checkpoints=True,
+                                                    name=name,
                                                     ),
                                 #MyCallback(),
                         ],
