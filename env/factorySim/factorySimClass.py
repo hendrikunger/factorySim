@@ -144,7 +144,9 @@ class FactorySim:
     def addMaterialFlow(self, fromMachine, toMachine, intensity):
         #Add new Materialflow
         newDF = pd.DataFrame({'source': [fromMachine], 'target': [toMachine], 'intensity': [intensity]})
+
         self.dfMF = pd.concat([self.dfMF, newDF], ignore_index=True)
+
         self.cleanMaterialFLow()
 
     def cleanMaterialFLow(self):
@@ -153,7 +155,7 @@ class FactorySim:
         #drop the duplicates and refresh index
         self.dfMF = self.dfMF.drop_duplicates(subset=['source', 'target']).reset_index(drop=True)
         #normalise intensity sum 
-        self.dfMF['intensity_sum_norm'] = self.dfMF['intensity_sum'] / self.dfMF.max()["intensity_sum"]
+        self.dfMF['intensity_sum_norm'] = self.dfMF['intensity_sum'] / self.dfMF["intensity_sum"].max()
         #use machine index as sink and source for materialflow
         #Replace Machine Names in Material flow (From Sketchup Import) with machine dict key
         machine_dict = {machine.name: key for key, machine in self.machine_dict.items()}
