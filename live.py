@@ -13,7 +13,6 @@ import numpy as np
 from shapely.geometry import Point, Polygon, box, MultiPolygon
 from paho.mqtt import client as mqtt
 
-from factorySim.factorySimClass import FactorySim
 from factorySim.rendering import *
 from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
@@ -105,7 +104,7 @@ class factorySimLive(mglw.WindowConfig):
 
         
         self.factoryCreator = FactoryCreator(*self.factoryConfig.creationParameters())
-        basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..", "Input")
+        basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input")
         configpath = os.path.join(basePath, "..", "config.yaml")
     
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
@@ -151,7 +150,7 @@ class factorySimLive(mglw.WindowConfig):
         
         #Agent 
         checkpointPath = os.path.join(basePath, "..", "artifacts", "checkpoint_PPO_latest")
-        #self.Agent = Policy.from_checkpoint(checkpointPath)["default_policy"]
+        self.Agent = Policy.from_checkpoint(checkpointPath)["default_policy"]
         
 
         self.prog = self.ctx.program(
@@ -548,8 +547,8 @@ class factorySimLive(mglw.WindowConfig):
     def agentInference(self):
         if self.selected:
             obs = self.env._get_obs(highlight=self.selected)
-            #action = self.Agent.compute_single_action(obs)[0]
-            action = self.env.action_space.sample()
+            action = self.Agent.compute_single_action(obs)[0]
+            #action = self.env.action_space.sample()
             action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
             self.env.factory.update(self.selected, action[0], action[1], action[2], 0)
             self.update_needed()
