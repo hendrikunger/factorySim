@@ -58,6 +58,7 @@ class FactorySimEnv(gym.Env):
         
 
         self.info = {}
+        self.terminated = False
 
         if(os.path.isdir(env_config["inputfile"])):
             self.output_path = os.path.join(os.path.dirname(os.path.realpath(env_config["inputfile"])),
@@ -85,15 +86,7 @@ class FactorySimEnv(gym.Env):
         if not np.isnan(action[0]) :
             self.factory.update(self.currentMachine, action[0], action[1], action[2], 0)
 
-        try:
-            self.currentMappedReward, self.currentReward, self.info, terminated = self.factory.evaluate()
-        except Exception as e:
-            print(e)
-            print("Error in evaluate")
-            self.currentMappedReward = -10
-            self.currentReward = -10
-            self.info = {}
-            terminated = True
+        self.tryEvaluate()
 
         self.stepCount += 1
         self.currentMachine += 1
@@ -106,7 +99,7 @@ class FactorySimEnv(gym.Env):
             self.info["Image"] = self.render()
             self.info["Step"] = self.stepCount
      
-        return (self._get_obs(), self.currentMappedReward, terminated, False, self.info)
+        return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
         
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -140,7 +133,8 @@ class FactorySimEnv(gym.Env):
         self.currentMappedReward = 0
         self.uid +=1
 
-        self.currentMappedReward, self.currentReward, self.info, terminated = self.factory.evaluate()
+        self.tryEvaluate()
+
         if self.render_mode == "human":
             self._render_frame()
 
@@ -179,16 +173,17 @@ class FactorySimEnv(gym.Env):
             return rgb
         
 
-    def _get_obs(self):
+    def _get_obs(self, highlight=None):
 
         #old colorimage
         #bgra to rgb
         #rgb = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
 
         #new Version greyscale
+        machineToHighlight = highlight if not highlight is None else str(self.currentMachine)
 
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=str(self.currentMachine), isObs=True, darkmode=False,)
+        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True, darkmode=False,)
         drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
         buf = self.surface.get_data()
@@ -198,7 +193,7 @@ class FactorySimEnv(gym.Env):
         #separate Image for Materialflow
         draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
         draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        drawFactory(self.ctx, self.factory, self.factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=self.currentMachine, isObs=True)
+        drawFactory(self.ctx, self.factory, self.factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True)
         
         buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
@@ -217,6 +212,17 @@ class FactorySimEnv(gym.Env):
             self.rsurface.finish()
             del(self.rsurface)
             del(self.rctx)
+
+    def tryEvaluate(self):
+        try:
+            self.currentMappedReward, self.currentReward, self.info, self.terminated = self.factory.evaluate()
+        except Exception as e:
+            print(e)
+            print("Error in evaluate")
+            self.currentMappedReward = -10
+            self.currentReward = -10
+            self.info = {}
+            self.terminated = True
         
         
 
