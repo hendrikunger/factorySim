@@ -4,6 +4,7 @@ from enum import Enum
 import queue
 import json
 import os
+import yaml
 
 import cairo
 import moderngl
@@ -17,11 +18,11 @@ from factorySim.rendering import *
 from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
 from factorySim.factoryObject import FactoryObject
+from factorySim.factorySimEnv import FactorySimEnv
 
-import ray.rllib.algorithms.ppo as ppo
 from ray.rllib.policy.policy import Policy
-import yaml
-import ray
+
+
 
 
 
@@ -87,9 +88,9 @@ class factorySimLive(mglw.WindowConfig):
     update_during_calculation = False
     clickedPoints = []
     #
-    #factoryConfig = baseConfigs.SMALLSQUARE
+    factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF_EMPTY
-    factoryConfig = baseConfigs.EDF
+    #factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
       
@@ -98,26 +99,42 @@ class factorySimLive(mglw.WindowConfig):
         self.rng = np.random.default_rng()
         self.cmap = self.rng.random(size=(200, 3))
         self.executor = ThreadPoolExecutor(max_workers=1)
+
+
+
+
+        
         self.factoryCreator = FactoryCreator(*self.factoryConfig.creationParameters())
         basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..", "Input")
-
+        configpath = os.path.join(basePath, "..", "config.yaml")
+    
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
+
+        with open(configpath, 'r') as f:
+            self.f_config = yaml.load(f, Loader=yaml.FullLoader)
+
+        self.f_config['env_config']['inputfile'] = self.ifcPath
+        self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
+        self.f_config['env_config']['maxMF_Elements'] = None
+
+        
+
         #self.ifcPath=None
 
         self.create_factory()
 
-        self.factoryCreator.bb = self.factory.factoryCreator.bb
-        self.factoryCreator.factoryWidth = self.factory.factoryCreator.factoryWidth
-        self.factoryCreator.factoryHeight = self.factory.factoryCreator.factoryHeight
+        self.factoryCreator.bb = self.env.factory.factoryCreator.bb
+        self.factoryCreator.factoryWidth = self.env.factory.factoryCreator.factoryWidth
+        self.factoryCreator.factoryHeight = self.env.factory.factoryCreator.factoryHeight
 
         ifcPath = os.path.join(basePath, "FTS.ifc")
 
         self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcPath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
         print(list(self.mobile_dict.values())[0].gid)
-        self.nextGID = len(self.factory.machine_dict)
-        self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+        self.nextGID = len(self.env.factory.machine_dict)
+        self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
 
 
         self.setupKeys()
@@ -134,7 +151,7 @@ class factorySimLive(mglw.WindowConfig):
         
         #Agent 
         checkpointPath = os.path.join(basePath, "..", "artifacts", "checkpoint_PPO_latest")
-        self.Agent = Policy.from_checkpoint(checkpointPath)["default_policy"]
+        #self.Agent = Policy.from_checkpoint(checkpointPath)["default_policy"]
         
 
         self.prog = self.ctx.program(
@@ -181,7 +198,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def resize(self, width: int, height: int):
         self.window_size = (width, height)
-        self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+        self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
         self.recreateCairoContext()
 
 
@@ -219,9 +236,9 @@ class factorySimLive(mglw.WindowConfig):
             #Restart
             if key == keys.N:
                 self.create_factory()
-                self.currentScale = self.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+                self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
                 self.recreateCairoContext()
-                self.nextGID = len(self.factory.machine_dict)
+                self.nextGID = len(self.env.factory.machine_dict)
                 self.selected = None
             # End Drawing Mode
             if key == keys.ESCAPE:
@@ -230,7 +247,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.wnd.exit_key = keys.ESCAPE
             # Del to delete
             if key == keys.DELETE and self.selected is not None and not self.is_calculating:
-                self.factory_delete_item(self.selected)
+                self.F_delete_item(self.selected)
                 self.selected = None
 
             if(Modes.has_value(key)):
@@ -243,15 +260,15 @@ class factorySimLive(mglw.WindowConfig):
 
 
     def mouse_position_event(self, x, y, dx, dy):
-        self.cursorPosition = (x  + self.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.factory.DRAWINGORIGIN[1] * self.currentScale)
+        self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
     def mouse_drag_event(self, x, y, dx, dy):
-        self.cursorPosition = (x  + self.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.factory.DRAWINGORIGIN[1] * self.currentScale)
+        self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
         if self.wnd.mouse_states.left == True and self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
             # move object  
-            self.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale) + self.factory.DRAWINGORIGIN[0]) + self.selected_offset_x,
-                ((y / self.currentScale) + self.factory.DRAWINGORIGIN[1]) + self.selected_offset_y)
+            self.env.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale) + self.env.factory.DRAWINGORIGIN[0]) + self.selected_offset_x,
+                ((y / self.currentScale) + self.env.factory.DRAWINGORIGIN[1]) + self.selected_offset_y)
             self.update_needed()
             
 
@@ -260,19 +277,19 @@ class factorySimLive(mglw.WindowConfig):
         if button == 1:  
             #Draw Rectangle         
             if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE:
-                self.clickedPoints.append((x + self.factory.DRAWINGORIGIN[0] * self.currentScale ,y + self.factory.DRAWINGORIGIN[1] * self.currentScale))
+                self.clickedPoints.append((x + self.env.factory.DRAWINGORIGIN[0] * self.currentScale ,y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale))
                 if len(self.clickedPoints) >= 2:
-                    self.factory_add_rect(self.clickedPoints[0], self.clickedPoints[1], useWindowCoordinates=True)
+                    self.F_add_rect(self.clickedPoints[0], self.clickedPoints[1], useWindowCoordinates=True)
                     self.clickedPoints.clear()                   
 
              #Draw Polygon         
             elif self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON:
-                self.clickedPoints.append((x + self.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.factory.DRAWINGORIGIN[1] * self.currentScale))
+                self.clickedPoints.append((x + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale))
 
             #Prepare Mouse Drag
             else:
-                for key, machine in reversed(self.factory.machine_dict.items()):
-                    point_scaled = Point(x/self.currentScale + self.factory.DRAWINGORIGIN[0], y/self.currentScale + self.factory.DRAWINGORIGIN[1])
+                for key, machine in reversed(self.env.factory.machine_dict.items()):
+                    point_scaled = Point(x/self.currentScale + self.env.factory.DRAWINGORIGIN[0], y/self.currentScale + self.env.factory.DRAWINGORIGIN[1])
                     if machine.poly.contains(point_scaled):
                         self.selected = key
                         self.selected_offset_x = machine.poly.bounds[0] - point_scaled.x
@@ -286,21 +303,21 @@ class factorySimLive(mglw.WindowConfig):
             #Finish Polygon
             if self.activeModes[Modes.DRAWING] == DrawingModes.POLYGON:
                 if len(self.clickedPoints) >= 3:
-                    self.factory_add_poly(self.clickedPoints, useWindowCoordinates = True)
+                    self.F_add_poly(self.clickedPoints, useWindowCoordinates = True)
                     self.clickedPoints.clear()
 
             #Add Materialflow
             elif self.selected is not None:
-                for key, machine in reversed(self.factory.machine_dict.items()):
-                    point_scaled = Point(x/self.currentScale + self.factory.DRAWINGORIGIN[0], y/self.currentScale + self.factory.DRAWINGORIGIN[1])
+                for key, machine in reversed(self.env.factory.machine_dict.items()):
+                    point_scaled = Point(x/self.currentScale + self.env.factory.DRAWINGORIGIN[0], y/self.currentScale + self.env.factory.DRAWINGORIGIN[1])
                     if machine.poly.contains(point_scaled) and key is not self.selected:
-                        self.factory.addMaterialFlow(self.selected, key, np.random.randint(1,100))
+                        self.env.factory.addMaterialFlow(self.selected, key, np.random.randint(1,100))
                         self.update_needed()
                         break
 
         #Shift Click to delete Objects
         if button == 1 and self.wnd.modifiers.shift and self.selected is not None :
-            self.factory_delete_item(self.selected)
+            self.F_delete_item(self.selected)
             self.selected = None
 
 
@@ -326,7 +343,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def render_cairo_to_texture(self):
         # Draw with cairo to surface
-        draw_BG(self.cctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, self.is_darkmode)
+        draw_BG(self.cctx, self.env.factory.DRAWINGORIGIN,*self.env.factory.FACTORYDIMENSIONS, self.is_darkmode)
         
         if self.is_dirty:
             if self.is_calculating:
@@ -339,36 +356,36 @@ class factorySimLive(mglw.WindowConfig):
                         self.update_during_calculation = False
                         self.is_dirty = True
                         self.is_calculating = True
-                        self.future = self.executor.submit(self.factory.evaluate)
+                        self.future = self.executor.submit(self.env.factory.evaluate)
             else:
-                self.future = self.executor.submit(self.factory.evaluate)
+                self.future = self.executor.submit(self.env.factory.evaluate)
                 self.is_calculating = True
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
         
         
-        drawFactory(self.cctx, self.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode,)
+        drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawOrigin=True, drawWalls=True)
         if self.activeModes[Modes.MODE7]: 
-            draw_poly(self.cctx, self.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
-            draw_poly(self.cctx, self.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
-        if self.activeModes[Modes.MODE_N0]: draw_poly(self.cctx, self.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
-        if self.activeModes[Modes.MODE_N8]: draw_poly(self.cctx, self.factory.extendedPathPolygon, (0.0, 0.3, 0.0, 1.0))
-        if self.activeModes[Modes.MODE3]: draw_poly(self.cctx, self.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
-        if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
-        if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        if self.activeModes[Modes.MODE_N2]: draw_route_lines(self.cctx, self.factory.factoryPath.route_lines)
-        drawFactory(self.cctx, self.factory, drawColors=True, highlight=self.selected, drawNames=True, drawWalls=False)
+            draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
+            draw_poly(self.cctx, self.env.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
+        if self.activeModes[Modes.MODE_N0]: draw_poly(self.cctx, self.env.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
+        if self.activeModes[Modes.MODE_N8]: draw_poly(self.cctx, self.env.factory.extendedPathPolygon, (0.0, 0.3, 0.0, 1.0))
+        if self.activeModes[Modes.MODE3]: draw_poly(self.cctx, self.env.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
+        if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph, asStreets=True)
+        if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph)
+        if self.activeModes[Modes.MODE_N2]: draw_route_lines(self.cctx, self.env.factory.factoryPath.route_lines)
+        drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, drawWalls=False)
         if self.activeModes[Modes.MODE8]:   
-            for key, poly in self.factory.usedSpacePolygonDict.items():
+            for key, poly in self.env.factory.usedSpacePolygonDict.items():
                 draw_poly(self.cctx, poly, (*self.cmap[key], 0.3))
-        if self.activeModes[Modes.MODE_N1]: draw_pathwidth_circles(self.cctx, self.factory.fullPathGraph)
-        if self.activeModes[Modes.MODE0]:draw_node_angles(self.cctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
+        if self.activeModes[Modes.MODE_N1]: draw_pathwidth_circles(self.cctx, self.env.factory.fullPathGraph)
+        if self.activeModes[Modes.MODE0]:draw_node_angles(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph)
         if self.activeModes[Modes.MODE5]: 
-            drawMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
-            draw_points(self.cctx, self.factory.MFIntersectionPoints, (1.0, 1.0, 0.0, 1.0))
+            drawMaterialFlow(self.cctx, self.env.factory.machine_dict, self.env.factory.dfMF, drawColors=True)
+            draw_points(self.cctx, self.env.factory.MFIntersectionPoints, (1.0, 1.0, 0.0, 1.0))
         if self.activeModes[Modes.MODE4]: 
-            drawCollisions(self.cctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
+            drawCollisions(self.cctx, self.env.factory.machineCollisionList, wallCollisionList=self.env.factory.wallCollisionList, outsiderList=self.env.factory.outsiderList)
         if self.activeModes[Modes.MODE6]: 
-            drawRoutedMaterialFlow(self.cctx, self.factory.machine_dict, self.factory.fullPathGraph, self.factory.reducedPathGraph, materialflow_file=self.factory.dfMF, selected=None)
+            drawRoutedMaterialFlow(self.cctx, self.env.factory.machine_dict, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph, materialflow_file=self.env.factory.dfMF, selected=None)
 
         if self.is_EDF:
             for key, mobile in self.mobile_dict.items():
@@ -386,17 +403,17 @@ class factorySimLive(mglw.WindowConfig):
 
         #Draw every rating on a new line
         textwidth = None
-        for i, text in enumerate(self.factory.generateRatingText(multiline=True).split("\n")):
+        for i, text in enumerate(self.env.factory.generateRatingText(multiline=True).split("\n")):
             pos = (self.window_size[0], (40 + i*20))
             textwidth = draw_text(self.cctx, text, color, pos, rightEdge=True, factoryCoordinates=False, input_width=textwidth)
 
         if self.selected != None and self.is_EDF: 
             #Calculate the position of bottom center of selected objects bounding box
-            bbox = self.factory.machine_dict[self.selected].poly.bounds
+            bbox = self.env.factory.machine_dict[self.selected].poly.bounds
             x = (bbox[0] + bbox[2])/2
             y = bbox[3]
 
-            for i, text in enumerate(self.factory.generateRatingText(multiline=True).split("\n")):
+            for i, text in enumerate(self.env.factory.generateRatingText(multiline=True).split("\n")):
                 textwidth = draw_text(self.cctx, text, color, (x, y+ 200+ i*200), center=True, input_width=textwidth)
 
         
@@ -415,7 +432,7 @@ class factorySimLive(mglw.WindowConfig):
             self.update_during_calculation = True 
 
     def recreateCairoContext(self):
-        self.surface, self.cctx = self.factory.provideCairoDrawingData(self.window_size[0], self.window_size[1], scale=self.currentScale)
+        self.surface, self.cctx = self.env.factory.provideCairoDrawingData(self.window_size[0], self.window_size[1], scale=self.currentScale)
 
     def setupKeys(self):
  
@@ -474,7 +491,7 @@ class factorySimLive(mglw.WindowConfig):
         ctx.stroke()
 
 
-    def factory_add_rect(self, topleft, bottomright, gid = None, useWindowCoordinates = False):
+    def F_add_rect(self, topleft, bottomright, gid = None, useWindowCoordinates = False):
         if useWindowCoordinates:
             newRect = box(topleft[0]/self.currentScale, topleft[1]/self.currentScale, bottomright[0]/self.currentScale, bottomright[1]/self.currentScale)
         else:
@@ -486,14 +503,14 @@ class factorySimLive(mglw.WindowConfig):
             self.nextGID += 1
         bbox = newRect.bounds
         origin=(bbox[0],bbox[1])
-        self.factory.machine_dict[gid_to_use] = FactoryObject(gid=gid_to_use, 
+        self.env.factory.machine_dict[gid_to_use] = FactoryObject(gid=str(gid_to_use), 
                                             name="creative_name_" + str(gid_to_use),
                                             origin=origin,
                                             poly=MultiPolygon([newRect]))
 
         self.update_needed()
 
-    def factory_add_poly(self, points, gid = None, useWindowCoordinates = False):
+    def F_add_poly(self, points, gid = None, useWindowCoordinates = False):
 
         if useWindowCoordinates:
             scaledPoints = np.array(points)/self.currentScale
@@ -509,37 +526,32 @@ class factorySimLive(mglw.WindowConfig):
                 self.nextGID += 1
             bbox = newPoly.bounds
             origin=(bbox[0],bbox[1])
-            self.factory.machine_dict[gid_to_use] = FactoryObject(gid=gid_to_use, 
+            self.env.factory.machine_dict[gid_to_use] = FactoryObject(gid=str(gid_to_use), 
                                                 name="creative_name_" + str(gid_to_use),
                                                 origin=origin,
                                                 poly=MultiPolygon([newPoly]))
             self.update_needed()
 
-    def factory_delete_item(self, index):
-            self.factory.machine_dict.pop(index)
-            indexNames = self.factory.dfMF[ (self.factory.dfMF['source'] == index) | (self.factory.dfMF['target'] == index) ].index
-            self.factory.dfMF = self.factory.dfMF.drop(indexNames).reset_index(drop=True)
+    def F_delete_item(self, index):
+            self.env.factory.machine_dict.pop(index)
+            indexNames = self.env.factory.dfMF[ (self.env.factory.dfMF['source'] == index) | (self.env.factory.dfMF['target'] == index) ].index
+            self.env.factory.dfMF = self.env.factory.dfMF.drop(indexNames).reset_index(drop=True)
             self.update_needed()
             
     def create_factory(self):
-        self.factory = FactorySim(self.ifcPath,
-        path_to_materialflow_file = None,
-        factoryConfig=self.factoryConfig,
-        randomPos=False,
-        createMachines=True,
-        verboseOutput=0,
-        maxMF_Elements=None
-        )
-        self.future = self.executor.submit(self.factory.evaluate)
+        self.env = FactorySimEnv( env_config = self.f_config['env_config'])
+
+        self.future = self.executor.submit(self.env.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()
 
 
     def agentInference(self):
-        print("Agent Inference")
         if self.selected:
-            print(self.selected)
-            action = self.Agent.compute_single_action(obs)[0]
-            self.factory.update(self.selected, action[0], action[1], action[2], 0)
+            obs = self.env._get_obs(highlight=self.selected)
+            #action = self.Agent.compute_single_action(obs)[0]
+            action = self.env.action_space.sample()
+            action = np.clip(action, self.env.action_space.low, self.env.action_space.high)
+            self.env.factory.update(self.selected, action[0], action[1], action[2], 0)
             self.update_needed()
             
 
@@ -599,28 +611,28 @@ class factorySimLive(mglw.WindowConfig):
         pp = json.loads(payload)
         index = str(self.extractID(topic))
 
-        if index in self.factory.machine_dict and "x" in pp and "y" in pp:        
+        if index in self.env.factory.machine_dict and "x" in pp and "y" in pp:        
             #Calculate distance of change
-            machine = self.factory.machine_dict[index]
+            machine = self.env.factory.machine_dict[index]
             maxDelta = max(abs(pp["x"] - machine.origin[0]), abs(pp[ "y"] - machine.origin[1]))
             #if change is larger than 2% of factory size, update
-            if maxDelta > max(*self.factory.FACTORYDIMENSIONS)*0.02:
-                self.factory.machine_dict[index].translate_Item(pp["x"],pp[ "y"])
+            if maxDelta > max(*self.env.factory.FACTORYDIMENSIONS)*0.02:
+                self.env.factory.machine_dict[index].translate_Item(pp["x"],pp[ "y"])
                 self.update_needed()
 
-        elif index in self.factory.machine_dict and "u" in pp and "v" in pp:
+        elif index in self.env.factory.machine_dict and "u" in pp and "v" in pp:
             #input 0-1 -> scale to window coordinates -> scale to current zoom
-            scaled_u = np.around(pp["u"],2) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
-            scaled_v = np.around(pp["v"],2) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
+            scaled_u = np.around(pp["u"],2) * self.window_size[0] / self.currentScale + self.env.factory.DRAWINGORIGIN[0]
+            scaled_v = np.around(pp["v"],2) * self.window_size[1] / self.currentScale + self.env.factory.DRAWINGORIGIN[1]
             #Grab machine center instead of origin
-            scaled_u = scaled_u - self.factory.machine_dict[index].width/2
-            scaled_v = scaled_v - self.factory.machine_dict[index].height/2
+            scaled_u = scaled_u - self.env.factory.machine_dict[index].width/2
+            scaled_v = scaled_v - self.env.factory.machine_dict[index].height/2
             #Calculate distance of change
-            machine = self.factory.machine_dict[index]
+            machine = self.env.factory.machine_dict[index]
             maxDelta = max(abs(scaled_u - machine.origin[0]),abs(scaled_v - machine.origin[1]))
             #if change is larger than 2% of factory size, update
-            if maxDelta > max(*self.factory.FACTORYDIMENSIONS)*0.02:
-                self.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
+            if maxDelta > max(*self.env.factory.FACTORYDIMENSIONS)*0.02:
+                self.env.factory.machine_dict[index].translate_Item(scaled_u,scaled_v)
                 self.update_needed()
 
         elif index in self.mobile_dict and "x" in pp and "y" in pp:
@@ -628,8 +640,8 @@ class factorySimLive(mglw.WindowConfig):
 
         elif index in self.mobile_dict and "u" in pp and "v" in pp:
             #input 0-1 -> scale to window coordinates -> scale to current zoom
-            scaled_u = np.around(pp["u"],2) * self.window_size[0] / self.currentScale + self.factory.DRAWINGORIGIN[0]
-            scaled_v = np.around(pp["v"],2) * self.window_size[1] / self.currentScale + self.factory.DRAWINGORIGIN[1]
+            scaled_u = np.around(pp["u"],2) * self.window_size[0] / self.currentScale + self.env.factory.DRAWINGORIGIN[0]
+            scaled_v = np.around(pp["v"],2) * self.window_size[1] / self.currentScale + self.env.factory.DRAWINGORIGIN[1]
             self.mobile_dict[index].translate_Item(scaled_u,scaled_v)
         else:
             print("MQTT message malformed. Needs JSON Payload containing x and y coordinates (u, v coordinates) and valid machine index\n",index)
@@ -638,11 +650,11 @@ class factorySimLive(mglw.WindowConfig):
         pp = json.loads(payload)
         index = self.extractID(topic)
         if index is not None and "topleft_x5" in pp and "topleft_y" in pp and "bottomright_x" in pp and "bottomright_y" in pp:
-            self.factory_add_rect((pp["topleft_x"],pp["topleft_y"]),(pp["bottomright_x"],pp["bottomright_y"]), gid=index)
+            self.F_add_rect((pp["topleft_x"],pp["topleft_y"]),(pp["bottomright_x"],pp["bottomright_y"]), gid=index)
         elif index is not None and "points" in pp:
-            self.factory_add_poly(pp["points"], gid=index)
-        elif index is not None and index in self.factory.machine_dict and pp == []:
-            self.factory.machine_dict.pop(index)
+            self.F_add_poly(pp["points"], gid=index)
+        elif index is not None and index in self.env.factory.machine_dict and pp == []:
+            self.env.factory.machine_dict.pop(index)
             self.update_needed()
         else:
             print("MQTT message malformed. Needs JSON Payload containing topleft_x, topleft_y, bottomright_x, bottomright_y of rectangle or coordinates of a polygon")
