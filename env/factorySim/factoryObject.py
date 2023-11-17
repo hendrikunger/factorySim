@@ -26,12 +26,13 @@ class FactoryObject:
         rotShift = r - self.rotation
         self.rotation = r
         
-        self.poly = rotate(self.poly, rotShift, origin=self.origin, use_radians=True)
+        self.poly = rotate(self.poly, rotShift, origin='center', use_radians=True)
 
         bounds = self.poly.bounds
         self.width = bounds[2] - bounds[0]
         self.height =  bounds[3] - bounds[1]
         self.center = self.poly.representative_point()
+        self.origin = (bounds[0], bounds[1])
 
 
     def translate_Item(self, x, y):
