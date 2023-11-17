@@ -93,35 +93,12 @@ class factorySimLive(mglw.WindowConfig):
         self.cmap = self.rng.random(size=(200, 3))
         self.executor = ThreadPoolExecutor(max_workers=1)
         self.factoryCreator = FactoryCreator(*self.factoryConfig.creationParameters())
+        basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..", "Input")
 
-        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",
-        "2",  
-        "Simple" + ".ifc")
-
-        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",
-        "2")
-
-        # self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        # "..",
-        # "..",
-        # "Input",
-        # "2",  
-        # "TestCaseZigZag" + ".ifc")
- 
-        self.ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 
-        "..",
-        "..",
-        "Input",
-        "2",  
-        "EDF" + ".ifc")
-
-        #self.ifcpath=None
+        self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
+        self.ifcPath = os.path.join(basePath, "2")
+        self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
+        #self.ifcPath=None
 
         self.create_factory()
 
@@ -539,7 +516,7 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
     def create_factory(self):
-        self.factory = FactorySim(self.ifcpath,
+        self.factory = FactorySim(self.ifcPath,
         path_to_materialflow_file = None,
         factoryConfig=self.factoryConfig,
         randomPos=False,
