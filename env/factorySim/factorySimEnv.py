@@ -183,21 +183,17 @@ class FactorySimEnv(gym.Env):
         machineToHighlight = highlight if not highlight is None else str(self.currentMachine)
 
         draw_obs_layer_A(self.ctx, self.factory, highlight=machineToHighlight)
-        # draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        # drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True, darkmode=False,)
-        # drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
         buf = self.surface.get_data()
+
         machines_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
         draw_obs_layer_B(self.ctx, self.factory, highlight=machineToHighlight)
-        # draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        # draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        # drawFactory(self.ctx, self.factory, self.factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True)
-        
+
         buf = self.surface.get_data()
+
         materialflow_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         #Format (width, height, 2)
@@ -253,10 +249,8 @@ def main():
     
     ifcPath = os.path.join(basePath, "Input", "2", f"{filename}.ifc")
     #ifcPath = os.path.join(basePath, "Input", "2")
-
     configpath = os.path.join(basePath,"config.yaml")
     
-
 
     with open(configpath, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -270,6 +264,8 @@ def main():
         mode="offline",
     )
 
+    f_config['env_config']['render_mode'] = "human"
+    f_config['env_config']['inputfile'] = ifcPath
     env = FactorySimEnv( env_config = f_config['env_config'])
     env.prefix="test"
 
