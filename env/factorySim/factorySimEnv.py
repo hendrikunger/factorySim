@@ -17,7 +17,7 @@ from ray.rllib.env.multi_agent_env import make_multi_agent
 
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
-
+from factorySim.rendering import draw_obs_layer_A, draw_obs_layer_B
 
 
 
@@ -182,18 +182,20 @@ class FactorySimEnv(gym.Env):
         #new Version greyscale
         machineToHighlight = highlight if not highlight is None else str(self.currentMachine)
 
-        draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True, darkmode=False,)
-        drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
+        draw_obs_layer_A(self.ctx, self.factory, highlight=machineToHighlight)
+        # draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
+        # drawFactory(self.ctx, self.factory, None, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True, darkmode=False,)
+        # drawCollisions(self.ctx, self.factory.machineCollisionList, self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
 
         buf = self.surface.get_data()
         machines_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
-        draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
-        draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
-        drawFactory(self.ctx, self.factory, self.factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True)
+        draw_obs_layer_B(self.ctx, self.factory, highlight=machineToHighlight)
+        # draw_BG(self.ctx, self.factory.DRAWINGORIGIN, *self.factory.FACTORYDIMENSIONS, darkmode=False)
+        # draw_detail_paths(self.ctx, self.factory.fullPathGraph, self.factory.reducedPathGraph)
+        # drawFactory(self.ctx, self.factory, self.factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=machineToHighlight, isObs=True)
         
         buf = self.surface.get_data()
         materialflow_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]

@@ -433,5 +433,17 @@ def draw_text(ctx, text, color, pos, center=False, rightEdge=False, factoryCoord
     return width
 
 
+#------------------------------------------------------------------------------------------------------------
+def draw_obs_layer_A(ctx, factory,  highlight=None):
+    draw_BG(ctx, factory.DRAWINGORIGIN, *factory.FACTORYDIMENSIONS, darkmode=False)
+    drawFactory(ctx, factory, None, drawColors = False, drawNames=False, highlight=highlight, isObs=True, darkmode=False,)
+    drawCollisions(ctx, factory.machineCollisionList, factory.wallCollisionList, outsiderList=factory.outsiderList)
 
-
+    return ctx
+#------------------------------------------------------------------------------------------------------------
+def draw_obs_layer_B(ctx, factory,  highlight=None):
+    draw_BG(ctx, factory.DRAWINGORIGIN, *factory.FACTORYDIMENSIONS, darkmode=False)
+    draw_detail_paths(ctx, factory.fullPathGraph, factory.reducedPathGraph)
+    drawFactory(ctx, factory, factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=highlight, isObs=True)
+    
+    return ctx

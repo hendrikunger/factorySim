@@ -23,8 +23,6 @@ from ray.rllib.policy.policy import Policy
 
 
 
-
-
 class DrawingModes(Enum):
     NONE = None
     RECTANGLE = 114 # R Key
@@ -57,11 +55,12 @@ class Modes (Enum):
     MODE_N8 = 65464 # Num 8 Key 
     MODE_N9 = 65465 # Num 9 Key 
     DRAWING = DrawingModes.NONE
+    AGENTDEBUG = 100 # D Key
+
 
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 
-
 
 
 class factorySimLive(mglw.WindowConfig):
@@ -84,6 +83,7 @@ class factorySimLive(mglw.WindowConfig):
     is_EDF = False
     is_dirty = False
     is_calculating = False
+    is_shrunk = False
     update_during_calculation = False
     clickedPoints = []
     #
@@ -92,14 +92,15 @@ class factorySimLive(mglw.WindowConfig):
     #factoryConfig = baseConfigs.EDF
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
+    currenDebugMode = 0
+
+    []
       
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.rng = np.random.default_rng()
         self.cmap = self.rng.random(size=(200, 3))
         self.executor = ThreadPoolExecutor(max_workers=1)
-
-
 
 
         
@@ -209,10 +210,10 @@ class factorySimLive(mglw.WindowConfig):
 
     def key_event(self, key, action, modifiers):
         keys = self.wnd.keys
-
+        # 65453  Num Minus
+        # 65451  Num Plus
         # Key presses
         if action == keys.ACTION_PRESS:
-
             # Toggle Fullscreen
             if key == keys.F:
                 self.wnd.fullscreen = not self.wnd.fullscreen   
@@ -222,6 +223,11 @@ class factorySimLive(mglw.WindowConfig):
             # Agent Prediction
             if key == keys.A:
                 self.agentInference()   
+            # Debug Mode Rendering
+            if key == 65451: # Num Plus
+                self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 2 else 0
+            if key == 65453: # Num Minus
+                self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 2
             # Zoom
             if key == 43: # +
                 self.currentScale += 0.005
@@ -229,6 +235,15 @@ class factorySimLive(mglw.WindowConfig):
             if key == keys.MINUS:
                 self.currentScale -= 0.005
                 self.recreateCairoContext()
+            # ShrunkMode
+            if key == keys.S:
+                if self.is_shrunk:
+                    self.wnd.size = self.old_window_size
+                    self.is_shrunk = False
+                else:
+                    self.old_window_size = self.window_size
+                    self.is_shrunk = True
+                    self.wnd.size = (84,84)
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
@@ -361,34 +376,42 @@ class factorySimLive(mglw.WindowConfig):
                 self.is_calculating = True
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
         
-        
-        drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True)
-        if self.activeModes[Modes.MODE7]: 
-            draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
-            draw_poly(self.cctx, self.env.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
-        if self.activeModes[Modes.MODE_N0]: draw_poly(self.cctx, self.env.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
-        if self.activeModes[Modes.MODE_N8]: draw_poly(self.cctx, self.env.factory.extendedPathPolygon, (0.0, 0.3, 0.0, 1.0))
-        if self.activeModes[Modes.MODE3]: draw_poly(self.cctx, self.env.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
-        if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph, asStreets=True)
-        if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph)
-        if self.activeModes[Modes.MODE_N2]: draw_route_lines(self.cctx, self.env.factory.factoryPath.route_lines)
-        drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, drawWalls=False)
-        if self.activeModes[Modes.MODE8]:   
-            for key, poly in self.env.factory.usedSpacePolygonDict.items():
-                draw_poly(self.cctx, poly, (*self.cmap[key], 0.3))
-        if self.activeModes[Modes.MODE_N1]: draw_pathwidth_circles(self.cctx, self.env.factory.fullPathGraph)
-        if self.activeModes[Modes.MODE0]:draw_node_angles(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph)
-        if self.activeModes[Modes.MODE5]: 
-            drawMaterialFlow(self.cctx, self.env.factory.machine_dict, self.env.factory.dfMF, drawColors=True)
-            draw_points(self.cctx, self.env.factory.MFIntersectionPoints, (1.0, 1.0, 0.0, 1.0))
-        if self.activeModes[Modes.MODE4]: 
-            drawCollisions(self.cctx, self.env.factory.machineCollisionList, wallCollisionList=self.env.factory.wallCollisionList, outsiderList=self.env.factory.outsiderList)
-        if self.activeModes[Modes.MODE6]: 
-            drawRoutedMaterialFlow(self.cctx, self.env.factory.machine_dict, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph, materialflow_file=self.env.factory.dfMF, selected=None)
+        if self.activeModes[Modes.AGENTDEBUG]:
+            match self.currenDebugMode:
+                case 0:
+                    draw_obs_layer_A(self.cctx, self.env.factory, highlight=self.selected)
+                case 1:
+                    draw_obs_layer_B(self.cctx, self.env.factory, highlight=self.selected)
+                case 2:
+                    draw_text(self.cctx,(f"Easteregg"), (0.7, 0.0, 0.0, 1.0), (self.window_size[0]/2,self.window_size[1]/2), factoryCoordinates=False)
+        else:
+            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True)
+            if self.activeModes[Modes.MODE7]: 
+                draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
+                draw_poly(self.cctx, self.env.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
+            if self.activeModes[Modes.MODE_N0]: draw_poly(self.cctx,  self.env.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
+            if self.activeModes[Modes.MODE_N9]: draw_poly(self.cctx, self.env.factory.extendedPathPolygon, (0.0, 0.3, 0.0, 1.0))
+            if self.activeModes[Modes.MODE3]: draw_poly(self.cctx, self.env.factory.pathPolygon, (0.0, 0.3, 0.0, 1.0))
+            if self.activeModes[Modes.MODE1]: draw_detail_paths(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph, asStreets=True)
+            if self.activeModes[Modes.MODE2]: draw_simple_paths(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph)
+            if self.activeModes[Modes.MODE_N8]: draw_route_lines(self.cctx, self.env.factory.factoryPath.route_lines)
+            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, drawWalls=False)
+            if self.activeModes[Modes.MODE8]:   
+                for key, poly in self.env.factory.usedSpacePolygonDict.items():
+                    draw_poly(self.cctx, poly, (*self.cmap[key], 0.3))
+            if self.activeModes[Modes.MODE_N7]: draw_pathwidth_circles(self.cctx, self.env.factory.fullPathGraph)
+            if self.activeModes[Modes.MODE0]:draw_node_angles(self.cctx, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph)
+            if self.activeModes[Modes.MODE5]: 
+                drawMaterialFlow(self.cctx, self.env.factory.machine_dict, self.env.factory.dfMF, drawColors=True)
+                draw_points(self.cctx, self.env.factory.MFIntersectionPoints, (1.0, 1.0, 0.0, 1.0))
+            if self.activeModes[Modes.MODE4]: 
+                drawCollisions(self.cctx, self.env.factory.machineCollisionList, wallCollisionList=self.env.factory.wallCollisionList, outsiderList=self.env.factory.outsiderList)
+            if self.activeModes[Modes.MODE6]: 
+                drawRoutedMaterialFlow(self.cctx, self.env.factory.machine_dict, self.env.factory.fullPathGraph, self.env.factory.reducedPathGraph, materialflow_file=self.env.factory.dfMF, selected=None)
 
-        if self.is_EDF:
-            for key, mobile in self.mobile_dict.items():
-                draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
+            if self.is_EDF:
+                for key, mobile in self.mobile_dict.items():
+                    draw_poly(self.cctx, mobile.poly, mobile.color, text=str(mobile.name), drawHoles=True)
        
 
         if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE and len(self.clickedPoints) > 0:
@@ -446,7 +469,7 @@ class factorySimLive(mglw.WindowConfig):
                         Modes.MODE8 : False,
                         Modes.MODE9 : False,
                         Modes.MODE_N0 : False,
-                        Modes.MODE_N1 : False,
+                        Modes.MODE_N1 : True,
                         Modes.MODE_N2 : False,
                         Modes.MODE_N3 : False,
                         Modes.MODE_N4 : False,
@@ -455,7 +478,8 @@ class factorySimLive(mglw.WindowConfig):
                         Modes.MODE_N7 : False,
                         Modes.MODE_N8 : False,
                         Modes.MODE_N9 : False,
-                        Modes.DRAWING : DrawingModes.NONE
+                        Modes.DRAWING : DrawingModes.NONE,
+                        Modes.AGENTDEBUG : False,
         }
 
 
