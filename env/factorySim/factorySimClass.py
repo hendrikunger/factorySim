@@ -306,8 +306,8 @@ class FactorySim:
 
 
 
-        #if(self.episodeCounter >= 3 * len(self.machine_list)):
-        if(self.episodeCounter >= len(self.machine_dict)+1):
+        if(self.episodeCounter >= 3 * len(self.machine_list)):
+        #if(self.episodeCounter >= len(self.machine_dict)+1):
             self.RatingDict["terminated"] = True
         else:
             self.RatingDict["terminated"] = False   
