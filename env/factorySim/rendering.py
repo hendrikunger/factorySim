@@ -371,12 +371,13 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
         ctx.set_source_rgb(1.0, 0.3, 0.0)
     else:
         ctx.set_source_rgb(0.7, 0.7, 0.7)
-
+    #Drawing collisions between machines and machines
     for collision in machineCollisionList:
-        for poly in collision.geoms:   
-            for point in poly.exterior.coords:
+        for poly in collision.geoms:
+            ctx.move_to(*poly.exterior.coords[0])
+            for point in poly.exterior.coords[1:]: 
                 ctx.line_to(point[0], point[1])
-        ctx.close_path()
+            ctx.close_path()
         ctx.fill()
                 
     #Drawing collisions between machines and walls
@@ -386,24 +387,25 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
         else:
             ctx.set_source_rgb(0.7, 0.7, 0.7)
         for collision in wallCollisionList:
-            for poly in collision.geoms:   
-                for point in poly.exterior.coords:
+            for poly in collision.geoms:
+                ctx.move_to(*poly.exterior.coords[0])
+                for point in poly.exterior.coords[1:]: 
                     ctx.line_to(point[0], point[1])
-            ctx.close_path()
-            ctx.fill()     
-        #Drawing collisions between machines and walls
+                ctx.close_path()
+            ctx.fill()
+        #Drawing outsider
     if(outsiderList): 
         if(drawColors):
             ctx.set_source_rgb(1.0, 0.3, 0.0)
         else:
             ctx.set_source_rgb(0.7, 0.7, 0.7)
         for outsider in outsiderList:
-            for poly in outsider.geoms:   
-                for point in poly.exterior.coords:
+            for poly in collision.geoms:
+                ctx.move_to(*poly.exterior.coords[0])
+                for point in poly.exterior.coords[1:]: 
                     ctx.line_to(point[0], point[1])
-            ctx.close_path()
-            ctx.fill()       
-
+                ctx.close_path()
+            ctx.fill()     
 
     return ctx
 
