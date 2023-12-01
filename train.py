@@ -188,7 +188,7 @@ if __name__ == "__main__":
     ray.init(num_gpus=1, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 1800,
+    "training_iteration": 500,
     #"timesteps_total": 5000000,
     #"episode_reward_mean": 5,
     }
@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     ppo_config = PPOConfig()
     ppo_config.experimental(_enable_new_api_stack=False)
-    ppo_config.lr=0.0005
+    ppo_config.lr=0.00005
                  #0.003
                  #0.000005
     #ppo_config.rl_module(rl_module_spec=myRLModule,))
