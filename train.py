@@ -244,7 +244,7 @@ if __name__ == "__main__":
     name = os.getenv("SLURM_JOB_ID", f"D-{datetime.now().strftime('%Y%m%d_%H-%M-%S')}")
 
 
-    run_config=RunConfig(name="klaus",
+    run_config=RunConfig(name="bert",
                             stop=stop,
                             checkpoint_config=checkpoint_config,
                             #log_to_file="./wandb/latest-run/files/stdoutanderr.log",
