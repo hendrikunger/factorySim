@@ -150,8 +150,9 @@ class factorySimLive(mglw.WindowConfig):
         self.mqtt_client.loop_start()
         
         #Agent 
-        checkpointPath = os.path.join(basePath, "..", "artifacts", "checkpoint_PPO_latest")
-        self.Agent = Policy.from_checkpoint(checkpointPath)["default_policy"]
+        if False:
+            checkpointPath = os.path.join(basePath, "..", "artifacts", "checkpoint_PPO_latest")
+            self.Agent = Policy.from_checkpoint(checkpointPath)["default_policy"]
         
 
         self.prog = self.ctx.program(

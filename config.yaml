@@ -10,6 +10,7 @@ env_config:
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
   evaluation: false
+  reward_function: 2
 
 
 # Evaluate once per training iteration.

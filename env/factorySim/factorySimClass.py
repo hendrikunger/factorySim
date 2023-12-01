@@ -40,7 +40,8 @@ class FactorySim:
         random.seed(randseed)
             
         self.timezero = time()
-        self.lasttime = 0        
+        self.lasttime = 0      
+        self.lastRating = 0  
         self.RatingDict = {}
         self.MachinesFarFromPath = set()
         self.machine_dict = None
@@ -111,7 +112,7 @@ class FactorySim:
         self.currentMappedRating    = 0 # Holds the normalized Rating of the current state of the Layout 
 
         self.lastUpdatedMachine = None #Hold uid of last updated machine for collision checking
-        self.collisionAfterLastUpdate = False # True if latest update leads to new collsions
+        self.collisionAfterLastUpdate = False # True if latest update leads to new collisions
 
         self.episodeCounter = 0
         self.scale = 1 #Saves the scaling factor of provided factories for external access
@@ -207,9 +208,11 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
-    def evaluate(self):
+    def evaluate(self, rewardMode = 1):
 
         self.RatingDict = {}
+        #In case caluclation fails set default rating
+        self.currentRating = -5
         
         self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
         if self.fullPathGraph and self.reducedPathGraph and self.walkableArea is not None:
@@ -255,13 +258,33 @@ class FactorySim:
 
     ## Total Rating Calculation 
 
-        partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "ratingCollision"])
-        weights = np.ones_like(partialRatings)
 
-        if(self.RatingDict.get("ratingCollision", -1) == 1):
-            self.currentRating = np.average(partialRatings, weights=weights)
-        else: 
-            self.currentRating = -1
+            match rewardMode:
+                case 1:
+                    # Rating is 0 if no collision, -1 if collision
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "ratingCollision"])
+                    weights = np.ones_like(partialRatings)
+
+                    if(self.RatingDict.get("ratingCollision", -1) == 1):
+                        self.currentRating = np.average(partialRatings, weights=weights)
+                    else: 
+                        self.currentRating = -1
+
+                case 2:
+                    # Rating the difference to the last rating
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "EvaluationResult"])
+                    weights = np.ones_like(partialRatings)
+
+                    self.currentRating = np.average(partialRatings, weights=weights)
+                    self.RatingDict["EvaluationResult"] = self.currentRating
+                    
+
+                    if self.currentRating > self.lastRating: 
+                        self.lastRating = self.currentRating
+                    else:
+                        self.currentRating = self.currentRating - self.lastRating
+                    
+
             #if(output["ratingCollision"] >= 0.5):
             #    self.currentRating = 0.1
             #else:
@@ -275,18 +298,9 @@ class FactorySim:
         #    self.currentRating = self.mapRange(output["ratingMF"],(-2,1),(-1,1))
 
 
-        ##Normalize
-        #if(self.episodeCounter % len(self.machine_list) == 0 ):
-        #    self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
-        #
-        #elif(self.currentRating > self.lastRating):
-        #    self.currentMappedRating = 0.1
-        #else:
-        #    self.currentMappedRating = -0.2
-        #
-        #self.lastRating = self.currentRating
 
-        #self.currentMappedRating = self.mapRange(self.currentRating,(-2,2),(-1,1))
+
+
         self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating
 
 
@@ -313,6 +327,7 @@ class FactorySim:
         else:
             con = " | "
         return (f"REWARD              : {self.RatingDict.get('TotalRating', 0): 1.2f}{con}"
+                f"Evaluation Result   : {self.RatingDict.get('EvaluationResult', 0): 1.2f}{con}"
                 f"Material Flow       : {self.RatingDict.get('ratingMF', 0): 1.2f}{con}"
                 f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', 0): 1.2f}{con}"
                 f"MF Intersections    : {self.RatingDict.get('MFIntersection', 0): 1.2f}{con}"
@@ -342,7 +357,6 @@ class FactorySim:
         nMachineCollisions = len(self.factoryRating.machineCollisionList)
         nWallCollosions = len(self.factoryRating.wallCollisionList)
         nOutsiders = len(self.factoryRating.outsiderList)
-        
 
 
         #If latest update leads to collision give worst rating.
@@ -460,7 +474,7 @@ def main():
         "..",
         "..",
         "Output", 
-        F"{outputfile}_machine_collsions.png")
+        F"{outputfile}_machine_collisions.png")
     surface.write_to_png(path) 
     demoFactory.printTime("PNG schreiben")
 
