@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     ppo_config = PPOConfig()
     ppo_config.experimental(_enable_new_api_stack=False)
-    ppo_config.lr=0.0005
+    ppo_config.lr=0.00005
                  #0.003
                  #0.000005
     #ppo_config.rl_module(rl_module_spec=myRLModule,))
