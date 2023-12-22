@@ -236,7 +236,7 @@ if __name__ == "__main__":
                         )   
     ppo_config.resources(num_gpus=1,
                          num_learner_workers=0,
-                         num_gpus_per_learner_worker=1,
+                         num_gpus_per_learner_worker=2,
                          )
     ppo_config._disable_preprocessor_api=True
     ppo_config.rollouts(enable_connectors=True,)
