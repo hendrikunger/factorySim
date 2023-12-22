@@ -1,1 +1,1 @@
-__all__ = ["factorySimClass", "factorySimEnv", "customModels", "customRLModulTorch", "customRLModulTF", "baseConfigs", "creation", "routing", "rendering", "kpi", "factoryObject"]
+__all__ = ["factorySimClass", "factorySimEnv", "customModels", "customModelsTorch", "customRLModulTorch", "customRLModulTF", "baseConfigs", "creation", "routing", "rendering", "kpi", "factoryObject"]

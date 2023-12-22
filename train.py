@@ -14,7 +14,7 @@ from ray.rllib.algorithms.callbacks import DefaultCallbacks
 
 from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
-
+from factorySim.customModelsTorch import MyXceptionModel
 
 
 from ray.rllib.core.rl_module.rl_module import SingleAgentRLModuleSpec
@@ -47,7 +47,8 @@ filename = "Basic"
 ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
 
 #Import Custom Models
-#ModelCatalog.register_custom_model("my_model", MyXceptionModel)
+from ray.rllib.models import ModelCatalog
+ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 
 
@@ -211,13 +212,14 @@ if __name__ == "__main__":
     ppo_config.training(model={
                                         "use_attention": False,
                                         "use_lstm": False,
+                                        "custom_model": "my_model",
 
                                     },
                         )
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
     ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "24"))-1,  #f_config['num_workers'], 
+    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "3"))-1,  #f_config['num_workers'], 
                         num_envs_per_worker=1,  #2
                         )
     #ppo_config.train_batch_size=256
