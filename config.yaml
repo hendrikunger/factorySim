@@ -2,10 +2,10 @@ env_config:
   inputfile: '' #Gets populated on runtime
   obs_type: image
   Loglevel: 0
-  width: 224 #84
-  height: 224 #84
+  width: 256 #84
+  height: 256 #84
   maxMF_Elements: 4
-  outputScale: 3 #10
+  outputScale: 2 #10
   render_mode: null
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
