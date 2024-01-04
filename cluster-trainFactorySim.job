@@ -15,4 +15,4 @@ apptainer run --nv "$HOME/factorySim/factorySim.sif"
 #clara cluster
 # run with sbatch slurm-job.sh
 
-#SBATCH --gpus-per-node=v100:2
+# --gpus-per-node=v100:2
