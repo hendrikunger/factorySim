@@ -16,7 +16,7 @@ class MyXceptionModel(TorchModelV2, nn.Module):
         nn.Module.__init__(self)
 
         #Xception Model
-        self.model = timm.create_model('xception41', num_classes=num_outputs, pretrained=False, in_chans=2)
+        self.model = timm.create_model('fastvit_ma36', num_classes=num_outputs, pretrained=False, in_chans=2)
         self._value_branch = SlimFC(
                 num_outputs, 1, initializer=normc_initializer(0.01), activation_fn=None
             )
