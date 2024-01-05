@@ -3,12 +3,13 @@ from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.models.torch.misc import SlimFC, normc_initializer
 import timm 
 
+from  memory_profiler import profile
+
 torch, nn = try_import_torch()
 
 
 class MyXceptionModel(TorchModelV2, nn.Module):
     """Implementation of Xception model from https://arxiv.org/abs/1610.02357."""
-
     def __init__(self, obs_space, action_space, num_outputs, model_config, name):
         super(MyXceptionModel, self).__init__(
             obs_space, action_space, num_outputs, model_config, name
@@ -16,7 +17,7 @@ class MyXceptionModel(TorchModelV2, nn.Module):
         nn.Module.__init__(self)
 
         #Xception Model
-        self.model = timm.create_model('fastvit_ma36', num_classes=num_outputs, pretrained=False, in_chans=2)
+        self.model = timm.create_model('efficientnetv2_s', num_classes=num_outputs, pretrained=False, in_chans=2)
         self._value_branch = SlimFC(
                 num_outputs, 1, initializer=normc_initializer(0.01), activation_fn=None
             )

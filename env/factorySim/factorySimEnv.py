@@ -21,7 +21,7 @@ from factorySim.rendering import draw_obs_layer_A, draw_obs_layer_B
 
 
 
- 
+
 class FactorySimEnv(gym.Env):  
     metadata = {'render_modes': ['human', 'rgb_array']}
 
@@ -101,7 +101,7 @@ class FactorySimEnv(gym.Env):
             self.info["Step"] = self.stepCount
      
         return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
-        
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         del(self.factory)
@@ -140,7 +140,7 @@ class FactorySimEnv(gym.Env):
             self._render_frame()
 
         return (self._get_obs(), self.info)
-    
+
     def render(self):
         if self.render_mode == "rgb_array" or self.render_mode == "human":
             return self._render_frame()
@@ -201,7 +201,7 @@ class FactorySimEnv(gym.Env):
         output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
         
         return output/ 255.0
-  
+
     def close(self):
         if self.surface:
             self.surface.finish()
@@ -282,13 +282,14 @@ def main():
 
     obs = env.reset()
  
-    for index in tqdm(range(0,50)):
+    for index in tqdm(range(0,5)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
         else:
             image = None
+            env.render()
 
         tbl.add_data(image, *[info.get(key, -1) for key in ratingkeys])
         if terminated:
