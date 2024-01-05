@@ -10,7 +10,7 @@ import ray
 from ray.tune import Tuner, Callback
 from ray.air.config import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.ppo import PPOConfig
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.algorithms.callbacks import DefaultCallbacks, MemoryTrackingCallbacks
 
 from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
@@ -35,6 +35,7 @@ import wandb
 import yaml
 from  typing import Any
 from datetime import datetime
+
 
 #filename = "Overlapp"
 filename = "Basic"
@@ -185,11 +186,11 @@ myRLModule = SingleAgentRLModuleSpec(
 
 
 
-if __name__ == "__main__":
-    ray.init(num_gpus=2, include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+def run():
+    ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 1300,
+    "training_iteration": 2,
     #"timesteps_total": 5000000,
     #"episode_reward_mean": 5,
     }
@@ -219,7 +220,8 @@ if __name__ == "__main__":
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
     ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "3"))-1,  #f_config['num_workers'], 
+    ppo_config.callbacks(MemoryTrackingCallbacks)
+    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "2"))-1,  #f_config['num_workers'], 
                         num_envs_per_worker=1,  #2
                         )
     #ppo_config.train_batch_size=256
@@ -234,9 +236,9 @@ if __name__ == "__main__":
                           evaluation_interval=1,
                           evaluation_config={"env_config": eval_config},
                         )   
-    ppo_config.resources(num_gpus=2,
+    ppo_config.resources(num_gpus=int(os.getenv("$SLURM_GPUS", "1")),
                          num_learner_workers=1,
-                         num_gpus_per_learner_worker=2,
+                         num_gpus_per_learner_worker=int(os.getenv("$SLURM_GPUS", "1")),
                          )
     ppo_config._disable_preprocessor_api=True
     ppo_config.rollouts(enable_connectors=True,)
@@ -293,3 +295,7 @@ if __name__ == "__main__":
 
 
 # std log and std error need to go to wandb, they are in the main folder of the run
+
+
+if __name__ == "__main__":
+    run()
