@@ -262,10 +262,10 @@ class FactorySim:
             match rewardMode:
                 case 1:
                     # Rating is 0 if no collision, -1 if collision
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "ratingCollision"])
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated"])
                     weights = np.ones_like(partialRatings)
 
-                    if(self.RatingDict.get("ratingCollision", -1) == 1):
+                    if(self.RatingDict.get("ratingCollision", -1) >= 0.5):
                         self.currentRating = np.average(partialRatings, weights=weights)
                     else: 
                         self.currentRating = -1
