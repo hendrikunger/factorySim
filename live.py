@@ -5,6 +5,7 @@ import queue
 import json
 import os
 import yaml
+import sys
 
 import cairo
 import moderngl
@@ -69,8 +70,8 @@ class factorySimLive(mglw.WindowConfig):
     fps_counter = 30
     #window_size = (3840, 4320)
     #window_size = (3840, 2160)
-    window_size = (1920, 1080)
-    #window_size = (1280, 720)
+    #window_size = (1920, 1080)
+    window_size = (1280, 720)
     #window_size = (1920*6, 1080)
     mqtt_broker = "broker.emqx.io"
     #mqtt_broker = "10.54.129.47"
@@ -93,8 +94,8 @@ class factorySimLive(mglw.WindowConfig):
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
     currenDebugMode = 0
+    dpiScaler = 2 if sys.platform == "darwin" else 1
 
-    []
       
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -134,11 +135,11 @@ class factorySimLive(mglw.WindowConfig):
         self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcPath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
         print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.env.factory.machine_dict)
-        self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+        self.set_factoryScale()
 
 
         self.setupKeys()
-        self.recreateCairoContext()
+
 
         #MQTT Connection
         self.mqtt_Q = queue.Queue(maxsize=100)
@@ -199,8 +200,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def resize(self, width: int, height: int):
         self.window_size = (width, height)
-        self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
-        self.recreateCairoContext()
+        self.set_factoryScale()
 
 
     def close(self):
@@ -251,8 +251,7 @@ class factorySimLive(mglw.WindowConfig):
             #Restart
             if key == keys.N:
                 self.create_factory()
-                self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
-                self.recreateCairoContext()
+                self.set_factoryScale()
                 self.nextGID = len(self.env.factory.machine_dict)
                 self.selected = None
             # End Drawing Mode
@@ -275,9 +274,13 @@ class factorySimLive(mglw.WindowConfig):
 
 
     def mouse_position_event(self, x, y, dx, dy):
+        x *= self.dpiScaler
+        y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
     def mouse_drag_event(self, x, y, dx, dy):
+        x *= self.dpiScaler
+        y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
         if self.wnd.mouse_states.left == True and self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
@@ -289,6 +292,8 @@ class factorySimLive(mglw.WindowConfig):
 
     def mouse_press_event(self, x, y, button):
         #Highlight and prepare for Drag
+        x *= self.dpiScaler
+        y *= self.dpiScaler
         if button == 1:  
             #Draw Rectangle         
             if self.activeModes[Modes.DRAWING] == DrawingModes.RECTANGLE:
@@ -567,6 +572,10 @@ class factorySimLive(mglw.WindowConfig):
 
         self.future = self.executor.submit(self.env.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()
+
+    def set_factoryScale(self):
+        self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+        self.recreateCairoContext()
 
 
     def agentInference(self):
