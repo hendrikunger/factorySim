@@ -6,15 +6,14 @@ from shapely.affinity import rotate, scale, translate
 from shapely.ops import unary_union
 from shapely.prepared import prep
 import ifcopenshell
-import random
 from factorySim.factoryObject import FactoryObject
 
 
 class FactoryCreator():
 
 
-    def __init__(self, factoryDimensions=(32000,18000), maxShapeWidth=3000, maxShapeHeight=2000, amountRect=20, amountPoly=5, maxCorners=3):
-        self.rng = np.random.default_rng()
+    def __init__(self, factoryDimensions=(32000,18000), maxShapeWidth=3000, maxShapeHeight=2000, amountRect=20, amountPoly=5, maxCorners=3, randSeed=None):
+        self.rng = np.random.default_rng(randSeed)
         self.factoryWidth = factoryDimensions[0]
         self.factoryHeight = factoryDimensions[1]
         self.maxShapeWidth = maxShapeWidth
@@ -127,7 +126,8 @@ class FactoryCreator():
         element_dict = {}
         elements = []
         if(randomMF):
-            elements = random.choices(ifc_file.by_type(elementName), k=random.randint(2, randomMF))
+            amount = self.rng.integers(2, randomMF)
+            elements = self.rng.choice(ifc_file.by_type(elementName), size=amount, replace=False)
         else:
             elements = ifc_file.by_type(elementName)
         for index, element in enumerate(elements):
@@ -228,13 +228,13 @@ class FactoryCreator():
         for start in machine_dict.values():
             sample = start
             while sample == start:
-                sample = random.choice(list(self.machine_dict.values()))
+                sample = self.rng.choice(list(self.machine_dict.values()))
             names.append([start.name, sample.name]) 
-            if random.random() >= 0.9:
-                sample = random.choice(list(self.machine_dict.values()))
+            if self.rng.random() >= 0.9:
+                sample = self.rng.choice(list(self.machine_dict.values()))
                 names.append([start.name, sample.name])                 
         self.dfMF = pd.DataFrame(data=names, columns=["source", "target"])
-        self.dfMF['intensity'] = np.random.randint(1,100, size=len(self.dfMF))
+        self.dfMF['intensity'] = self.rng.integers(1,100, size=len(self.dfMF))
 
         return self.dfMF
 

@@ -11,6 +11,7 @@ env_config:
   prefix: null #Gets populated on runtime
   evaluation: false
   reward_function: 2
+  randomSeed: null
 
 
 # Evaluate once per training iteration.

@@ -81,7 +81,9 @@ class FactorySimEnv(gym.Env):
             self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(self.width, self.height, 2), dtype=np.float64)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
-        self.reset()
+
+
+        self.reset(seed=env_config.get("randomSeed", None))
 
     def step(self, action):
         if not np.isnan(action[0]) :
@@ -110,7 +112,7 @@ class FactorySimEnv(gym.Env):
         factoryConfig=self.factoryConfig,
         randomPos=False,
         createMachines=True,
-        randseed = seed,
+        randSeed = seed,
         verboseOutput=self.Loglevel,
         maxMF_Elements = self.maxMF_Elements)
         self.info = {}

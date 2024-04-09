@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import random
 import logging
 
 from time import time
@@ -22,7 +21,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randseed = None, randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
+    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randSeed = None, randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.DRAWINGORIGIN = (0,0)
         self.MAXMF_ELEMENTS = maxMF_Elements
@@ -31,13 +30,13 @@ class FactorySim:
             factoryConfig.MAXSHAPEHEIGHT,
             int(np.floor(0.8*self.MAXMF_ELEMENTS)) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
             int(np.ceil(0.2*self.MAXMF_ELEMENTS)) if maxMF_Elements else factoryConfig.AMOUNTPOLY, 
-            factoryConfig.MAXCORNERS
+            factoryConfig.MAXCORNERS,
+            randSeed=randSeed
             )
         self.verboseOutput = verboseOutput
-        self.RANDSEED = randseed
         self.pathPolygon = None
         self.MFIntersectionPoints = None
-        random.seed(randseed)
+        self.rng = np.random.default_rng(randSeed)
             
         self.timezero = time()
         self.lasttime = 0      
@@ -54,7 +53,7 @@ class FactorySim:
         if path_to_ifc_file:
             if(os.path.isdir(path_to_ifc_file)):
                 
-                self.ifc_file = random.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x and "LIB" not in x])
+                self.ifc_file = self.rng.choice([x for x in os.listdir(path_to_ifc_file) if ".ifc" in x and "LIB" not in x])
                 self.ifc_file = os.path.join(path_to_ifc_file, self.ifc_file)
             else:
                 self.ifc_file = path_to_ifc_file
@@ -121,9 +120,9 @@ class FactorySim:
         if randomPos:
             for key in self.machine_dict:
                 self.update(key,
-                    xPosition = random.uniform(-1,1),
-                    yPosition = random.uniform(-1,1),
-                    rotation = random.uniform(-1,1))
+                    xPosition = self.rng.uniform(low=-1, high=1),
+                    yPosition = self.rng.uniform(low=-1, high=1),
+                    rotation = self.rng.uniform(low=-1, high=1))
         
         #Import Materialflow from Excel
         if path_to_materialflow_file:
