@@ -121,12 +121,12 @@ class FactoryCreator():
 
 
 
-    def load_ifc_factory(self, ifc_file_path, elementName, randomMF=None, recalculate_bb=False):
+    def load_ifc_factory(self, ifc_file_path, elementName, maxMFElements=None, recalculate_bb=False):
         ifc_file = ifcopenshell.open(ifc_file_path)
         element_dict = {}
         elements = []
-        if(randomMF):
-            amount = self.rng.integers(2, randomMF)
+        if(maxMFElements):
+            amount = self.rng.integers(2, maxMFElements)
             elements = self.rng.choice(ifc_file.by_type(elementName), size=amount, replace=False)
         else:
             elements = ifc_file.by_type(elementName)
@@ -141,7 +141,7 @@ class FactoryCreator():
             y = element.ObjectPlacement.RelativePlacement.RefDirection.DirectionRatios[1]
             rotation = math.atan2(y,x)
             my_uuid = ""
-            if(randomMF):
+            if(maxMFElements):
                 my_uuid= "_" + str(index)
 
             #points = element.Representation.Representations[0].Items[0].Outer.CfsFaces[0].Bounds[0].Bound.Polygon

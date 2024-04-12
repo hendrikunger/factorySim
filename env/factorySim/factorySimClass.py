@@ -79,7 +79,7 @@ class FactorySim:
                 if(self.verboseOutput >= 2):
                     print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {self.ifc_file} geladen.")
                 #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
-                self.machine_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY", randomMF=self.MAXMF_ELEMENTS)
+                self.machine_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY", maxMFElements=self.MAXMF_ELEMENTS)
             else:
                 #Import full file
                 if(self.verboseOutput >= 2):
