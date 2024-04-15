@@ -42,6 +42,7 @@ class FactorySimEnv(gym.Env):
         self.height = env_config["height"]
         self.reward_function = env_config["reward_function"]
         self.maxMF_Elements = env_config["maxMF_Elements"]
+        self.createMachines = env_config["createMachines"]
         self.scale = env_config["outputScale"]
         if env_config["inputfile"] is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
@@ -111,7 +112,7 @@ class FactorySimEnv(gym.Env):
         path_to_materialflow_file = self.materialflowpath,
         factoryConfig=self.factoryConfig,
         randomPos=False,
-        createMachines=True,
+        createMachines=self.createMachines,
         randSeed = seed,
         verboseOutput=self.Loglevel,
         maxMF_Elements = self.maxMF_Elements)

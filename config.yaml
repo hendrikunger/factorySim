@@ -12,6 +12,7 @@ env_config:
   evaluation: false
   reward_function: 2
   randomSeed: null
+  createMachines: false
 
 
 # Evaluate once per training iteration.
