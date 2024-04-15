@@ -12,3 +12,4 @@ tqdm
 gymnasium
 pyyaml
 timm
+mathutils
