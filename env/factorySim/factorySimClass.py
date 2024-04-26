@@ -21,7 +21,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randSeed = time.time(), randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
+    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randSeed = int(time()), randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.DRAWINGORIGIN = (0,0)
         self.MAXMF_ELEMENTS = maxMF_Elements
