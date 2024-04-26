@@ -1,3 +1,51 @@
+
+#%%
+
+data= {
+    "0FIAj1COv1OQ9WC3bsY9eD": {
+        "position": [
+            1000,
+            1000
+        ],
+        "rotation": 0.0
+    },
+    "0xwyXS21b8bOKsT2L4PQoA": {
+        "position": [
+            2000,
+            2000
+        ],
+        "rotation": 0.0
+    },
+    "27PZ3GSc56tekCu9VVZKZR": {
+        "position": [
+            3000,
+            3000
+        ],
+        "rotation": 0.0
+    },
+    "3II8xdGSH0QRm4ylnQ57v1": {
+        "position": [
+            4000,
+            4000
+        ],
+        "rotation": 0.0
+    },
+    "1fRJyIfvr0bOmeFw9beer1": {
+        "position": [
+            5000,
+            5000
+        ],
+        "rotation": 0.0
+    },
+    "1XdMe4hFL8KxHQow3piD7B": {
+        "position": [
+            6000,
+            6000
+        ],
+        "rotation": 0.0
+    }
+}
+
 #%%
 import factorySim.baseConfigs as baseConfigs
 from factorySim.factorySimClass import FactorySim
@@ -9,7 +57,7 @@ from ifcopenshell.util.shape_builder import ShapeBuilder
 from mathutils import Vector
 from shapely.geometry import box, MultiPoint, Polygon, MultiPolygon
 from shapely.affinity import  scale
-
+import time
 import math
 import numpy as np
 
@@ -17,17 +65,46 @@ factoryConfig = baseConfigs.SMALLSQUARE
 
 
 
-if __name__ == "__main__":
 
-    print("Creating Factory")
-    basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-    outputPath = os.path.join(basePath, "Output")
-    #Create directory if it does not exist
-    ifcPath = os.path.join(basePath, "..","Input", "2", "Basic.ifc")
-    print(ifcPath)
 
-    factory = FactorySim(path_to_ifc_file=ifcPath,factoryConfig=factoryConfig, createMachines=True, randomPos=False)
-    print(factory.machine_dict)
+print("Creating Factory")
+basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
+outputPath = os.path.join(basePath, "Output")
+#Create directory if it does not exist
+ifcPath = os.path.join(basePath, "..","Input", "2", "Basic.ifc")
+print(ifcPath)
+
+factory = FactorySim(path_to_ifc_file=ifcPath,factoryConfig=factoryConfig, createMachines=False, randomPos=True, randSeed=int(time.time()))
+print(factory.machine_dict)
+
+
+for i in range(len(factory.machine_dict)):
+    factory.update(i,0.0,0.0,0)
+
+
+
+factory.update("0FIAj1COv1OQ9WC3bsY9eD",1.0,1.0,0)
+
+
+
+#factory.factoryCreator.save_position_json("positions.json")
+#factory.creator.load_position_json("positions.json")
+factory.creator.load_positions(data)
+factory.creator.save_ifc_factory("model.ifc")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -42,10 +119,9 @@ def prepare_for_export(element_dict, bb):
         polybbox = element.poly.bounds
         element.origin = (polybbox[0], polybbox[1])
 
-
     return new_dict
+
 def write_ifc_class(ifc_file, ifc_context, ifc_class, element_dict):
-    builder = ShapeBuilder(ifc_file)
     elements = []
 
     for element in element_dict.values():
@@ -107,8 +183,6 @@ def write_ifc_class(ifc_file, ifc_context, ifc_class, element_dict):
             breps.append(faceted_brep)
 
 
-
-
         representation = model.createIfcShapeRepresentation(ContextOfItems=ifc_context, RepresentationIdentifier="Body", RepresentationType="Brep", Items=breps)
         run("geometry.assign_representation", ifc_file, product=ifc_element, representation=representation)
         elements.append(ifc_element)
@@ -147,11 +221,11 @@ run("aggregate.assign_object", model, relating_object=project, product=site)
 run("aggregate.assign_object", model, relating_object=site, product=building)
 run("aggregate.assign_object", model, relating_object=building, product=storey)
 
-export= prepare_for_export(factory.machine_dict, factory.factoryCreator.bb)
+export= prepare_for_export(factory.machine_dict, factory.creator.bb)
 elements = write_ifc_class(model, body, "IfcBuildingElementProxy", export)
 run("spatial.assign_container", model, relating_structure=storey, products=elements)
 
-export= prepare_for_export(factory.wall_dict, factory.factoryCreator.bb)
+export= prepare_for_export(factory.wall_dict, factory.creator.bb)
 elements = write_ifc_class(model, body, "IfcWall", export)
 run("spatial.assign_container", model, relating_structure=storey, products=elements)
 
@@ -457,4 +531,17 @@ run("geometry.assign_representation", model, product=ifc_element, representation
 
 # Save the IFC file
 model.write("flat_holes.ifc")
+
+#%%
+rng = np.random.default_rng(3)
+a= ["a", "b", "c", "d", "e", "f"]
+len(a)
+# %%
+
+rng.choice(a, size=(1,5), replace=False)
+# %%
+selected = rng.choice(np.arange(len(a)-1), size=3, replace=False)
+print(selected)
+for element in selected:
+    print(a[element])
 # %%

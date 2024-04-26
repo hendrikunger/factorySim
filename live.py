@@ -126,9 +126,9 @@ class factorySimLive(mglw.WindowConfig):
 
         self.create_factory()
 
-        self.factoryCreator.bb = self.env.factory.factoryCreator.bb
-        self.factoryCreator.factoryWidth = self.env.factory.factoryCreator.factoryWidth
-        self.factoryCreator.factoryHeight = self.env.factory.factoryCreator.factoryHeight
+        self.factoryCreator.bb = self.env.factory.creator.bb
+        self.factoryCreator.factoryWidth = self.env.factory.creator.factoryWidth
+        self.factoryCreator.factoryHeight = self.env.factory.creator.factoryHeight
 
         ifcPath = os.path.join(basePath, "FTS.ifc")
 
@@ -237,7 +237,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.currentScale -= 0.005
                 self.recreateCairoContext()
             # ShrunkMode
-            if key == keys.S:
+            if key == keys.M:
                 if self.is_shrunk:
                     self.wnd.size = self.old_window_size
                     self.is_shrunk = False
@@ -245,6 +245,15 @@ class factorySimLive(mglw.WindowConfig):
                     self.old_window_size = self.window_size
                     self.is_shrunk = True
                     self.wnd.size = (84,84)
+            # Save Factory
+            if key == keys.S:
+                self.env.factory.creator.save_ifc_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.ifc"))
+            # Load Factory
+            if key == keys.L:
+                self.create_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.ifc"))
+                self.set_factoryScale()
+                self.nextGID = len(self.env.factory.machine_dict)
+                self.selected = None
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
@@ -533,7 +542,7 @@ class factorySimLive(mglw.WindowConfig):
         bbox = newRect.bounds
         origin=(bbox[0],bbox[1])
         self.env.factory.machine_dict[gid_to_use] = FactoryObject(gid=str(gid_to_use), 
-                                            name="creative_name_" + str(gid_to_use),
+                                            name="M_" + str(gid_to_use),
                                             origin=origin,
                                             poly=MultiPolygon([newRect]))
 
@@ -556,7 +565,7 @@ class factorySimLive(mglw.WindowConfig):
             bbox = newPoly.bounds
             origin=(bbox[0],bbox[1])
             self.env.factory.machine_dict[gid_to_use] = FactoryObject(gid=str(gid_to_use), 
-                                                name="creative_name_" + str(gid_to_use),
+                                                name="M_" + str(gid_to_use),
                                                 origin=origin,
                                                 poly=MultiPolygon([newPoly]))
             self.update_needed()
@@ -567,14 +576,21 @@ class factorySimLive(mglw.WindowConfig):
             self.env.factory.dfMF = self.env.factory.dfMF.drop(indexNames).reset_index(drop=True)
             self.update_needed()
             
-    def create_factory(self):
-        self.env = FactorySimEnv( env_config = self.f_config['env_config'])
+    def create_factory(self, ifcPath=None):
+        env_config = self.f_config['env_config'].copy()
+        if ifcPath:
+            env_config['inputfile'] = ifcPath
+            env_config["createMachines"] = False
+            env_config["randomSeed"] = 42
+        self.env = FactorySimEnv( env_config = env_config)
+
+
 
         self.future = self.executor.submit(self.env.factory.evaluate)
         _, _ , self.rating, _ = self.future.result()
 
     def set_factoryScale(self):
-        self.currentScale = self.env.factory.factoryCreator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
+        self.currentScale = self.env.factory.creator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])
         self.recreateCairoContext()
 
 

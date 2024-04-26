@@ -25,7 +25,7 @@ class FactorySim:
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.DRAWINGORIGIN = (0,0)
         self.MAXMF_ELEMENTS = maxMF_Elements
-        self.factoryCreator = FactoryCreator(self.FACTORYDIMENSIONS,
+        self.creator = FactoryCreator(self.FACTORYDIMENSIONS,
             factoryConfig.MAXSHAPEWIDTH,
             factoryConfig.MAXSHAPEHEIGHT,
             int(np.floor(0.8*self.MAXMF_ELEMENTS)) if maxMF_Elements else factoryConfig.AMOUNTRECT, 
@@ -60,7 +60,7 @@ class FactorySim:
 
             logging.info(f"Lade: {self.ifc_file}")
                 
-            self.wall_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True)
+            self.wall_dict = self.creator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True)
 
         else:
             self.wall_dict = {}
@@ -70,7 +70,7 @@ class FactorySim:
 
         #Create Random Machines
         if createMachines:
-            self.machine_dict = self.factoryCreator.create_factory()
+            self.machine_dict = self.creator.create_factory()
         #Import Machines from IFC File
         else:
             #Import up to MAXMF_ELEMENTS from File
@@ -79,12 +79,12 @@ class FactorySim:
                 if(self.verboseOutput >= 2):
                     print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {self.ifc_file} geladen.")
                 #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
-                self.machine_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY", maxMFElements=self.MAXMF_ELEMENTS)
+                self.machine_dict = self.creator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY", maxMFElements=self.MAXMF_ELEMENTS)
             else:
                 #Import full file
                 if(self.verboseOutput >= 2):
                     print("Nutze alle MF Objekte in der IFC Datei")
-                self.machine_dict = self.factoryCreator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
+                self.machine_dict = self.creator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
 
 
             if(self.verboseOutput >= 3):
@@ -95,8 +95,8 @@ class FactorySim:
             self.printTime("IFCBUILDINGELEMENTPROXY geparsed")
 
         #Update Dimensions after Loading
-        self.FACTORYDIMENSIONS = (self.factoryCreator.factoryWidth, self.factoryCreator.factoryHeight)
-        self.DRAWINGORIGIN = (self.factoryCreator.bb.bounds[0], self.factoryCreator.bb.bounds[1])
+        self.FACTORYDIMENSIONS = (self.creator.factoryWidth, self.creator.factoryHeight)
+        self.DRAWINGORIGIN = (self.creator.bb.bounds[0], self.creator.bb.bounds[1])
 
         self.factoryPath=FactoryPath(factoryConfig.BOUNDARYSPACING, 
             factoryConfig.MINDEADENDLENGTH,
@@ -132,7 +132,7 @@ class FactorySim:
             self.dfMF.rename(columns={indexes[0]:'source', indexes[1]:'target', indexes[2]:'intensity'}, inplace=True)
         else:
             #Create Random Materialflow
-            self.dfMF = self.factoryCreator.createRandomMaterialFlow()
+            self.dfMF = self.creator.createRandomMaterialFlow()
     
         self.cleanMaterialFLow()
     
@@ -167,7 +167,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
-    def update(self, machineIndex, xPosition = 0, yPosition = 0, rotation = None, skip = 0):
+    def update(self, machineIndex, xPosition : float  = 0.0, yPosition: float = 0.0, rotation: float = None, skip = 0):
         if type(machineIndex) == int:
             if machineIndex< len(self.machine_dict):
                 machineIndex = list(self.machine_dict)[machineIndex]
@@ -186,7 +186,7 @@ class FactorySim:
                 mappedRot = np.interp(rotation, (-1.0, 1.0), (0, 2*np.pi))
                 self.machine_dict[machineIndex].rotate_Item(mappedRot)
 
-            bbox = self.factoryCreator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
+            bbox = self.creator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
             #np.interp also Clips Position to Output Range
                     
@@ -213,7 +213,7 @@ class FactorySim:
         #In case caluclation fails set default rating
         self.currentRating = -5
         
-        self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.factoryCreator.bb)
+        self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.creator.bb)
         if self.fullPathGraph and self.reducedPathGraph and self.walkableArea is not None:
             self.dfMF = self.factoryPath.calculateRoutes(self.dfMF)
             
@@ -221,14 +221,14 @@ class FactorySim:
             if(self.verboseOutput >= 3):
                 self.printTime("Pfadbewertung abgeschlossen")
 
-            self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.factoryCreator.prep_bb, dfMF=self.dfMF)
+            self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.creator.prep_bb, dfMF=self.dfMF)
 
             self.RatingDict["ratingCollision"] = self.evaluateCollision()          
             if(self.verboseOutput >= 3):
                 self.printTime("Kollisionsbewertung abgeschlossen")
 
-            self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.factoryCreator.bb) 
-            self.RatingDict["ratingTrueMF"] = self.factoryRating.evaluateTrueMF(self.factoryCreator.bb)
+            self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.creator.bb) 
+            self.RatingDict["ratingTrueMF"] = self.factoryRating.evaluateTrueMF(self.creator.bb)
             #sort MF Dict for Rendering
             self.dfMF.sort_values(by=['intensity_sum_norm'], inplace=True, ascending=False) 
             self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()        
@@ -379,10 +379,10 @@ class FactorySim:
         if scale:
             self.scale = scale
         else:
-            self.scale = self.factoryCreator.suggest_factory_view_scale(width, height)
+            self.scale = self.creator.suggest_factory_view_scale(width, height)
 
         ctx.scale(self.scale, self.scale)
-        ctx.translate(-self.factoryCreator.bb.bounds[0], -self.factoryCreator.bb.bounds[1])
+        ctx.translate(-self.creator.bb.bounds[0], -self.creator.bb.bounds[1])
         
         
         return surface, ctx

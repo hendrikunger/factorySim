@@ -6,7 +6,10 @@ from shapely.affinity import rotate, scale, translate
 from shapely.ops import unary_union
 from shapely.prepared import prep
 import ifcopenshell
+from ifcopenshell.api import run
 from factorySim.factoryObject import FactoryObject
+from factorySim.utils import prepare_for_export
+from factorySim.utils import write_ifc_class
 
 
 class FactoryCreator():
@@ -87,21 +90,16 @@ class FactoryCreator():
             poly = MultiPolygon([poly])
             #origin is lower left corner
             self.machine_dict[str(i)] = FactoryObject(gid=str(i), 
-                                            name="creative_name_" + str(i),
+                                            name="M_" + str(i),
                                             origin=(bbox[0],bbox[1]),
-                                            poly=poly)
+                                            poly=poly,
+                                            color=self.rng.random(size=3)
+                                            )
         
         
 
         return self.machine_dict
 
-    def load_pickled_factory(self, filename):
-        # Broken TODO
-        import pickle
-        loaddata = pickle.load( open( filename, "rb" ) )
-        self.bb = loaddata["bounding_box"]
-        self.prep_bb = prep(self.bb)
-        self.machine_dict = loaddata["machines"]
 
         return self.multi, self.bb
     def load_dxf_factory(self, filename):
@@ -121,13 +119,27 @@ class FactoryCreator():
 
 
 
-    def load_ifc_factory(self, ifc_file_path, elementName, maxMFElements=None, recalculate_bb=False):
+    def load_ifc_factory(self, ifc_file_path: str, elementName: str, maxMFElements: int =None, recalculate_bb: bool =False) -> dict:
+        """Load a factory element dict from an IFC file
+
+        Args:
+            ifc_file_path (str): Path to the IFC file
+            elementName (str): IFC Element Name to load
+            maxMFElements (int, optional): How many Elements to load (for reinforcement learning training purposes). Defaults to None.
+            recalculate_bb (bool, optional): Optionally recalulate the bounding box of the factory using a union of all loaded elements. Defaults to False.
+
+        Returns:
+            dict: _description_
+        """
         ifc_file = ifcopenshell.open(ifc_file_path)
         element_dict = {}
         elements = []
-        if(maxMFElements):
-            amount = self.rng.integers(2, maxMFElements)
-            elements = self.rng.choice(ifc_file.by_type(elementName), size=amount, replace=False)
+        print(maxMFElements)
+        if(maxMFElements): 
+            ifc_elements = ifc_file.by_type(elementName)
+            amount = self.rng.integers(2, maxMFElements+1)
+            selected = self.rng.choice(np.arange(len(ifc_elements)-1), size=amount, replace=False)
+            elements = [ifc_elements[i] for i in selected]
         else:
             elements = ifc_file.by_type(elementName)
         for index, element in enumerate(elements):
@@ -185,10 +197,13 @@ class FactoryCreator():
             singleElement = rotate(singleElement, rotation, origin=(origin[0], origin[1]), use_radians=True)
             #create Factory Object       
             
+            name = element.Name if element.Name else element.GlobalId
             element_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
-                                                            name=element.Name + my_uuid,
+                                                            name=name + my_uuid,
                                                             origin=(origin[0], origin[1]),
-                                                            poly=singleElement)
+                                                            poly=singleElement,
+                                                            color=self.rng.random(size=3)
+                                                            )
         del(ifc_file)  #Hopefully fixes memory leak
 
         if recalculate_bb:
@@ -218,8 +233,7 @@ class FactoryCreator():
         return element_dict
 
 
-
-    def createRandomMaterialFlow(self, machine_dict = None):
+    def createRandomMaterialFlow(self, machine_dict: dict = None) -> pd.DataFrame:
         names = []
 
         if machine_dict is None:
@@ -240,4 +254,84 @@ class FactoryCreator():
 
 
 
+    def save_ifc_factory(self, ifc_file_path:str , element_dicts: dict = None, bb: Polygon=None) -> None:
 
+        if element_dicts is None:
+            element_dicts = {"IfcBuildingElementProxy": self.machine_dict, 
+                             "IfcWall": self.wall_dict
+                            }
+        if bb is None:    
+            bb = self.bb
+
+        # Create a blank model
+        model = ifcopenshell.file()
+
+        project = run("root.create_entity", model, ifc_class="IfcProject", name="FactorySim Project")
+        # define units
+        length = run("unit.add_si_unit", model, unit_type="LENGTHUNIT", prefix="MILLI")
+        run("unit.assign_unit", model, units=[length])
+
+        # Create a modeling geometry context, so we can store 3D geometry 
+        model3d = run("context.add_context", model, context_type="Model")
+        plan  = run("context.add_context", model, context_type="Plan")
+        body = run("context.add_context", model, context_type="Model",
+            context_identifier="Body", target_view="PLAN_VIEW", parent=model3d)
+
+        # Create a site, building, and storey. Many hierarchies are possible.
+        site = run("root.create_entity", model, ifc_class="IfcSite", name="IfcSite")
+        building = run("root.create_entity", model, ifc_class="IfcBuilding", name="IfcBuilding")
+        storey = run("root.create_entity", model, ifc_class="IfcBuildingStorey", name="IfcBuildingStorey")
+
+        # Spatially assign the site, building, and storey
+        run("aggregate.assign_object", model, relating_object=project, product=site)
+        run("aggregate.assign_object", model, relating_object=site, product=building)
+        run("aggregate.assign_object", model, relating_object=building, product=storey)
+
+        for ifcElementName, element_dict in element_dicts.items():
+            export = prepare_for_export(element_dict, bb)
+            elements = write_ifc_class(model, body, ifcElementName, export)
+            run("spatial.assign_container", model, relating_structure=storey, products=elements)
+
+        # Write out to a file
+        model.write(ifc_file_path)
+
+
+    def save_position_json(self, filename: str) -> None:
+        """Saves all machine positions to a json file
+
+        Args:
+            filename (str): path to json file to save machine positions
+        """
+        import json
+        data = {}
+        for key, value in self.machine_dict.items():
+            data[key] = {"position": value.origin, "rotation": value.rotation}
+        with open(filename, 'w') as f:
+            json.dump(data, f)
+
+    def load_position_json(self, filename: str) -> None:
+        """Loads machine positions from a json file
+
+        Args:
+            filename (str): path to json file with machine positions
+            format: {"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}
+        """
+        import json
+        with open(filename, 'r') as f:
+            data = json.load(f)
+            self.set_positions(data)
+
+    def load_positions(self, positions: dict) -> None:
+        """Loads machine positions from a dictionary
+
+        Args:
+            positions (dict): dictory with keys as machine ids and values as dictionaries with keys "position" and "rotation" (in radians)
+            e.g. {"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}
+
+        """
+        for key, value in positions.items():
+            print(key, type(key))
+            machine = self.machine_dict.get(key,None)
+            if machine:
+                machine.rotate_Item(value["rotation"])
+                machine.translate_Item(*value["position"])

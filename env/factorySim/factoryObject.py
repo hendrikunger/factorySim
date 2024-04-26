@@ -1,16 +1,19 @@
 
 import random
-
+import numpy as np
 from shapely.geometry import Polygon, MultiPolygon, box
 from shapely.affinity import translate, rotate, scale
 
 class FactoryObject:
 
-    def __init__(self, gid="not_set", name="no_name", origin=(0,0), poly:Polygon=box(0.0, 0.0, 1.0, 1.0)):
+    def __init__(self, gid="not_set", name="no_name", origin=(0,0), poly:Polygon=box(0.0, 0.0, 1.0, 1.0), color=None):
         
         self.gid = gid
         self.name = name
-        self.color = [random.random(),random.random(),random.random()]
+        if color is None or not np.any(color):
+            self.color = [random.random(), random.random(), random.random()]
+        else:
+            self.color = color
         self.origin = origin 
         self.rotation = 0 # roational change
         self.poly = poly #Element Multi Polygon Representation

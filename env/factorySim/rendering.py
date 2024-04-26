@@ -286,10 +286,10 @@ def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNam
                 if drawNames:
                     ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0)
                     ctx.set_font_size(ctx.device_to_user_distance(14, 14)[0])
-                    (x, y, width, height, dx, dy) = ctx.text_extents(str(machine.gid))
+                    (x, y, width, height, dx, dy) = ctx.text_extents(str(machine.name))
                     point = polylabel(poly, tolerance=1000)
                     ctx.move_to(point.x - width/2, point.y + height/2) 
-                    ctx.show_text(str(machine.gid))
+                    ctx.show_text(str(machine.name))
 
         #Machine Centers
             if (drawMachineCenter):

@@ -128,7 +128,7 @@ class FactorySimEnv(gym.Env):
         self.rctx = cairo.Context(self.rsurface)
 
         self.rctx.scale(self.scale*self.factory.scale, self.scale*self.factory.scale)
-        self.rctx.translate(-self.factory.factoryCreator.bb.bounds[0], -self.factory.factoryCreator.bb.bounds[1])
+        self.rctx.translate(-self.factory.creator.bb.bounds[0], -self.factory.creator.bb.bounds[1])
 
         self.machineCount = len(self.factory.machine_dict)
         self.stepCount = 0
