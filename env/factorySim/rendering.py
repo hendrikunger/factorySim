@@ -400,7 +400,7 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
         else:
             ctx.set_source_rgb(0.7, 0.7, 0.7)
         for outsider in outsiderList:
-            for poly in collision.geoms:
+            for poly in outsider.geoms:
                 ctx.move_to(*poly.exterior.coords[0])
                 for point in poly.exterior.coords[1:]: 
                     ctx.line_to(point[0], point[1])

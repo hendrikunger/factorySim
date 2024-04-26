@@ -134,7 +134,6 @@ class FactoryCreator():
         ifc_file = ifcopenshell.open(ifc_file_path)
         element_dict = {}
         elements = []
-        print(maxMFElements)
         if(maxMFElements): 
             ifc_elements = ifc_file.by_type(elementName)
             amount = self.rng.integers(2, maxMFElements+1)
@@ -273,7 +272,7 @@ class FactoryCreator():
 
         # Create a modeling geometry context, so we can store 3D geometry 
         model3d = run("context.add_context", model, context_type="Model")
-        plan  = run("context.add_context", model, context_type="Plan")
+        #plan  = run("context.add_context", model, context_type="Plan")
         body = run("context.add_context", model, context_type="Model",
             context_identifier="Body", target_view="PLAN_VIEW", parent=model3d)
 

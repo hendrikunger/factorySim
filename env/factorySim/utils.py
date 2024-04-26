@@ -1,9 +1,10 @@
 from shapely.affinity import  scale
 from ifcopenshell.api import run
 import ifcopenshell
+import copy
 
 def prepare_for_export(element_dict, bb):
-    new_dict = element_dict.copy()
+    new_dict = copy.deepcopy(element_dict)
     for element in new_dict.values():
         element.poly = scale(element.poly, yfact=-1, origin=bb.centroid)
         polybbox = element.poly.bounds

@@ -78,18 +78,19 @@ factory = FactorySim(path_to_ifc_file=ifcPath,factoryConfig=factoryConfig, creat
 print(factory.machine_dict)
 
 
-for i in range(len(factory.machine_dict)):
-    factory.update(i,0.0,0.0,0)
+# for i in range(len(factory.machine_dict)):
+#     factory.update(i,0.0,0.0,0)
 
 
 
-factory.update("0FIAj1COv1OQ9WC3bsY9eD",1.0,1.0,0)
+# factory.update("0FIAj1COv1OQ9WC3bsY9eD",1.0,1.0,0)
 
 
 
 #factory.factoryCreator.save_position_json("positions.json")
 #factory.creator.load_position_json("positions.json")
-factory.creator.load_positions(data)
+#factory.creator.load_positions(data)
+#%%
 factory.creator.save_ifc_factory("model.ifc")
 
 
