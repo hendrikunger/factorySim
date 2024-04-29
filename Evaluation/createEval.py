@@ -409,7 +409,7 @@ faceted_brep = model.createIfcFacetedBrep(Outer=closed_shell)
 
 # Add the IfcFacetedBrep to the file
 ifc_element = run("root.create_entity", model, ifc_class="IFCBUILDINGELEMENTPROXY", name="Test")
-run("spatial.assign_container", model, relating_structure=storey, products=[ifc_element])
+run("spatial.assign_container", model, relating_structure=storey, product=ifc_element)
 representation = model.createIfcShapeRepresentation(ContextOfItems=body, RepresentationIdentifier="Body", RepresentationType="Brep", Items=[faceted_brep])
 #representation = run("geometry.add_representation", ifc_file, context=ifc_context, shape=shape, name=element.name)
 run("geometry.assign_representation", model, product=ifc_element, representation=representation)
