@@ -84,7 +84,7 @@ class FactorySimEnv(gym.Env):
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
 
 
-        self.reset(seed=env_config.get("randomSeed", None))
+        self.reset(seed=env_config.get("randomSeed"), options={"RenderInitFrame": False})
 
     def step(self, action):
         if not np.isnan(action[0]) :
@@ -105,7 +105,7 @@ class FactorySimEnv(gym.Env):
      
         return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options={}):
         super().reset(seed=seed)
         del(self.factory)
         self.factory = FactorySim(self.inputfile,
@@ -139,8 +139,8 @@ class FactorySimEnv(gym.Env):
 
         self.tryEvaluate()
 
-        if self.render_mode == "human":
-            self._render_frame()
+        if (self.render_mode == "human" and options.get("RenderInitFrame", True)):
+            self._render_frame() 
 
         return (self._get_obs(), self.info)
 
@@ -259,6 +259,12 @@ def main():
     with open(configpath, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
+    f_config['env_config']['render_mode'] = "human"
+    f_config['env_config']['inputfile'] = ifcPath
+    f_config['env_config']['evaluation'] = True
+    env = FactorySimEnv( env_config = f_config['env_config'])
+    env.prefix="test"
+
 
     run = wandb.init(
         project="factorySim_ENVTEST",
@@ -268,10 +274,7 @@ def main():
         mode="offline",
     )
 
-    f_config['env_config']['render_mode'] = "human"
-    f_config['env_config']['inputfile'] = ifcPath
-    env = FactorySimEnv( env_config = f_config['env_config'])
-    env.prefix="test"
+
 
            
 
@@ -283,9 +286,9 @@ def main():
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
 
-    obs = env.reset()
+    obs = env._get_obs()
  
-    for index in tqdm(range(0,5)):
+    for index in tqdm(range(0,15)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   

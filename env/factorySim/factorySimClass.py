@@ -297,12 +297,7 @@ class FactorySim:
         #    self.currentRating = self.mapRange(output["ratingMF"],(-2,1),(-1,1))
 
 
-
-
-
         self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating
-
-
 
 
         if(self.episodeCounter >= 3 * len(self.machine_dict)):
