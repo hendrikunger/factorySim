@@ -30,25 +30,39 @@ class FactorySimEnv(gym.Env):
         super().__init__()
         print(env_config)
         self.evaluationMode = env_config["evaluation"]
-        if self.evaluationMode:  
-            print("\n\n-----------------------------------------------Evaluation Mode-----------------------------------------------\n\n")
-
         self.factory = None
         self.stepCount = 0
         self._obs_type = env_config["obs_type"]
         self.Loglevel = env_config["Loglevel"]
-        self.uid = 0
+        self.uid = -1
         self.width = env_config["width"]
         self.height = env_config["height"]
         self.reward_function = env_config["reward_function"]
         self.maxMF_Elements = env_config["maxMF_Elements"]
         self.createMachines = env_config["createMachines"]
         self.scale = env_config["outputScale"]
+        self.evalFiles = []
         if env_config["inputfile"] is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
             exit("No inputfile given.")
         self.inputfile = env_config["inputfile"]
+
+        if(os.path.isdir(env_config["inputfile"])):
+            self.base_path = os.path.join(os.path.dirname(os.path.realpath(self.inputfile)),
+            "..")
+        else:
+            self.base_path = os.path.join(os.path.dirname(os.path.realpath(self.inputfile)), 
+            "..",
+            "..")
+        self.output_path = os.path.join(self.base_path, "Output")
+        self.evalPath= os.path.join(self.base_path, "Evaluation")
+
+        if self.evaluationMode:  
+            print("\n\n-----------------------------------------------Evaluation Mode-----------------------------------------------\n\n")
+            self.evalFiles = [x for x in os.listdir(self.evalPath) if ".ifc" in x]
+            self.createMachines = False
+
         self.materialflowpath = None #file_name + "_Materialflow.csv"
         self.factoryConfig = baseConfigs.BaseFactoryConf.byStringName(env_config["factoryconfig"])
         self.render_mode = render_mode if not render_mode is None else env_config.get("render_mode", None)
@@ -56,26 +70,16 @@ class FactorySimEnv(gym.Env):
         
         self.surface = None
         self.rsurface = None
-        self.prefix = env_config.get("prefix", "0")
-        
+        self.prefix = env_config.get("prefix", "0") 
 
         self.info = {}
         self.terminated = False
 
-        if(os.path.isdir(env_config["inputfile"])):
-            self.output_path = os.path.join(os.path.dirname(os.path.realpath(env_config["inputfile"])),
-            "..", 
-            "Output")
-        else:
-            self.output_path = os.path.join(os.path.dirname(os.path.realpath(env_config["inputfile"])), 
-            "..",
-            "..",
-            "Output")
 
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
-        self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float64)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float64, seed=env_config.get("randomSeed"))
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
@@ -84,7 +88,7 @@ class FactorySimEnv(gym.Env):
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
 
 
-        self.reset(seed=env_config.get("randomSeed"), options={"RenderInitFrame": False})
+
 
     def step(self, action):
         if not np.isnan(action[0]) :
@@ -108,6 +112,9 @@ class FactorySimEnv(gym.Env):
     def reset(self, seed=None, options={}):
         super().reset(seed=seed)
         del(self.factory)
+        self.uid +=1 
+        if self.evaluationMode:  
+            self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.uid % len(self.evalFiles)])
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
         factoryConfig=self.factoryConfig,
@@ -135,7 +142,7 @@ class FactorySimEnv(gym.Env):
         self.currentMachine = 0
         self.currentReward = 0
         self.currentMappedReward = 0
-        self.uid +=1
+        
 
         self.tryEvaluate()
 
@@ -204,6 +211,8 @@ class FactorySimEnv(gym.Env):
         output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
         
         return output/ 255.0
+    
+      
 
     def close(self):
         if self.surface:
@@ -259,36 +268,33 @@ def main():
     with open(configpath, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
-    f_config['env_config']['render_mode'] = "human"
+    f_config['env_config']['render_mode'] = "rgb_array"
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
-    env = FactorySimEnv( env_config = f_config['env_config'])
-    env.prefix="test"
-
 
     run = wandb.init(
         project="factorySim_ENVTEST",
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=f_config,
         save_code=True,
-        mode="offline",
+        mode="online",
     )
 
-
-
-           
+    env = FactorySimEnv( env_config = f_config['env_config'])
+    env.prefix="test"
+             
+    ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
+    tbl = wandb.Table(columns=["evalFile", "evalFile.Step", "image"] + ratingkeys)
 
     
-    ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
-    tbl = wandb.Table(columns=["image"] + ratingkeys)
-
 
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
-
-    obs = env._get_obs()
+    obs, info = env.reset(f_config['env_config'].get("randomSeed"))
+    image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+    tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
-    for index in tqdm(range(0,15)):
+    for index in tqdm(range(0,50)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   
@@ -297,12 +303,18 @@ def main():
             image = None
             env.render()
 
-        tbl.add_data(image, *[info.get(key, -1) for key in ratingkeys])
+        currentFile = env.uid % len(env.evalFiles)
+        tbl.add_data(currentFile, f"{currentFile}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
         if terminated:
             wandb.log(info)
-            env.reset()
+            obs, info = env.reset(f_config['env_config'].get("randomSeed"))
+            currentFile = env.uid % len(env.evalFiles)
+            image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+            tbl.add_data(currentFile, f"{currentFile}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
 
     env.close()
+
+    
 
     run.log({'results': tbl})
     run.finish()

@@ -9,7 +9,7 @@ env_config:
   render_mode: null
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
-  evaluation: false
+  evaluation: false #Gets populated on runtime
   reward_function: 2
   randomSeed: null
   createMachines: true

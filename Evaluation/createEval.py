@@ -545,4 +545,3 @@ selected = rng.choice(np.arange(len(a)-1), size=3, replace=False)
 print(selected)
 for element in selected:
     print(a[element])
-# %%

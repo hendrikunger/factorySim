@@ -7,6 +7,7 @@ import os
 import yaml
 import sys
 
+
 import cairo
 import moderngl
 import moderngl_window as mglw
@@ -21,6 +22,7 @@ from factorySim.factoryObject import FactoryObject
 from factorySim.factorySimEnv import FactorySimEnv
 
 from ray.rllib.policy.policy import Policy
+
 
 
 
@@ -111,7 +113,7 @@ class factorySimLive(mglw.WindowConfig):
     
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
-        self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
+        #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
 
         with open(configpath, 'r') as f:
             self.f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -247,7 +249,7 @@ class factorySimLive(mglw.WindowConfig):
                     self.wnd.size = (84,84)
             # Save Factory
             if key == keys.S:
-                self.env.factory.creator.save_ifc_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.ifc"))
+                self.env.factory.creator.save_ifc_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.ifc"))
             # Load Factory
             if key == keys.L:
                 self.create_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.ifc"))
