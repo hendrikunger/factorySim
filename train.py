@@ -213,15 +213,15 @@ def run():
     ppo_config.training(model={
                                         "use_attention": False,
                                         "use_lstm": False,
-                                        "custom_model": "my_model",
+                                        #"custom_model": "my_model",
 
                                     },
                         )
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
     ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.callbacks(MemoryTrackingCallbacks)
-    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "2"))-1,  #f_config['num_workers'], 
+    #ppo_config.callbacks(MemoryTrackingCallbacks)
+    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "16"))-1,  #f_config['num_workers'], 
                         num_envs_per_worker=1,  #2
                         )
     #ppo_config.train_batch_size=256
@@ -231,7 +231,9 @@ def run():
     eval_config = f_config['env_config'].copy()
     eval_config['evaluation'] = True
     eval_config['render_mode'] = "rgb_array"
-    ppo_config.evaluation(evaluation_duration=10,
+    eval_config['randomSeed'] = 42
+    eval_config['createMachines'] = False
+    ppo_config.evaluation(evaluation_duration=7,
                           evaluation_duration_unit="episodes", 
                           evaluation_interval=1,
                           evaluation_config={"env_config": eval_config},

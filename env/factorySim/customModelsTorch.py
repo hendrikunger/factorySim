@@ -3,7 +3,6 @@ from ray.rllib.utils.framework import try_import_torch
 from ray.rllib.models.torch.misc import SlimFC, normc_initializer
 import timm 
 
-from  memory_profiler import profile
 
 torch, nn = try_import_torch()
 

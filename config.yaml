@@ -2,8 +2,8 @@ env_config:
   inputfile: '' #Gets populated on runtime
   obs_type: image
   Loglevel: 0
-  width: 256 #84
-  height: 256 #84
+  width: 84 #84
+  height: 84 #84
   maxMF_Elements: 4
   outputScale: 2 #10
   render_mode: null
@@ -58,7 +58,7 @@ recreate_failed_workers: true
 restart_failed_sub_environments: true
 
 rollout_fragment_length: 200
-train_batch_size:  3200
+train_batch_size:  200 #3200
 sgd_minibatch_size: 100
 num_sgd_iter: 4
 gamma: 0.99
