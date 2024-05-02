@@ -41,7 +41,7 @@ class FactorySimEnv(gym.Env):
         self.maxMF_Elements = env_config["maxMF_Elements"]
         self.createMachines = env_config["createMachines"]
         self.scale = env_config["outputScale"]
-        self.evalFiles = []
+        self.evalFiles = [None]
         if env_config["inputfile"] is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
@@ -79,7 +79,7 @@ class FactorySimEnv(gym.Env):
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
-        self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float64, seed=env_config.get("randomSeed"))
+        self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float64)
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
@@ -272,6 +272,7 @@ def main():
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
 
+
     run = wandb.init(
         project="factorySim_ENVTEST",
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
@@ -282,7 +283,8 @@ def main():
 
     env = FactorySimEnv( env_config = f_config['env_config'])
     env.prefix="test"
-             
+    
+    
     ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
     tbl = wandb.Table(columns=["evalFile", "evalFile.Step", "image"] + ratingkeys)
 
@@ -290,7 +292,7 @@ def main():
 
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
-    obs, info = env.reset(f_config['env_config'].get("randomSeed"))
+    obs, info = env.reset(seed=42)
     image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  

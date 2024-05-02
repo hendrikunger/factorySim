@@ -584,8 +584,9 @@ class factorySimLive(mglw.WindowConfig):
             env_config['inputfile'] = ifcPath
             env_config["createMachines"] = False
             env_config["randomSeed"] = 42
+        
         self.env = FactorySimEnv( env_config = env_config)
-
+        self.env.reset()
 
 
         self.future = self.executor.submit(self.env.factory.evaluate)
