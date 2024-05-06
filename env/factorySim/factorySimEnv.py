@@ -107,6 +107,7 @@ class FactorySimEnv(gym.Env):
             self.info["Evaluation"] = True
             self.info["Image"] = self.render()
             self.info["Step"] = self.stepCount
+            self.info["evalEnvID"] = self.currentEvalEnv
      
         return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
 
@@ -298,7 +299,7 @@ def main():
     image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
-    for index in tqdm(range(0,50)):
+    for index in tqdm(range(0,200)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   

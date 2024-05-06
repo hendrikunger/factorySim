@@ -74,12 +74,14 @@ class MyAlgoCallback(DefaultCallbacks):
         episode.media["tabledata"]["images"] = []
         episode.media["tabledata"]["captions"] = []
         episode.media["tabledata"]["currentStep"] = []
+        episode.media["tabledata"]["evalEnvID"] = []
 
         info = episode._last_infos['agent0']
         episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
         episode.media["tabledata"]["images"] += [info.get("Image", None)]
         episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
         episode.media["tabledata"]["currentStep"] += [info.get('Step', 0)]
+        episode.media["tabledata"]["evalEnvID"] += [info.get('evalEnvID', 0)]
 
     def on_episode_step(
         self,
@@ -97,6 +99,7 @@ class MyAlgoCallback(DefaultCallbacks):
             episode.media["tabledata"]["images"] += [info.get("Image", None)]
             episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
             episode.media["tabledata"]["currentStep"] += [info.get('Step', 0)]
+            episode.media["tabledata"]["evalEnvID"] += [info.get('evalEnvID', 0)]
       
 
 
@@ -142,12 +145,12 @@ class MyAlgoCallback(DefaultCallbacks):
         print(f"--------------------------------------------EVAL END")
 
         data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
-        tbl = wandb.Table(columns=["id", "episode", "image"] + self.ratingkeys)
+        tbl = wandb.Table(columns=["id", "episode","evalEnvID", "image"] + self.ratingkeys)
         if data:
             for episode_id, episode in enumerate(data):
-                for step, image, caption , rating in zip(episode["currentStep"], episode["images"], episode["captions"], episode["ratings"]):
+                for step, image, caption , rating, evalEnvID in zip(episode["currentStep"], episode["images"], episode["captions"], episode["ratings"], episode["evalEnvID"]):
                     logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
-                    tbl.add_data(f"{episode_id}_{step}", episode_id, logImage, *rating)
+                    tbl.add_data(f"{episode_id}_{step}", episode_id,evalEnvID, logImage, *rating)
 
             evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
 
