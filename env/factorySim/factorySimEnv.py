@@ -149,6 +149,12 @@ class FactorySimEnv(gym.Env):
 
         self.tryEvaluate()
 
+        if self.evaluationMode:
+            self.info["Evaluation"] = True
+            self.info["Image"] = self.render()
+            self.info["Step"] = self.stepCount
+            self.info["evalEnvID"] = self.currentEvalEnv
+
         if (self.render_mode == "human" and options.get("RenderInitFrame", True)):
             self._render_frame() 
 
@@ -296,14 +302,14 @@ def main():
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
     obs, info = env.reset(seed=42)
-    image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+    image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
     for index in tqdm(range(0,200)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   
-            image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+            image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
         else:
             image = None
             env.render()

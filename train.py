@@ -76,12 +76,8 @@ class MyAlgoCallback(DefaultCallbacks):
         episode.media["tabledata"]["currentStep"] = []
         episode.media["tabledata"]["evalEnvID"] = []
 
-        info = episode._last_infos['agent0']
-        episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
-        episode.media["tabledata"]["images"] += [info.get("Image", None)]
-        episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
-        episode.media["tabledata"]["currentStep"] += [info.get('Step', 0)]
-        episode.media["tabledata"]["evalEnvID"] += [info.get('evalEnvID', 0)]
+        #this should give us the initial info dict, but it is empty
+        #info = episode._last_infos['agent0']
 
     def on_episode_step(
         self,
@@ -93,13 +89,14 @@ class MyAlgoCallback(DefaultCallbacks):
         env_index: int,
         **kwargs
     ):
+
         if "Evaluation" in episode._last_infos['agent0']:
             info = episode._last_infos['agent0']
             episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
             episode.media["tabledata"]["images"] += [info.get("Image", None)]
             episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
-            episode.media["tabledata"]["currentStep"] += [info.get('Step', 0)]
-            episode.media["tabledata"]["evalEnvID"] += [info.get('evalEnvID', 0)]
+            episode.media["tabledata"]["currentStep"] += [info.get('Step', -1)]
+            episode.media["tabledata"]["evalEnvID"] += [f"{info.get('evalEnvID', 0)}_{info.get('Step', -1)}"]
       
 
 
@@ -145,6 +142,7 @@ class MyAlgoCallback(DefaultCallbacks):
         print(f"--------------------------------------------EVAL END")
 
         data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
+
         tbl = wandb.Table(columns=["id", "episode","evalEnvID", "image"] + self.ratingkeys)
         if data:
             for episode_id, episode in enumerate(data):
@@ -213,6 +211,7 @@ def run():
 
     ppo_config = PPOConfig()
     ppo_config.experimental(_enable_new_api_stack=False)
+    ppo_config.train_batch_size=200
     ppo_config.lr=0.00005
                  #0.003
                  #0.000005
@@ -230,7 +229,7 @@ def run():
 
     ppo_config.callbacks(MyAlgoCallback)
     #ppo_config.callbacks(MemoryTrackingCallbacks)
-    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", "16"))-1,  #f_config['num_workers'], 
+    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
                         num_envs_per_worker=1,  #2
                         )
     #ppo_config.train_batch_size=256
