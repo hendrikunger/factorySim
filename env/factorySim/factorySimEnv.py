@@ -42,6 +42,7 @@ class FactorySimEnv(gym.Env):
         self.createMachines = env_config["createMachines"]
         self.scale = env_config["outputScale"]
         self.evalFiles = [None]
+        self.currentEvalEnv = None
         if env_config["inputfile"] is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
@@ -113,9 +114,9 @@ class FactorySimEnv(gym.Env):
         super().reset(seed=seed)
         del(self.factory)
         self.uid +=1 
-        if self.evaluationMode:  
-            self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.uid % len(self.evalFiles)])
-            print(f"----------------------_>{self.uid}")
+        if self.evaluationMode:
+            self.currentEvalEnv = self.uid % len(self.evalFiles)  
+            self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.currentEvalEnv])
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
         factoryConfig=self.factoryConfig,
@@ -306,14 +307,13 @@ def main():
             image = None
             env.render()
 
-        currentFile = env.uid % len(env.evalFiles)
-        tbl.add_data(currentFile, f"{currentFile}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
+
+        tbl.add_data(env.currentEvalEnv, f"{env.currentEvalEnv}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
         if terminated:
             wandb.log(info)
             obs, info = env.reset(f_config['env_config'].get("randomSeed"))
-            currentFile = env.uid % len(env.evalFiles)
             image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
-            tbl.add_data(currentFile, f"{currentFile}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
+            tbl.add_data(env.currentEvalEnv, f"{env.currentEvalEnv}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
 
     env.close()
 
