@@ -75,6 +75,12 @@ class MyAlgoCallback(DefaultCallbacks):
         episode.media["tabledata"]["captions"] = []
         episode.media["tabledata"]["currentStep"] = []
 
+        info = episode._last_infos['agent0']
+        episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
+        episode.media["tabledata"]["images"] += [info.get("Image", None)]
+        episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
+        episode.media["tabledata"]["currentStep"] += [info.get('Step', 0)]
+
     def on_episode_step(
         self,
         *,
