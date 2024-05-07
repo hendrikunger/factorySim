@@ -141,7 +141,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Update Materialflow
  #------------------------------------------------------------------------------------------------------------
-    def addMaterialFlow(self, fromMachine, toMachine, intensity):
+    def addMaterialFlow(self, fromMachine, toMachine, intensity): 
         #Add new Materialflow
         newDF = pd.DataFrame({'source': [fromMachine], 'target': [toMachine], 'intensity': [intensity]})
 

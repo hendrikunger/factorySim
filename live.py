@@ -263,7 +263,7 @@ class factorySimLive(mglw.WindowConfig):
             if key == keys.N:
                 self.create_factory()
                 self.set_factoryScale()
-                self.nextGID = len(self.env.factory.machine_dict)
+                self.nextGID = len(self.env.factory.machine_dict) 
                 self.selected = None
             # End Drawing Mode
             if key == keys.ESCAPE:

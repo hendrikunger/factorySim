@@ -148,7 +148,7 @@ class MyAlgoCallback(DefaultCallbacks):
             for episode_id, episode in enumerate(data):
                 for step, image, caption , rating, evalEnvID in zip(episode["currentStep"], episode["images"], episode["captions"], episode["ratings"], episode["evalEnvID"]):
                     logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
-                    tbl.add_data(f"{episode_id}_{step}", episode_id,evalEnvID, logImage, *rating)
+                    tbl.add_data(f"{episode_id}_{step}", episode_id, evalEnvID, logImage, *rating)
 
             evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
 
@@ -197,7 +197,7 @@ def run():
     ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 2,
+    "training_iteration": 4,
     #"timesteps_total": 5000000,
     #"episode_reward_mean": 5,
     }
@@ -239,9 +239,14 @@ def run():
     eval_config = f_config['env_config'].copy()
     eval_config['evaluation'] = True
     eval_config['render_mode'] = "rgb_array"
-    eval_config['randomSeed'] = 42
+    eval_config['randomSeed'] = 42 
     eval_config['createMachines'] = False
-    ppo_config.evaluation(evaluation_duration=7,
+
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation") 
+
+    eval_duration = len([x for x in os.listdir(path) if ".ifc" in x])
+
+    ppo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
                           evaluation_interval=1,
                           evaluation_config={"env_config": eval_config},
@@ -277,7 +282,7 @@ def run():
     
 
     path = Path.joinpath(Path.home(), "ray_results/klaus")
-    path = "/home/unhe/gitRepo/factorySim/artifacts/checkpoint_PPO_FactorySimEnv_038cc_00000:v5"
+    #path = "/home/unhe/gitRepo/factorySim/artifacts/checkpoint_PPO_FactorySimEnv_038cc_00000:v5"
 
     if Tuner.can_restore(path):
         print("--------------------------------------------------------------------------------------------------------")
