@@ -113,6 +113,9 @@ class FactorySimEnv(gym.Env):
         return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
 
     def reset(self, seed=None, options={}):
+        if seed is not None:
+            self.seed = seed
+            print(f"Seed set to {self.seed}")
         super().reset(seed=self.seed)
         del(self.factory)
         self.uid +=1 
