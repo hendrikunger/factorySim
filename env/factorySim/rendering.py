@@ -329,7 +329,7 @@ def drawMaterialFlow(ctx, machine_dict,  materialflow_file=None, drawColors = Tr
                 if isObs:
                     modifer = 3.0
                 else:
-                    modifer = 20.0
+                    modifer = 10.0
                 ctx.set_line_width(ctx.device_to_user_distance(row.intensity_sum_norm * modifer, 0)[0] )
                 ctx.stroke()   
             except KeyError:
