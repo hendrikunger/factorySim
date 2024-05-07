@@ -40,10 +40,9 @@ evaluation_config:
   env_config:
     render_mode: rgb_array
     evaluation: true
+    randomSeed: 42
 
 render_env: false
-framework: tf2
-eager_tracing: true
 num_workers: 1  # parallelism  #12
 num_envs_per_worker: 1
 
