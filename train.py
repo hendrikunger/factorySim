@@ -4,6 +4,7 @@
 from pathlib import Path
 import os
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
+import gymnasium as gym
 
 import ray
 
@@ -12,12 +13,12 @@ from ray.air.config import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.callbacks import DefaultCallbacks, MemoryTrackingCallbacks
 
-#from factorySim.customRLModulTorch import MyPPOTorchRLModule
+from ray.rllib.core.rl_module.rl_module import RLModule
+from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
 from factorySim.customModelsTorch import MyXceptionModel
 
-
-#from ray.rllib.core.rl_module.rl_module import SingleAgentRLModuleSpec
+from ray.rllib.core.rl_module.rl_module import SingleAgentRLModuleSpec
 
 from ray.air.integrations.wandb import WandbLoggerCallback
 
@@ -25,11 +26,17 @@ from ray.rllib.env import BaseEnv
 from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
 from typing import Dict
+from ray.rllib.evaluation.episode_v2 import EpisodeV2
 
 from ray.rllib.connectors.agent.lambdas import register_lambda_agent_connector
 from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.utils.typing import TensorStructType
 
+from ray.rllib.algorithms.algorithm import Algorithm
+from ray.rllib.env.env_runner import EnvRunner
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
+from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
+from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
 
 import wandb
 import yaml
@@ -56,19 +63,23 @@ ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 class MyAlgoCallback(DefaultCallbacks):
     def __init__(self, legacy_callbacks_dict: Dict[str, Any] = None):
-        super().__init__()    
+        #super().__init__()    
         self.ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends',]
 
     def on_episode_start(
         self,
         *,
-        worker: RolloutWorker,
-        base_env: BaseEnv,
-        policies: Dict[str, Policy],
-        episode: Episode,
-        env_index:  None,
+        episode: Union[EpisodeType, Episode, EpisodeV2],
+        env_runner: Optional["EnvRunner"] = None,
+        metrics_logger: Optional[MetricsLogger] = None,
+        env: Optional[gym.Env] = None,
+        env_index: int,
+        rl_module: Optional[RLModule] = None,
+        worker: Optional["EnvRunner"] = None,
+        base_env: Optional[BaseEnv] = None,
+        policies: Optional[Dict[PolicyID, Policy]] = None,
         **kwargs,
-    ):  
+    ) -> None: 
         episode.media["tabledata"] = {}
         episode.media["tabledata"]["ratings"] = []
         episode.media["tabledata"]["images"] = []
@@ -82,13 +93,17 @@ class MyAlgoCallback(DefaultCallbacks):
     def on_episode_step(
         self,
         *,
-        worker: RolloutWorker,
-        base_env: BaseEnv,
-        policies: Dict[str, Policy],
-        episode: Episode,
+        episode: Union[EpisodeType, Episode, EpisodeV2],
+        env_runner: Optional["EnvRunner"] = None,
+        metrics_logger: Optional[MetricsLogger] = None,
+        env: Optional[gym.Env] = None,
         env_index: int,
-        **kwargs
-    ):
+        rl_module: Optional[RLModule] = None,
+        worker: Optional["EnvRunner"] = None,
+        base_env: Optional[BaseEnv] = None,
+        policies: Optional[Dict[PolicyID, Policy]] = None,
+        **kwargs,
+    ) -> None:
 
         if "Evaluation" in episode._last_infos['agent0']:
             info = episode._last_infos['agent0']
@@ -103,13 +118,17 @@ class MyAlgoCallback(DefaultCallbacks):
     def on_episode_end(
         self,
         *,
-        worker: RolloutWorker,
-        base_env: BaseEnv,
-        policies: Dict[str, Policy],
-        episode: Episode,
+        episode: Union[EpisodeType, Episode, EpisodeV2],
+        env_runner: Optional["EnvRunner"] = None,
+        metrics_logger: Optional[MetricsLogger] = None,
+        env: Optional[gym.Env] = None,
         env_index: int,
-        **kwargs
-    ):
+        rl_module: Optional[RLModule] = None,
+        worker: Optional["EnvRunner"] = None,
+        base_env: Optional[BaseEnv] = None,
+        policies: Optional[Dict[PolicyID, Policy]] = None,
+        **kwargs,
+    ) -> None:
         if "Evaluation" in episode._last_infos['agent0']:
             info = episode._last_infos['agent0']
             for key in self.ratingkeys:
@@ -123,9 +142,10 @@ class MyAlgoCallback(DefaultCallbacks):
     def on_evaluate_start(
         self,
         *,
-        algorithm,
+        algorithm: "Algorithm",
+        metrics_logger: Optional[MetricsLogger] = None,
         **kwargs,
-    ):
+    ) -> None:
         print(f"--------------------------------------------EVAL START")
 
 
@@ -133,15 +153,19 @@ class MyAlgoCallback(DefaultCallbacks):
     def on_evaluate_end(
         self,
         *,
-        algorithm,
+        algorithm: "Algorithm",
+        metrics_logger: Optional[MetricsLogger] = None,
         evaluation_metrics: dict,
         **kwargs,
-    ):
+    ) -> None:
 
 
         print(f"--------------------------------------------EVAL END")
+        for key in evaluation_metrics.keys():
+            print(key)
 
-        data = evaluation_metrics["evaluation"]["episode_media"].pop("tabledata", None)
+        data = evaluation_metrics["episode_media"].pop("tabledata", None)
+
 
         tbl = wandb.Table(columns=["id", "episode","evalEnvID", "image"] + self.ratingkeys)
         if data:
@@ -150,7 +174,7 @@ class MyAlgoCallback(DefaultCallbacks):
                     logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
                     tbl.add_data(f"{episode_id}_{step}", episode_id, evalEnvID, logImage, *rating)
 
-            evaluation_metrics["evaluation"]["episode_media"]["Eval_Table"] = tbl
+            evaluation_metrics["episode_media"]["Eval_Table"] = tbl
 
 
        
@@ -229,9 +253,9 @@ def run():
 
     ppo_config.callbacks(MyAlgoCallback)
     #ppo_config.callbacks(MemoryTrackingCallbacks)
-    ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
+    ppo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
                         num_envs_per_env_runner=1,  #2
-                        )
+                        enable_connectors=True,)
     #ppo_config.train_batch_size=256
     ppo_config.framework(framework="torch",
                          eager_tracing=False,)
@@ -253,8 +277,8 @@ def run():
                          num_gpus_per_learner_worker=int(os.getenv("$SLURM_GPUS", "1")),
                          )
     ppo_config._disable_preprocessor_api=True
-    ppo_config.rollouts(enable_connectors=True,)
-    
+
+
     
 
     name = os.getenv("SLURM_JOB_ID", f"D-{datetime.now().strftime('%Y%m%d_%H-%M-%S')}")
