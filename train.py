@@ -236,11 +236,8 @@ def run():
     ppo_config.framework(framework="torch",
                          eager_tracing=False,)
 
-    eval_config = f_config['env_config'].copy()
-    eval_config['evaluation'] = True
-    eval_config['render_mode'] = "rgb_array"
-    eval_config['randomSeed'] = 42 
-    eval_config['createMachines'] = False
+    eval_config = f_config['evaluation_config']["env_config"]
+
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation") 
 

@@ -49,7 +49,6 @@ evaluation_config:
     evaluation: true
     randomSeed: 42
     reward_function: 2
-    randomSeed: 42
     createMachines: false
 
 render_env: false
