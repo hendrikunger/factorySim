@@ -14,6 +14,7 @@ git clone https://github.com/hendrikunger/factorySim.git
 cd ~/factorySim
 
 apptainer build "$HOME/factorySim/factorySim.sif" "$HOME/factorySim/Singularity.def"
+apptainer cache clean
 #clara cluster
 # run with sbatch slurm-buildContainer.job
 #X2VQtEV?vmYH3S9KPS% 
