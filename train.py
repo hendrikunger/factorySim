@@ -12,12 +12,12 @@ from ray.air.config import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.callbacks import DefaultCallbacks, MemoryTrackingCallbacks
 
-from factorySim.customRLModulTorch import MyPPOTorchRLModule
+#from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
 from factorySim.customModelsTorch import MyXceptionModel
 
 
-from ray.rllib.core.rl_module.rl_module import SingleAgentRLModuleSpec
+#from ray.rllib.core.rl_module.rl_module import SingleAgentRLModuleSpec
 
 from ray.air.integrations.wandb import WandbLoggerCallback
 
@@ -56,7 +56,7 @@ ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 class MyAlgoCallback(DefaultCallbacks):
     def __init__(self, legacy_callbacks_dict: Dict[str, Any] = None):
-        super().__init__(legacy_callbacks_dict)    
+        super().__init__()    
         self.ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends',]
 
     def on_episode_start(
@@ -185,10 +185,10 @@ with open('config.yaml', 'r') as f:
 #f_config['env'] = FactorySimEnv
 f_config['env_config']['inputfile'] = ifcpath
 
-myRLModule = SingleAgentRLModuleSpec(
-    module_class=MyPPOTorchRLModule,
-    model_config_dict={"model":"resnet34", "pretrained": False},
-)
+# myRLModule = SingleAgentRLModuleSpec(
+#     module_class=MyPPOTorchRLModule,
+#     model_config_dict={"model":"resnet34", "pretrained": False},
+# )
 
 
 
@@ -230,7 +230,7 @@ def run():
     ppo_config.callbacks(MyAlgoCallback)
     #ppo_config.callbacks(MemoryTrackingCallbacks)
     ppo_config.rollouts(num_rollout_workers=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
-                        num_envs_per_worker=1,  #2
+                        num_envs_per_env_runner=1,  #2
                         )
     #ppo_config.train_batch_size=256
     ppo_config.framework(framework="torch",
