@@ -9,7 +9,7 @@
 
 #module load CUDA/12.1.1
 
-
+ws_allocate wandb 5
 apptainer run --nv "$HOME/factorySim/factorySim.sif"
 
 #clara cluster

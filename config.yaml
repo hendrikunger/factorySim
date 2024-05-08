@@ -38,8 +38,18 @@ evaluation_config:
 # env and only the 1st sub-env in a vectorized env.
   render_env: false
   env_config:
+    Loglevel: 0
+    width: 84 #84
+    height: 84 #84
+    maxMF_Elements: 5
+    outputScale: 2 #10
     render_mode: rgb_array
+    factoryconfig: SMALLSQUARE
+    prefix: null #Gets populated on runtime
     evaluation: true
+    reward_function: 2
+    randomSeed: 42
+    createMachines: false
 
 render_env: false
 framework: tf2
