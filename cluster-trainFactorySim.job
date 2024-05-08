@@ -11,7 +11,11 @@
 
 #module load CUDA/12.1.1
 
-ws_allocate wandb 5
+
+#wandb could not wirte to tis directory
+#ws_allocate wandb 5
+#mkdir /work/hm631cryu-wandb/wandb
+
 apptainer run --nv "$HOME/factorySim/factorySim.sif"
 
 #clara cluster

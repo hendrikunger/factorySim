@@ -161,7 +161,6 @@ class MyAlgoCallback(DefaultCallbacks):
 
 
         print(f"--------------------------------------------EVAL END")
-        print(os.getenv("WANDB_CACHE_DIR"))
 
         data = evaluation_metrics["episode_media"].pop("tabledata", None)
 
@@ -220,8 +219,8 @@ def run():
     ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 2,
-    #"timesteps_total": 15000000,
+    #"training_iteration": 2,
+    "timesteps_total": 15000000,
     #"episode_reward_mean": 5,
     }
 
@@ -234,8 +233,8 @@ def run():
 
     ppo_config = PPOConfig()
     ppo_config.experimental(_enable_new_api_stack=False)
-    ppo_config.train_batch_size=200
-    ppo_config.lr=0.00005
+    #ppo_config.train_batch_size=200
+    #ppo_config.lr=0.00005
                  #0.003
                  #0.000005
     #ppo_config.rl_module(rl_module_spec=myRLModule,))
