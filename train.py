@@ -161,6 +161,7 @@ class MyAlgoCallback(DefaultCallbacks):
 
 
         print(f"--------------------------------------------EVAL END")
+        print(os.getenv("WANDB_CACHE_DIR"))
 
         data = evaluation_metrics["episode_media"].pop("tabledata", None)
 
