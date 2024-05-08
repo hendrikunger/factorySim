@@ -16,6 +16,10 @@
 #ws_allocate wandb 5
 #mkdir /work/hm631cryu-wandb/wandb
 
+export WANDB_CONFIG_DIR="/work/hm631cryu-wandb/wandb"
+export WANDB_DIR="/work/hm631cryu-wandb/wandb"
+export WANDB_CACHE_DIR="/work/hm631cryu-wandb/wandb"
+
 apptainer run --nv "$HOME/factorySim/factorySim.sif"
 
 #clara cluster
