@@ -14,7 +14,7 @@
 
 #wandb could not wirte to tis directory
 #ws_allocate wandb 5
-#mkdir /work/hm631cryu-wandb/wandb
+mkdir /lscratch/wandb
 
 export WANDB_CONFIG_DIR="/lscratch"
 export WANDB_DIR="/lscratch"
