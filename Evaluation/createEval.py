@@ -537,11 +537,30 @@ model.write("flat_holes.ifc")
 rng = np.random.default_rng(3)
 a= ["a", "b", "c", "d", "e", "f"]
 len(a)
-# %%
 
 rng.choice(a, size=(1,5), replace=False)
 # %%
-selected = rng.choice(np.arange(len(a)-1), size=3, replace=False)
+selected = rng.choice(np.arange(len(a)-1), size=8, replace=False)
 print(selected)
 for element in selected:
     print(a[element])
+
+# %%
+ifc_file = ifcopenshell.open("model.ifc")
+element_dict = {}
+elements = []
+maxMFElements = 8
+myrng = np.random.default_rng()
+if(maxMFElements): 
+    ifc_elements = ifc_file.by_type("IFCBUILDINGELEMENTPROXY")
+    #Find max amount of elements to export
+    amount = myrng.integers(2, min(maxMFElements + 1, len(ifc_elements)))
+    print(f"Amount: {amount}")
+    selected = myrng.choice(np.arange(len(ifc_elements)-1), size=amount, replace=False)
+    print(f"Selected: {selected}")
+    elements = [ifc_elements[i] for i in selected]# %%
+    print(elements)
+
+# %%
+len(ifc_elements)
+# %%

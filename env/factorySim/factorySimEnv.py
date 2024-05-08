@@ -43,6 +43,7 @@ class FactorySimEnv(gym.Env):
         self.scale = env_config["outputScale"]
         self.evalFiles = [None]
         self.currentEvalEnv = None
+        self.seed = env_config["randomSeed"]
         if env_config["inputfile"] is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
@@ -112,18 +113,22 @@ class FactorySimEnv(gym.Env):
         return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
 
     def reset(self, seed=None, options={}):
-        super().reset(seed=seed)
+        if seed is not None:
+            self.seed = seed
+            print(f"Seed set to {self.seed}")
+        super().reset(seed=self.seed)
         del(self.factory)
         self.uid +=1 
         if self.evaluationMode:
             self.currentEvalEnv = self.uid % len(self.evalFiles)  
             self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.currentEvalEnv])
+            print(self.inputfile)
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
         factoryConfig=self.factoryConfig,
         randomPos=False,
         createMachines=self.createMachines,
-        randSeed = seed,
+        randSeed = self.seed,
         verboseOutput=self.Loglevel,
         maxMF_Elements = self.maxMF_Elements)
         self.info = {}
@@ -149,6 +154,12 @@ class FactorySimEnv(gym.Env):
 
         self.tryEvaluate()
 
+        if self.evaluationMode:
+            self.info["Evaluation"] = True
+            self.info["Image"] = self.render()
+            self.info["Step"] = self.stepCount
+            self.info["evalEnvID"] = self.currentEvalEnv
+
         if (self.render_mode == "human" and options.get("RenderInitFrame", True)):
             self._render_frame() 
 
@@ -169,11 +180,11 @@ class FactorySimEnv(gym.Env):
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         drawCollisions(self.rctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
-        draw_text(self.rctx, 
-                  f"{self.uid:02d}.{self.stepCount:02d}       Mapped Reward: {self.currentMappedReward:1.2f} | Reward: {self.currentReward:1.2f}",
-                  (1,0,0),
-                  (20, 20),
-                  factoryCoordinates=False)
+        # draw_text(self.rctx, 
+        #           f"{self.uid:02d}.{self.stepCount:02d}       Mapped Reward: {self.currentMappedReward:1.2f} | Reward: {self.currentReward:1.2f}",
+        #           (1,0,0),
+        #           (20, 20),
+        #           factoryCoordinates=False)
         
         if self.render_mode == 'human':
             outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
@@ -274,14 +285,14 @@ def main():
     f_config['env_config']['render_mode'] = "rgb_array"
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
-
+    f_config['env_config']['randomSeed'] = 42
 
     run = wandb.init(
         project="factorySim_ENVTEST",
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=f_config,
         save_code=True,
-        mode="online",
+        mode="offline",
     )
 
     env = FactorySimEnv( env_config = f_config['env_config'])
@@ -295,15 +306,15 @@ def main():
 
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
-    obs, info = env.reset(seed=42)
-    image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+    obs, info = env.reset()
+    image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
-    for index in tqdm(range(0,200)):
+    for index in tqdm(range(0,60)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   
-            image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+            image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
         else:
             image = None
             env.render()
@@ -312,9 +323,9 @@ def main():
         tbl.add_data(env.currentEvalEnv, f"{env.currentEvalEnv}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
         if terminated:
             wandb.log(info)
-            obs, info = env.reset(f_config['env_config'].get("randomSeed"))
-            image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
-            tbl.add_data(env.currentEvalEnv, f"{env.currentEvalEnv}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
+            obs, info = env.reset()
+            image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}") 
+            tbl.add_data(env.currentEvalEnv, f"{env.currentEvalEnv}_{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
 
     env.close()
 

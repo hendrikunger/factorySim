@@ -136,7 +136,8 @@ class FactoryCreator():
         elements = []
         if(maxMFElements): 
             ifc_elements = ifc_file.by_type(elementName)
-            amount = self.rng.integers(2, maxMFElements+1)
+            #Find max amount of elements to export
+            amount = self.rng.integers(2, min(maxMFElements + 1, len(ifc_elements)))
             selected = self.rng.choice(np.arange(len(ifc_elements)-1), size=amount, replace=False)
             elements = [ifc_elements[i] for i in selected]
         else:

@@ -47,14 +47,13 @@ evaluation_config:
     factoryconfig: SMALLSQUARE
     prefix: null #Gets populated on runtime
     evaluation: true
+    randomSeed: 42
     reward_function: 2
     randomSeed: 42
     createMachines: false
 
 render_env: false
-framework: tf2
-eager_tracing: true
-num_workers: 16  # parallelism  #12
+num_workers: 1  # parallelism  #12
 num_envs_per_worker: 1
 
 # Should be one of DEBUG, INFO, WARN, or ERROR
