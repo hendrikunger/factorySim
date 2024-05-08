@@ -161,8 +161,6 @@ class MyAlgoCallback(DefaultCallbacks):
 
 
         print(f"--------------------------------------------EVAL END")
-        for key in evaluation_metrics.keys():
-            print(key)
 
         data = evaluation_metrics["episode_media"].pop("tabledata", None)
 
@@ -221,8 +219,8 @@ def run():
     ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    #"training_iteration": 2,
-    "timesteps_total": 15000000,
+    "training_iteration": 2,
+    #"timesteps_total": 15000000,
     #"episode_reward_mean": 5,
     }
 
