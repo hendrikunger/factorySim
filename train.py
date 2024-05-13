@@ -219,13 +219,13 @@ def run():
     ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    #"training_iteration": 2,
-    "timesteps_total": 15000000,
+    "training_iteration": 20,
+    #"timesteps_total": 15000000,
     #"episode_reward_mean": 5,
     }
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
-                                         checkpoint_frequency=100, 
+                                         checkpoint_frequency=2, 
                                          checkpoint_score_order="max", 
                                          checkpoint_score_attribute="episode_reward_mean", 
                                          num_to_keep=5 

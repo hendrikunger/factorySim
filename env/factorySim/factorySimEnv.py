@@ -299,7 +299,7 @@ def main():
     env.prefix="test"
     
     
-    ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
+    ratingkeys = ['Reward', 'TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends','terminated',]
     tbl = wandb.Table(columns=["evalFile", "evalFile.Step", "image"] + ratingkeys)
 
     
