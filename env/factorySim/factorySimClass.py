@@ -280,7 +280,10 @@ class FactorySim:
                         self.lastRating = self.currentRating
                     else:
                         self.currentRating = self.currentRating - self.lastRating
-                    
+
+
+
+            self.RatingDict["Reward"] = self.currentRating                       
 
             #if(output["ratingCollision"] >= 0.5):
             #    self.currentRating = 0.1

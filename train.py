@@ -64,7 +64,7 @@ ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 class MyAlgoCallback(DefaultCallbacks):
     def __init__(self, legacy_callbacks_dict: Dict[str, Any] = None):
         #super().__init__()    
-        self.ratingkeys = ['TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends',]
+        self.ratingkeys = ['Reward', 'TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends',]
 
     def on_episode_start(
         self,
