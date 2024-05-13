@@ -225,7 +225,7 @@ def run():
     }
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
-                                         checkpoint_frequency=2, 
+                                         checkpoint_frequency=100, 
                                          checkpoint_score_order="max", 
                                          checkpoint_score_attribute="episode_reward_mean", 
                                          num_to_keep=5 
@@ -267,7 +267,7 @@ def run():
 
     ppo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
-                          evaluation_interval=100,
+                          evaluation_interval=2,
                           evaluation_config={"env_config": eval_config},
                         )   
     ppo_config.resources(num_gpus=int(os.getenv("$SLURM_GPUS", "1")),
