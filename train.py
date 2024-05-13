@@ -219,8 +219,8 @@ def run():
     ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 20,
-    #"timesteps_total": 15000000,
+    #"training_iteration": 20,
+    "timesteps_total": 15000000,
     #"episode_reward_mean": 5,
     }
 
@@ -267,7 +267,7 @@ def run():
 
     ppo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
-                          evaluation_interval=2,
+                          evaluation_interval=100,
                           evaluation_config={"env_config": eval_config},
                         )   
     ppo_config.resources(num_gpus=int(os.getenv("$SLURM_GPUS", "1")),
