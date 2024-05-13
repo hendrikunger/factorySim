@@ -253,8 +253,6 @@ class FactorySim:
             
 
 
-
-
     ## Total Rating Calculation 
 
 
@@ -295,6 +293,13 @@ class FactorySim:
         #    self.currentRating = -0.5
         #else:
         #    self.currentRating = self.mapRange(output["ratingMF"],(-2,1),(-1,1))
+
+        else:
+            if(self.verboseOutput >= 1):
+                print("Bewertung fehlgeschlagen")
+            self.RatingDict["TotalRating"] = -5
+            self.RatingDict["terminated"] = True
+            return self.currentRating, self.currentRating, self.RatingDict, self.RatingDict["terminated"]
 
 
         self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating

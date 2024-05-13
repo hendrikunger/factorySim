@@ -145,7 +145,7 @@ class FactoryPath():
                 else:
                     self.lines_touching_machines.append(line)
             else:
-                print("Error: Voronoi Diagram is not a MultiLineString or LinesString")
+                print("Error: Voronoi Diagram is not a MultiLineString or LineString")
                 return None, None, None
         except:
             print("Error: Voronoi Diagram is not a MultiLineString")
