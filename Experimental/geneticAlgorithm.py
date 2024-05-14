@@ -1,5 +1,5 @@
 import random
-
+import multiprocessing
 from deap import base
 from deap import creator
 from deap import tools
@@ -20,7 +20,7 @@ toolbox.register("attr_bool", random.randint, 0, 1)
 #                         define 'individual' to be an individual
 #                         consisting of 100 'attr_bool' elements ('genes')
 toolbox.register("individual", tools.initRepeat, creator.Individual, 
-    toolbox.attr_bool, 100)
+    toolbox.attr_bool, 1000)
 
 # define the population to be a list of individuals
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -55,7 +55,7 @@ def main():
 
     # create an initial population of 300 individuals (where
     # each individual is a list of integers)
-    pop = toolbox.population(n=300)
+    pop = toolbox.population(n=3000)
 
     # CXPB  is the probability with which two individuals
     #       are crossed
@@ -79,7 +79,7 @@ def main():
     g = 0
 
     # Begin the evolution
-    while max(fits) < 100 and g < 1000:
+    while max(fits) < 1000 and g < 1000:
         # A new generation
         g = g + 1
         print("-- Generation %i --" % g)
@@ -87,7 +87,7 @@ def main():
         # Select the next generation individuals
         offspring = toolbox.select(pop, len(pop))
         # Clone the selected individuals
-        offspring = list(map(toolbox.clone, offspring))
+        offspring = list(toolbox.map(toolbox.clone, offspring))
 
         # Apply crossover and mutation on the offspring
         for child1, child2 in zip(offspring[::2], offspring[1::2]):
@@ -110,7 +110,7 @@ def main():
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = map(toolbox.evaluate, invalid_ind)
+        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
@@ -138,4 +138,6 @@ def main():
     print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
 
 if __name__ == "__main__":
+    pool = multiprocessing.Pool()
+    toolbox.register("map", pool.map)
     main()
