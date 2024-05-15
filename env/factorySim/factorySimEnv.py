@@ -1,5 +1,4 @@
 import os
-import random
 import yaml
 
 
@@ -44,10 +43,10 @@ class FactorySimEnv(gym.Env):
         self.evalFiles = [None]
         self.currentEvalEnv = None
         self.seed = env_config["randomSeed"]
-        if env_config["inputfile"] is not None:
+        if env_config.get("inputfile", None) is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
-            exit("No inputfile given.")
+            print("No inputfile given.")
         self.inputfile = env_config["inputfile"]
 
         if(os.path.isdir(env_config["inputfile"])):
@@ -62,7 +61,10 @@ class FactorySimEnv(gym.Env):
 
         if self.evaluationMode:  
             print("\n\n-----------------------------------------------Evaluation Mode-----------------------------------------------\n\n")
-            self.evalFiles = [x for x in os.listdir(self.evalPath) if ".ifc" in x]
+            if(os.path.isdir(env_config["inputfile"])):
+                self.evalFiles = [x for x in os.listdir(self.evalPath) if ".ifc" in x]
+            else:
+                self.evalFiles = [self.inputfile]
             self.createMachines = False
 
         self.materialflowpath = None #file_name + "_Materialflow.csv"

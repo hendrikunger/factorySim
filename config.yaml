@@ -38,6 +38,8 @@ evaluation_config:
 # env and only the 1st sub-env in a vectorized env.
   render_env: false
   env_config:
+    inputfile: '' #Gets populated on runtime
+    obs_type: image
     Loglevel: 0
     width: 84 #84
     height: 84 #84

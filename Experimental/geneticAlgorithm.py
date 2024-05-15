@@ -4,6 +4,7 @@ from deap import base
 from deap import creator
 from deap import tools
 
+
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMax)
 
@@ -14,13 +15,13 @@ toolbox = base.Toolbox()
 #                      which corresponds to integers sampled uniformly
 #                      from the range [0,1] (i.e. 0 or 1 with equal
 #                      probability)
-toolbox.register("attr_bool", random.randint, 0, 1)
+toolbox.register("attr_float", random.uniform, -1, 1)
 
 # Structure initializers
 #                         define 'individual' to be an individual
 #                         consisting of 100 'attr_bool' elements ('genes')
 toolbox.register("individual", tools.initRepeat, creator.Individual, 
-    toolbox.attr_bool, 1000)
+    toolbox.attr_float, 3*5)
 
 # define the population to be a list of individuals
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -36,11 +37,11 @@ def evalOneMax(individual):
 toolbox.register("evaluate", evalOneMax)
 
 # register the crossover operator
-toolbox.register("mate", tools.cxTwoPoint)
+toolbox.register("mate", tools.cxUniform, indpb=0.05)
 
 # register a mutation operator with a probability to
 # flip each attribute/gene of 0.05
-toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
+toolbox.register("mutate", tools.mutPolynomialBounded, eta=0.3, low=-1.0, up=1.0, indpb=0.05)
 
 # operator for selecting individuals for breeding the next
 # generation: each individual of the current generation
@@ -79,7 +80,7 @@ def main():
     g = 0
 
     # Begin the evolution
-    while max(fits) < 1000 and g < 1000:
+    while max(fits) < 100 and g < 1000:
         # A new generation
         g = g + 1
         print("-- Generation %i --" % g)
