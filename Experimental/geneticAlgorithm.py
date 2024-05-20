@@ -3,6 +3,7 @@ import multiprocessing
 from deap import base
 from deap import creator
 from deap import tools
+from time import sleep
 
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -37,11 +38,11 @@ def evalOneMax(individual):
 toolbox.register("evaluate", evalOneMax)
 
 # register the crossover operator
-toolbox.register("mate", tools.cxUniform, indpb=0.05)
+toolbox.register("mate", tools.cxUniform, indpb=0.33)
 
 # register a mutation operator with a probability to
 # flip each attribute/gene of 0.05
-toolbox.register("mutate", tools.mutPolynomialBounded, eta=0.3, low=-1.0, up=1.0, indpb=0.05)
+toolbox.register("mutate", tools.mutPolynomialBounded, eta=0.1, low=-1.0, up=1.0, indpb=0.33)
 
 # operator for selecting individuals for breeding the next
 # generation: each individual of the current generation
@@ -56,7 +57,7 @@ def main():
 
     # create an initial population of 300 individuals (where
     # each individual is a list of integers)
-    pop = toolbox.population(n=3000)
+    pop = toolbox.population(n=300)
 
     # CXPB  is the probability with which two individuals
     #       are crossed
@@ -80,7 +81,7 @@ def main():
     g = 0
 
     # Begin the evolution
-    while max(fits) < 100 and g < 1000:
+    while max(fits) < 15 and g < 1000:
         # A new generation
         g = g + 1
         print("-- Generation %i --" % g)
@@ -132,6 +133,7 @@ def main():
         print("  Max %s" % max(fits))
         print("  Avg %s" % mean)
         print("  Std %s" % std)
+        sleep(1)
 
     print("-- End of (successful) evolution --")
 

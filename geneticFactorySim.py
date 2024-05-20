@@ -34,7 +34,7 @@ def worker_main(task_queue, result_queue, env_name):
 
 def main():
 
-    num_workers = 24
+    num_workers = 12
     rng = np.random.default_rng(42)
     
 
@@ -55,7 +55,7 @@ def main():
         workers.append(p)
 
     # Enqueue initial tasks (e.g., "reset" command or actions)
-    num_tasks = 200  # Example number of tasks
+    num_tasks = 5000  # Example number of tasks
     for _ in range(num_tasks):
         task_queue.put(rng.uniform(low=-1, high=1, size=3*5)) 
 
