@@ -57,7 +57,9 @@ def main():
 
     # create an initial population of 300 individuals (where
     # each individual is a list of integers)
-    pop = toolbox.population(n=300)
+    pop = toolbox.population(n=3)
+
+
     hall.update(pop)
 
     # CXPB  is the probability with which two individuals
@@ -82,7 +84,7 @@ def main():
     g = 0
 
     # Begin the evolution
-    while max(fits) < 15 and g < 50:
+    while max(fits) < 15 and g < 2:
         # A new generation
         g = g + 1
         print("-- Generation %i --" % g)
@@ -145,6 +147,6 @@ def main():
 
 
 if __name__ == "__main__":
-    pool = multiprocessing.Pool(12)
+    pool = multiprocessing.Pool()
     toolbox.register("map", pool.map)
     main()
