@@ -2,7 +2,7 @@ import random
 import multiprocessing
 from deap import base, creator, tools
 from deap.tools.support import HallOfFame
-from time import sleep
+
 
 
 creator.create("FitnessMax", base.Fitness, weights=(1.0,))
@@ -136,7 +136,6 @@ def main():
         print("  Max %s" % max(fits))
         print("  Avg %s" % mean)
         print("  Std %s" % std)
-        sleep(1)
 
     print("-- End of (successful) evolution --")
 
@@ -146,6 +145,6 @@ def main():
 
 
 if __name__ == "__main__":
-    #pool = multiprocessing.Pool(12)
-    #toolbox.register("map", pool.map)
+    pool = multiprocessing.Pool(12)
+    toolbox.register("map", pool.map)
     main()
