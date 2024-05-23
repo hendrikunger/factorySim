@@ -1,8 +1,7 @@
 import random
 import multiprocessing
-from deap import base
-from deap import creator
-from deap import tools
+from deap import base, creator, tools
+from deap.tools.support import HallOfFame
 from time import sleep
 
 
@@ -54,10 +53,12 @@ toolbox.register("select", tools.selTournament, tournsize=3)
 
 def main():
     random.seed(64)
+    hall = HallOfFame(10)
 
     # create an initial population of 300 individuals (where
     # each individual is a list of integers)
     pop = toolbox.population(n=300)
+    hall.update(pop)
 
     # CXPB  is the probability with which two individuals
     #       are crossed
@@ -81,7 +82,7 @@ def main():
     g = 0
 
     # Begin the evolution
-    while max(fits) < 15 and g < 1000:
+    while max(fits) < 15 and g < 50:
         # A new generation
         g = g + 1
         print("-- Generation %i --" % g)
@@ -120,6 +121,8 @@ def main():
 
         # The population is entirely replaced by the offspring
         pop[:] = offspring
+        #Update hall of fame
+        hall.update(pop)
 
         # Gather all the fitnesses in one list and print the stats
         fits = [ind.fitness.values[0] for ind in pop]
@@ -137,10 +140,12 @@ def main():
 
     print("-- End of (successful) evolution --")
 
-    best_ind = tools.selBest(pop, 1)[0]
-    print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
+    print("Hall of fame:")
+    for i ,ind in enumerate(hall):
+        print(f"{i+1} - {ind.fitness.values} - {ind}")
+
 
 if __name__ == "__main__":
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
+    #pool = multiprocessing.Pool(12)
+    #toolbox.register("map", pool.map)
     main()
