@@ -49,13 +49,16 @@ def main():
 
     # Create worker processes
     workers = []
-    for _ in range(num_workers):
-        p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, f_config['evaluation_config']["env_config"]))
+    for i in range(num_workers):
+        config = f_config['evaluation_config']["env_config"].copy()
+        #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i
+        print(config)
+        p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config))
         p.start()
         workers.append(p)
 
     # Enqueue initial tasks (e.g., "reset" command or actions)
-    num_tasks = 5000  # Example number of tasks
+    num_tasks = 200  # Example number of tasks
     for _ in range(num_tasks):
         task_queue.put(rng.uniform(low=-1, high=1, size=3*5)) 
 
