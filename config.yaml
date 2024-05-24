@@ -44,7 +44,7 @@ evaluation_config:
     width: 84 #84
     height: 84 #84
     maxMF_Elements: 5
-    outputScale: 2 #10
+    outputScale: 10 #10
     render_mode: rgb_array
     factoryconfig: SMALLSQUARE
     prefix: null #Gets populated on runtime

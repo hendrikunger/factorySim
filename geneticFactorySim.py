@@ -12,12 +12,17 @@ NUMGERATIONS = 300
 NUMTASKS = 12
 NUMPOP = 300
 
+# CXPB  is the probability with which two individuals
+#       are crossed
+#
+# MUTPB is the probability for mutating an individual
+CXPB, MUTPB = 0.5, 0.4
+
 class Worker:
     def __init__(self, env_config):
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
        
-        
 
     def process_action(self, action, render=False):
         #print(action)
@@ -92,13 +97,8 @@ def main():
 
     # create an initial population of 300 individuals 
     pop = toolbox.population(n=NUMPOP)
-    hall.update(pop)
 
-    # CXPB  is the probability with which two individuals
-    #       are crossed
-    #
-    # MUTPB is the probability for mutating an individual
-    CXPB, MUTPB = 0.5, 0.2
+
     
 
     with open('config.yaml', 'r') as f:
@@ -140,7 +140,10 @@ def main():
         output = result_queue.get()
         pop[output[0]].fitness.values = (output[1][0],)
 
+    hall.update(pop)
+    
     print("  Evaluated %i individuals" % len(pop))
+    print("  Best fitness is ", hall[0].fitness.values)
 
     # Extracting all the fitnesses of 
     fits = [ind.fitness.values[0] for ind in pop]
@@ -190,13 +193,13 @@ def main():
             output = result_queue.get()
             invalid_ind[output[0]].fitness.values = (output[1][0],)
 
-        print("  Evaluated %i individuals" % len(pop))
-        print("  Best fitness is ", hall[0].fitness.values)
-
         # The population is entirely replaced by the offspring
         pop[:] = offspring
         #Update hall of fame
         hall.update(pop)
+
+        print("  Evaluated %i individuals" % len(pop))
+        print("  Best fitness is ", hall[0].fitness.values)
 
 
     print("-- End of (successful) evolution --")
