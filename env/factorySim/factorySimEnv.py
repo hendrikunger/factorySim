@@ -57,7 +57,7 @@ class FactorySimEnv(gym.Env):
             "..",
             "..")
         self.output_path = os.path.join(self.base_path, "Output")
-        self.evalPath= os.path.join(self.base_path, "Evaluation")
+        self.evalPath= os.path.join(self.base_path, "Evaluation", "1")
 
         if self.evaluationMode:  
             print("\n\n-----------------------------------------------Evaluation Mode-----------------------------------------------\n\n")
@@ -189,6 +189,8 @@ class FactorySimEnv(gym.Env):
         #           factoryCoordinates=False)
         
         if self.render_mode == 'human':
+            print(self.output_path)
+            print(f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
             outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
             self.rsurface.write_to_png(outputPath)
             return np.array([])

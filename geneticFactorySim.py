@@ -8,6 +8,9 @@ from deap import base, creator, tools
 from deap.tools.support import HallOfFame
 
 
+NUMGERATIONS = 300
+NUMTASKS = 12
+NUMPOP = 300
 
 class Worker:
     def __init__(self, env_config):
@@ -16,12 +19,16 @@ class Worker:
        
         
 
-    def process_action(self, action):
+    def process_action(self, action, render=False):
         #print(action)
         for index, (x, y, r) in enumerate(zip(action[::3], action[1::3], action[2::3])):
             self.env.factory.update(index, xPosition=x, yPosition=y, rotation=r)
 
         self.env.tryEvaluate()
+        if render:
+            self.env.render_mode = "human"
+            self.env.render()
+            self.env.render_mode = "rgb_array"
         return  self.env.currentMappedReward, self.env.info
 
 def worker_main(task_queue, result_queue, env_name):
@@ -31,14 +38,18 @@ def worker_main(task_queue, result_queue, env_name):
             task = task_queue.get(timeout=3)  # Adjust timeout as needed
             if task is None:
                 break
-            result = worker.process_action(task[1])
+            result = worker.process_action(task[1], task[2])
             result_queue.put((task[0], result))
         except queue.Empty:
-            continue
+            continue#
+
+def print_list(list, title="List"):
+    print(f"---{title}---")
+    for i in list:
+        print(i)
 
 def main():
 
-    num_workers = 2
     rng = np.random.default_rng(42)
 
 
@@ -80,7 +91,7 @@ def main():
     hall = HallOfFame(10)
 
     # create an initial population of 300 individuals 
-    pop = toolbox.population(n=300)
+    pop = toolbox.population(n=NUMPOP)
     hall.update(pop)
 
     # CXPB  is the probability with which two individuals
@@ -93,7 +104,7 @@ def main():
     with open('config.yaml', 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "2.ifc")
+    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
     f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
 
     task_queue = multiprocessing.Queue()
@@ -101,8 +112,9 @@ def main():
 
     # Create worker processes
     workers = []
-    for i in range(num_workers):
+    for i in range(NUMTASKS):
         config = f_config['evaluation_config']["env_config"].copy()
+        config["prefix"] = str(i)+"_"
         #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i
         print(config)
         p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config))
@@ -121,7 +133,7 @@ def main():
     # Enqueue initial tasks (e.g., "reset" command or actions)
     num_tasks = len(pop) 
     for index, individual in enumerate(pop):
-        task_queue.put((index,individual)) 
+        task_queue.put((index,individual,False)) 
 
     # Collect results
     for _ in range(num_tasks):
@@ -137,7 +149,7 @@ def main():
     g = 0
 
     # Begin the evolution
-    while max(fits) < 15 and g < 100:
+    while max(fits) < 1 and g < NUMGERATIONS:
         # A new generation
         g = g + 1
         print("-- Generation %i --" % g)
@@ -168,14 +180,15 @@ def main():
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+
         num_tasks = len(invalid_ind) 
         for index, individual in enumerate(invalid_ind):
-            task_queue.put((index,individual)) 
-
+            task_queue.put((index,individual,False)) 
+        
         # Collect results
         for _ in range(num_tasks):
             output = result_queue.get()
-        invalid_ind[output[0]].fitness.values = (output[1][0],)
+            invalid_ind[output[0]].fitness.values = (output[1][0],)
 
         print("  Evaluated %i individuals" % len(pop))
         print("  Best fitness is ", hall[0].fitness.values)
@@ -188,9 +201,16 @@ def main():
 
     print("-- End of (successful) evolution --")
 
+    result = {}
+
     print("Hall of fame:")
     for i ,ind in enumerate(hall):
         print(f"{i+1} - {ind.fitness.values} - {ind}")
+        result[i] = {"fitness": ind.fitness.values, "individual": ind}
+        task_queue.put((i,ind,True)) 
+
+    while not result_queue.empty():
+        result_queue.get()
 
 
 
@@ -205,7 +225,7 @@ def main():
         json.dump(result, fp, default=convert, indent=4, sort_keys=True)
 
     # Signal workers to exit
-    for _ in range(num_workers):
+    for _ in range(NUMTASKS):
         task_queue.put(None)
 
     # Wait for all worker processes to finish
