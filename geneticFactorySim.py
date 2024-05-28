@@ -7,10 +7,10 @@ from env.factorySim.factorySimEnv import FactorySimEnv
 from deap import base, creator, tools
 from deap.tools.support import HallOfFame
 from tqdm import tqdm
+import random
 
 
-
-NUMGERATIONS = 200
+NUMGERATIONS = 5000
 NUMTASKS = 24
 NUMPOP = 1000
 
@@ -65,10 +65,35 @@ def print_list(list, title="List"):
     for i in list:
         print(i)
 
+
+def mycxBlend(ind1, ind2, alpha):
+    """Executes a blend crossover that modify in-place the input individuals.
+    The blend crossover expects :term:`sequence` individuals of floating point
+    numbers.
+
+    :param ind1: The first individual participating in the crossover.
+    :param ind2: The second individual participating in the crossover.
+    :param alpha: Extent of the interval in which the new values can be drawn
+                  for each attribute on both side of the parents' attributes.
+    :returns: A tuple of two individuals.
+
+    This function uses the :func:`~random.random` function from the python base
+    :mod:`random` module.
+    """
+    for i, (x1, x2) in enumerate(zip(ind1, ind2)):
+        gamma = random.uniform(-alpha, 1. + alpha)
+        ind1[i] = (1. - gamma) * x1 + gamma * x2
+        ind2[i] = gamma * x1 + (1. - gamma) * x2
+    print(ind1)
+    print(ind2)
+
+    return ind1, ind2
+
 def main():
 
     rng = np.random.default_rng(42)
     last_best = None
+    last_change_gen = 0
 
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list, fitness=creator.FitnessMax)
@@ -94,6 +119,7 @@ def main():
 
     # register the crossover operator
     toolbox.register("mate", tools.cxUniform, indpb=0.33)
+    #toolbox.register("mate", mycxBlend, alpha=0.25) # Alpha value is recommended to 0.25
 
     # register a mutation operator with a probability to
     # flip each attribute/gene of 0.05
@@ -143,7 +169,7 @@ def main():
 
     # Evaluate the entire population
 
-    # Enqueue initial tasks (e.g., "reset" command or actions)
+    # Enqueue initial tasks (e.g., "reset" command or actions) 
     num_tasks = len(pop) 
     for index, individual in enumerate(pop):
         task_queue.put((index,individual,False, None)) 
@@ -218,13 +244,14 @@ def main():
         if last_best != hall[0]:
             print(f"---> Found new best individual with fitness {hall[0].fitness.values}")
             last_best = hall[0]
+            last_change_gen = g
             task_queue.put((-1,hall[0],True,g))
             result_queue.get()
         else:
             print(f"  Best fitness is {hall[0].fitness.values}")
         print("\n\n")
 
-        if max(fits) > 0.9:
+        if max(fits) > 0.9 or g - last_change_gen > 50:
             break
 
     print("-- End of (successful) evolution --\n\n")
