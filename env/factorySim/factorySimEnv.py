@@ -174,7 +174,7 @@ class FactorySimEnv(gym.Env):
             raise error.Error('Unrecognized render mode: {}'.format(self.render_mode))
 
 
-    def _render_frame(self):
+    def _render_frame(self, path=None):
         
         draw_BG(self.rctx, self.factory.DRAWINGORIGIN,*self.factory.FACTORYDIMENSIONS, darkmode=False)
         drawFactory(self.rctx, self.factory, drawColors=True, darkmode=False, drawNames=False, highlight=str(self.currentMachine))
@@ -189,9 +189,10 @@ class FactorySimEnv(gym.Env):
         #           factoryCoordinates=False)
         
         if self.render_mode == 'human':
-            print(self.output_path)
-            print(f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
-            outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
+            if path is None:
+                outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
+            else:
+                outputPath = path+".png"
             self.rsurface.write_to_png(outputPath)
             return np.array([])
         elif self.render_mode == 'rgb_array':
