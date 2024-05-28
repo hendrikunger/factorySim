@@ -57,7 +57,7 @@ def main():
 
     # create an initial population of 300 individuals (where
     # each individual is a list of integers)
-    pop = toolbox.population(n=3)
+    pop = toolbox.population(n=300)
 
 
     hall.update(pop)
@@ -84,7 +84,7 @@ def main():
     g = 0
 
     # Begin the evolution
-    while max(fits) < 15 and g < 2:
+    while max(fits) < 15 and g < 200:
         # A new generation
         g = g + 1
         print("-- Generation %i --" % g)

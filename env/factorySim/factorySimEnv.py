@@ -192,7 +192,7 @@ class FactorySimEnv(gym.Env):
             if path is None:
                 outputPath = os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}.png")
             else:
-                outputPath = path+".png"
+                outputPath = path + ".png"
             self.rsurface.write_to_png(outputPath)
             return np.array([])
         elif self.render_mode == 'rgb_array':
