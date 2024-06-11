@@ -564,3 +564,23 @@ if(maxMFElements):
 # %%
 len(ifc_elements)
 # %%
+
+import os
+from supabase import create_client, Client
+
+url: str = os.environ.get("SUPABASE_URL")
+key: str = os.environ.get("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
+
+response = supabase.table('highscore').select("*").eq('problem_id', 'B').order("fitness",desc=True).gt('fitness', 0.3).limit(10).execute()
+
+print(response.data[-1])
+
+for line in response.data:
+    print(line)
+# %%
+data, count = supabase.table('highscore').insert({"problem_id": "A", "fitness": 0.56}).execute()
+print(data)
+print(count)
+
+# %%
