@@ -114,6 +114,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
 
         with open(configpath, 'r') as f:
             self.f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -122,6 +123,8 @@ class factorySimLive(mglw.WindowConfig):
         self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
         self.f_config['env_config']['maxMF_Elements'] = None
 
+        self.f_config['evaluation_config']["env_config"]["inputfile"] = self.ifcPath
+        self.f_config['evaluation_config']["env_config"]["reward_function"] = 1
         
 
         #self.ifcPath=None
@@ -256,6 +259,16 @@ class factorySimLive(mglw.WindowConfig):
                 self.set_factoryScale()
                 self.nextGID = len(self.env.factory.machine_dict)
                 self.selected = None
+            #Save Positions
+            if key == keys.END:
+                self.env.factory.creator.save_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.json"))
+            # Load Positions
+            if key == keys.HOME:
+                self.env.factory.creator.load_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.json"))
+                self.set_factoryScale()
+                self.nextGID = len(self.env.factory.machine_dict)
+                self.selected = None
+                self.is_dirty = True
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
@@ -579,7 +592,7 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
     def create_factory(self, ifcPath=None):
-        env_config = self.f_config['env_config'].copy()
+        env_config = self.f_config['evaluation_config']['env_config'].copy()
         if ifcPath:
             env_config['inputfile'] = ifcPath
             env_config["createMachines"] = False
