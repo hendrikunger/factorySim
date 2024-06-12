@@ -350,9 +350,7 @@ class FactoryCreator():
                     print("Machine Index not found")
             except ValueError:
                 machineIndex = key
-                print("key is already a string")
                     
-            print(machineIndex, type(machineIndex))
             machine = self.machine_dict.get(machineIndex,None)
             if machine:
                 bbox = self.bb.bounds
