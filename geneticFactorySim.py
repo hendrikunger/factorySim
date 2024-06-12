@@ -14,14 +14,17 @@ from pprint import pp
 
 
 NUMGERATIONS = 3
-NUMTASKS = 2
-NUMPOP = 100
+NUMTASKS = 1
+NUMPOP = 10
 
 # CXPB  is the probability with which two individuals
 #       are crossed
 #
 # MUTPB is the probability for mutating an individual
-CXPB, MUTPB = 0.5, 0.7
+
+NUMMACHINES = 5
+CXPB, MUTPB = 0.7, 0.5
+ETA = 0.1
 
 class Worker:
     def __init__(self, env_config):
@@ -110,7 +113,7 @@ def main():
     #                         define 'individual' to be an individual
     #                         consisting of 100 'attr_bool' elements ('genes')
     toolbox.register("individual", tools.initRepeat, creator.Individual, 
-        toolbox.attr_float, 3*5)
+        toolbox.attr_float, 3*NUMMACHINES)
 
     # define the population to be a list of individuals
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -118,11 +121,11 @@ def main():
 
     # register the crossover operator
     toolbox.register("mate", tools.cxUniform, indpb=0.5)
-    #toolbox.register("mate", mycxBlend, alpha=0.25) # Alpha value is recommended to 0.25
+    toolbox.register("mate", mycxBlend, alpha=0.25) # Alpha value is recommended to 0.25
 
     # register a mutation operator with a probability to
     # flip each attribute/gene of 0.05
-    toolbox.register("mutate", tools.mutPolynomialBounded, eta=0.1, low=-1.0, up=1.0, indpb=0.33)
+    toolbox.register("mutate", tools.mutPolynomialBounded, low=-1.0, up=1.0, indpb=1/NUMMACHINES)
 
     # operator for selecting individuals for breeding the next
     # generation: each individual of the current generation
@@ -161,7 +164,7 @@ def main():
 
 
     print("Start of evolution")
-    CURMUTPB = MUTPB
+    CUR_ETA = 0.1
 
 
 
@@ -192,7 +195,7 @@ def main():
     # Begin the evolution
     for g in tqdm(range(1,NUMGERATIONS+1)):
 
-        print(f"____ Generation {g} ________________________________________________________")
+        print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________")
 
         # Select the next generation individuals
         offspring = toolbox.select(pop, len(pop))
@@ -216,8 +219,8 @@ def main():
         for mutant in offspring:
 
             # mutate an individual with probability MUTPB
-            if rng.random() < CURMUTPB:
-                toolbox.mutate(mutant)
+            if rng.random() < MUTPB:
+                toolbox.mutate(mutant,eta=CUR_ETA)
                 del mutant.fitness.values
 
 
@@ -254,14 +257,14 @@ def main():
         else: 
             print(f"  Best fitness is {hall[0].fitness.values}")
         print("\n\n")
-        #Resetting mutation rate after new improvement
-        if g - last_change_gen == 0 and g > 50 and CURMUTPB != MUTPB:
-            print(f"Resetting Mutation Rate to {MUTPB}")
-            CURMUTPB = MUTPB
-        #Change mutation rate if no improvement for 50 generations
-        if g- last_change_gen > 50 and CURMUTPB < 0.9:  
-            CURMUTPB+=0.01
-            print(f"No improvement for 50 generations. Changing Mutation rate to {CURMUTPB}")
+        #Resetting crowding factor after new improvement
+        if g - last_change_gen == 0 and g > 50 and CUR_ETA != ETA:
+            print(f"Resetting Crowding Factor to local search: {ETA}")
+            CUR_ETA = ETA
+        #Change crowding factor if no improvement for 50 generations
+        if g- last_change_gen > 50 and CUR_ETA < 0.9:  
+            CUR_ETA+=0.01
+            print(f"No improvement for 50 generations. Increase crowding factor bigger search space to {CUR_ETA}")
 
         if max(fits) > 0.9 or g - last_change_gen > 300:
             print(f"No improvement for 300 generations or fitness > 0.9. Stopping...")
