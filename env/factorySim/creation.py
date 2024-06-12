@@ -310,6 +310,18 @@ class FactoryCreator():
             data[key] = {"position": value.origin, "rotation": value.rotation}
         with open(filename, 'w') as f:
             json.dump(data, f)
+    
+    def create_positions_json(self) -> str:
+        """Creates a json string with all machine positions
+
+        Returns:
+            str: json string with machine positions
+        """
+        import json
+        data = {}
+        for key, value in self.machine_dict.items():
+            data[key] = {"position": value.origin, "rotation": value.rotation}
+        return json.dumps(data)
 
     def load_position_json(self, filename: str) -> None:
         """Loads machine positions from a json file
