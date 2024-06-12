@@ -25,7 +25,12 @@ class FactoryObject:
 
     
 
-    def rotate_Item(self, r):
+    def rotate_Item(self, r: float) -> None:
+        """_summary_ Rotate the item by r
+
+        Args:
+            r (float): Rotation in radians
+        """
         rotShift = r - self.rotation
         self.rotation = r
         
@@ -38,7 +43,13 @@ class FactoryObject:
         self.origin = (bounds[0], bounds[1])
 
 
-    def translate_Item(self, x, y):
+    def translate_Item(self, x: float, y: float) -> None:
+        """_summary_ Translate the item by x and y
+
+        Args:
+            x (float): x Coordinate between -1 and 1
+            y (float): y Coordinate between -1 and 1
+        """
                     
         xShift = x - self.origin[0]
         yShift = y - self.origin[1]

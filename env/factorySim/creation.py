@@ -306,46 +306,58 @@ class FactoryCreator():
         """
         import json
         data = {}
-        for key, value in self.machine_dict.items():
-            data[key] = {"position": value.origin, "rotation": value.rotation}
-        with open(filename, 'w') as f:
-            json.dump(data, f)
-    
-    def create_positions_json(self) -> str:
-        """Creates a json string with all machine positions
+        for key, machine in self.machine_dict.items():
+            bbox = self.bb.bounds
+            mappedXPos = np.interp(machine.origin[0], (0, bbox[2] - machine.width), (-1.0, 1.0))  
+            mappedYPos = np.interp(machine.origin[1], (0, bbox[3] - machine.height), (-1.0, 1.0)) 
 
-        Returns:
-            str: json string with machine positions
-        """
-        import json
-        data = {}
-        for key, value in self.machine_dict.items():
-            data[key] = {"position": value.origin, "rotation": value.rotation}
-        return json.dumps(data)
+            data[key] = {"position": (mappedXPos,mappedYPos), "rotation": machine.rotation}
+
+        fulljson ={"config":data, "creator": "FactorySimLive" }
+
+        with open(filename, 'w') as f:
+            json.dump(fulljson, f, indent=4, sort_keys=True)
 
     def load_position_json(self, filename: str) -> None:
         """Loads machine positions from a json file
 
         Args:
             filename (str): path to json file with machine positions
-            format: {"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}
+            format: {"config":{"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}}
         """
         import json
         with open(filename, 'r') as f:
             data = json.load(f)
-            self.set_positions(data)
+            self.load_positions(data["config"])
 
     def load_positions(self, positions: dict) -> None:
         """Loads machine positions from a dictionary
 
         Args:
-            positions (dict): dictory with keys as machine ids and values as dictionaries with keys "position" and "rotation" (in radians)
+            positions (dict): dictory with keys as machine ids and values as dictionaries with keys "position"  and "rotation" (in radians)
+            each mapped to the intervall of (-1 to 1)
             e.g. {"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}
 
         """
         for key, value in positions.items():
-            print(key, type(key))
-            machine = self.machine_dict.get(key,None)
+            
+            try: 
+                machineIndex = int(key)
+                print("converting key to int")
+                if machineIndex< len(self.machine_dict):
+                    machineIndex = list(self.machine_dict)[machineIndex]
+                else:
+                    print("Machine Index not found")
+            except ValueError:
+                machineIndex = key
+                print("key is already a string")
+                    
+            print(machineIndex, type(machineIndex))
+            machine = self.machine_dict.get(machineIndex,None)
             if machine:
-                machine.rotate_Item(value["rotation"])
-                machine.translate_Item(*value["position"])
+                bbox = self.bb.bounds
+                mappedRot = np.interp(value["rotation"], (-1.0, 1.0), (0, 2*np.pi))
+                machine.rotate_Item(mappedRot)
+                mappedXPos = np.interp(value["position"][0], (-1.0, 1.0), (0, bbox[2] - machine.width))  
+                mappedYPos = np.interp(value["position"][1], (-1.0, 1.0), (0, bbox[3] - machine.height)) 
+                machine.translate_Item(mappedXPos, mappedYPos)

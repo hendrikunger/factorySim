@@ -8,17 +8,20 @@ from deap import base, creator, tools
 from deap.tools.support import HallOfFame
 from tqdm import tqdm
 import random
+from supabase import create_client, Client
+from pprint import pp
 
 
-NUMGERATIONS = 5000
-NUMTASKS = 24
-NUMPOP = 1000
+
+NUMGERATIONS = 3
+NUMTASKS = 2
+NUMPOP = 100
 
 # CXPB  is the probability with which two individuals
 #       are crossed
 #
 # MUTPB is the probability for mutating an individual
-CXPB, MUTPB = 0.5, 0.4
+CXPB, MUTPB = 0.5, 0.7
 
 class Worker:
     def __init__(self, env_config):
@@ -37,8 +40,6 @@ class Worker:
             if generation is None:
                 self.env._render_frame()
             else:
-                print(action)
-                print(self.env.info)
                 output = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output", f"{generation}   {self.env.currentMappedReward}")
                 self.env._render_frame(output)
             self.env.render_mode = "rgb_array"
@@ -60,10 +61,8 @@ def worker_main(task_queue, result_queue, env_name):
         except queue.Empty:
             continue#
 
-def print_list(list, title="List"):
-    print(f"---{title}---")
-    for i in list:
-        print(i)
+
+
 
 
 def mycxBlend(ind1, ind2, alpha):
@@ -118,7 +117,7 @@ def main():
 
 
     # register the crossover operator
-    toolbox.register("mate", tools.cxUniform, indpb=0.33)
+    toolbox.register("mate", tools.cxUniform, indpb=0.5)
     #toolbox.register("mate", mycxBlend, alpha=0.25) # Alpha value is recommended to 0.25
 
     # register a mutation operator with a probability to
@@ -162,6 +161,7 @@ def main():
 
 
     print("Start of evolution")
+    CURMUTPB = MUTPB
 
 
 
@@ -216,7 +216,7 @@ def main():
         for mutant in offspring:
 
             # mutate an individual with probability MUTPB
-            if rng.random() < MUTPB:
+            if rng.random() < CURMUTPB:
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
@@ -245,39 +245,57 @@ def main():
             print(f"---> Found new best individual with fitness {hall[0].fitness.values}")
             last_best = hall[0]
             last_change_gen = g
+            #Render and evaluate the best individuals again
             task_queue.put((-1,hall[0],True,g))
-            result_queue.get()
-        else:
+            result = result_queue.get()
+            pp(result[1][1])
+
+
+        else: 
             print(f"  Best fitness is {hall[0].fitness.values}")
         print("\n\n")
+        #Resetting mutation rate after new improvement
+        if g - last_change_gen == 0 and g > 50 and CURMUTPB != MUTPB:
+            print(f"Resetting Mutation Rate to {MUTPB}")
+            CURMUTPB = MUTPB
+        #Change mutation rate if no improvement for 50 generations
+        if g- last_change_gen > 50 and CURMUTPB < 0.9:  
+            CURMUTPB+=0.01
+            print(f"No improvement for 50 generations. Changing Mutation rate to {CURMUTPB}")
 
-        if max(fits) > 0.9 or g - last_change_gen > 50:
+        if max(fits) > 0.9 or g - last_change_gen > 300:
+            print(f"No improvement for 300 generations or fitness > 0.9. Stopping...")
             break
 
     print("-- End of (successful) evolution --\n\n")
 
     result = {}
-
+    print("\n------------------------------------------------------------------------")
     print("Hall of fame:")
+    print("------------------------------------------------------------------------\n")
+
     for i ,ind in enumerate(hall):
         print(f"{i+1} - {ind.fitness.values} - {ind}")
-        result[i] = {"fitness": ind.fitness.values, "individual": ind}
         task_queue.put((i,ind,True,f"H{i+1}"))
 
-    while not result_queue.empty():
-        result_queue.get()
+        data = {}
 
+        for index, (x, y, r) in enumerate(zip(ind[::3], ind[1::3], ind[2::3])):
+            data[index] = {"position": (x,y), "rotation": r}
 
+        result[i] = {"fitness": ind.fitness.values[0],
+                    "individual": ind,
+                    "problem_id": os.path.splitext(os.path.basename(ifcpath))[0],
+                     "creator": "Hendrik Unger",
+                     "config": data
+                    }
 
+    
+    print("------------------------------------------------------------------------\n\n")
 
-
-# --- Result Processing ---
-    import json
-    def convert(o):
-        if isinstance(o, np.generic): return o.item()  
-        raise TypeError
-    with open('result.json', 'w') as fp:
-        json.dump(result, fp, default=convert, indent=4, sort_keys=True)
+    for _ in range(len(hall)):
+        output = result_queue.get()
+        #pp(output[1][1])
 
     # Signal workers to exit
     for _ in range(NUMTASKS):
@@ -286,6 +304,42 @@ def main():
     # Wait for all worker processes to finish
     for p in workers:
         p.join()
+
+
+# --- Result Processing ---
+
+    #json    
+    
+    print("Saving to json...")
+
+    import json
+    with open('result.json', 'w') as fp:
+        json.dump(result, fp, indent=4, sort_keys=True)
+
+    #Upload
+    print("Uploading results...")
+    url: str = os.environ.get("SUPABASE_URL")
+    key: str = os.environ.get("SUPABASE_KEY")
+    supabase: Client = create_client(url, key)
+    
+    records = []
+    for element in result.values():
+        if element["fitness"] < 0.2:
+            continue
+
+        copy = element.copy()
+        element["config"] = copy
+        records.append(element)
+
+    
+    if len(records) == 0:
+        print("No results to upload")
+    else:
+        data, count = supabase.table('highscore').insert(records).execute()
+
+
+
+
 
 
 if __name__ == '__main__':
