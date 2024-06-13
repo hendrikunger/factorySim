@@ -13,7 +13,7 @@ from pprint import pp
 
 
 
-NUMGERATIONS = 700
+NUMGERATIONS = 70
 NUMTASKS = 32
 NUMPOP = 1000
 
@@ -328,7 +328,7 @@ def main():
     
     records = []
     for element in result.values():
-        if element["fitness"] < 0.2:
+        if element["fitness"] < 0.6:
             continue
 
         copy = element.copy()
