@@ -13,9 +13,9 @@ from pprint import pp
 
 
 
-NUMGERATIONS = 3
-NUMTASKS = 1
-NUMPOP = 10
+NUMGERATIONS = 700
+NUMTASKS = 32
+NUMPOP = 1000
 
 # CXPB  is the probability with which two individuals
 #       are crossed
@@ -23,8 +23,8 @@ NUMPOP = 10
 # MUTPB is the probability for mutating an individual
 
 NUMMACHINES = 5
-CXPB, MUTPB = 0.7, 0.5
-ETA = 0.1
+CXPB, MUTPB = 0.5, 0.3
+ETA = 0.9
 
 class Worker:
     def __init__(self, env_config):
@@ -84,11 +84,12 @@ def mycxBlend(ind1, ind2, alpha):
     """
     for i, (x1, x2) in enumerate(zip(ind1, ind2)):
         gamma = random.uniform(-alpha, 1. + alpha)
-        ind1[i] = (1. - gamma) * x1 + gamma * x2
-        ind2[i] = gamma * x1 + (1. - gamma) * x2
-    print(ind1)
-    print(ind2)
-
+        
+        x = (1. - gamma) * x1 + gamma * x2
+        ind1[i] = min(max(x, -1), 1)
+        x = gamma * x1 + (1. - gamma) * x2
+        ind2[i] = min(max(x, -1), 1)
+    
     return ind1, ind2
 
 def main():
@@ -120,7 +121,7 @@ def main():
 
 
     # register the crossover operator
-    toolbox.register("mate", tools.cxUniform, indpb=0.5)
+    #toolbox.register("mate", tools.cxUniform, indpb=0.5)
     toolbox.register("mate", mycxBlend, alpha=0.25) # Alpha value is recommended to 0.25
 
     # register a mutation operator with a probability to
@@ -164,7 +165,7 @@ def main():
 
 
     print("Start of evolution")
-    CUR_ETA = 0.1
+    CUR_ETA = ETA
 
 
 
@@ -262,9 +263,9 @@ def main():
             print(f"Resetting Crowding Factor to local search: {ETA}")
             CUR_ETA = ETA
         #Change crowding factor if no improvement for 50 generations
-        if g- last_change_gen > 50 and CUR_ETA < 0.9:  
-            CUR_ETA+=0.01
-            print(f"No improvement for 50 generations. Increase crowding factor bigger search space to {CUR_ETA}")
+        if g- last_change_gen > 50 and CUR_ETA > 0.1:  
+            CUR_ETA-=0.01
+            print(f"No improvement for 50 generations. Decrease crowding factor for bigger search space to {CUR_ETA}")
 
         if max(fits) > 0.9 or g - last_change_gen > 300:
             print(f"No improvement for 300 generations or fitness > 0.9. Stopping...")
