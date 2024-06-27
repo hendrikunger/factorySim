@@ -28,6 +28,7 @@ class FactoryCreator():
         self.prep_bb = None
         self.machine_dict = {}
         self.wall_dict = {}
+        self.dfMF = None
 
     def suggest_factory_view_scale(self, viewport_width, viewport_height):
 
@@ -199,7 +200,7 @@ class FactoryCreator():
             
             name = element.Name if element.Name else element.GlobalId
             element_dict[element.GlobalId] = FactoryObject(gid=element.GlobalId, 
-                                                            name=name + my_uuid,
+                                                            name=name,
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement,
                                                             color=self.rng.random(size=3)
@@ -246,11 +247,29 @@ class FactoryCreator():
             names.append([start.name, sample.name]) 
             if self.rng.random() >= 0.9:
                 sample = self.rng.choice(list(self.machine_dict.values()))
-                names.append([start.name, sample.name])                 
+                names.append([start.name, sample.name])      
         self.dfMF = pd.DataFrame(data=names, columns=["source", "target"])
         self.dfMF['intensity'] = self.rng.integers(1,100, size=len(self.dfMF))
 
         return self.dfMF
+    
+    def loadMaterialFlow(self, path_to_materialflow_file:str) -> pd.DataFrame:
+        self.dfMF = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
+        #Rename Colums
+        indexes = self.dfMF.columns.tolist()
+        self.dfMF.rename(columns={indexes[0]:'source', indexes[1]:'target', indexes[2]:'intensity'}, inplace=True)
+
+        return self.dfMF
+    
+
+    def saveMaterialFlow(self, path_to_materialflow_file:str, externaldfMf:pd.DataFrame= None) -> None:
+
+        self.dfMF = externaldfMf if externaldfMf is not None else self.dfMF
+
+        if self.dfMF is not None:
+            selected = self.dfMF[["source", "target", "intensity"]].rename(columns={'source': 'From', 'target': 'To', 'intensity': 'Intensity'})
+            selected.to_csv(path_to_materialflow_file, index=False)
+        return 
 
 
 

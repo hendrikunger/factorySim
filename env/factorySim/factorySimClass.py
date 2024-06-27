@@ -126,15 +126,12 @@ class FactorySim:
         
         #Import Materialflow from Excel
         if path_to_materialflow_file:
-            self.dfMF = pd.read_csv(path_to_materialflow_file, skipinitialspace=True, encoding= "utf-8")
-            #Rename Colums
-            indexes = self.dfMF.columns.tolist()
-            self.dfMF.rename(columns={indexes[0]:'source', indexes[1]:'target', indexes[2]:'intensity'}, inplace=True)
+            self.dfMF = self.creator.loadMaterialFlow(path_to_materialflow_file)
         else:
             #Create Random Materialflow
             self.dfMF = self.creator.createRandomMaterialFlow()
-    
         self.cleanMaterialFLow()
+        
     
         if(self.verboseOutput >= 3):
             self.printTime("Materialfluss geladen")
@@ -163,6 +160,7 @@ class FactorySim:
         #set initial values for costs
         self.dfMF['costs'] = 0
         self.dfMF['trueCosts'] = 0  # using the true distances
+
         
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
@@ -212,6 +210,9 @@ class FactorySim:
         self.RatingDict = {}
         #In case caluclation fails set default rating
         self.currentRating = -5
+
+        print(self.machine_dict.keys())
+        print(self.dfMF.head(10))
         
         self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.creator.bb)
         if self.fullPathGraph and self.reducedPathGraph and self.walkableArea is not None:

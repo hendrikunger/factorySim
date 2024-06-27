@@ -253,9 +253,13 @@ class factorySimLive(mglw.WindowConfig):
             # Save Factory
             if key == keys.S:
                 self.env.factory.creator.save_ifc_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.ifc"))
+                self.env.factory.creator.saveMaterialFlow(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.csv"), self.env.factory.dfMF)
             # Load Factory
             if key == keys.L:
                 self.create_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.ifc"))
+                path_to_materialflow_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.csv")
+                if os.path.exists(path_to_materialflow_file):
+                    self.env.factory.dfMF = self.env.factory.creator.loadMaterialFlow(path_to_materialflow_file)
                 self.set_factoryScale()
                 self.nextGID = len(self.env.factory.machine_dict)
                 self.selected = None
@@ -597,7 +601,6 @@ class factorySimLive(mglw.WindowConfig):
             env_config['inputfile'] = ifcPath
             env_config["createMachines"] = False
             env_config["randomSeed"] = 42
-        
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
 

@@ -40,10 +40,10 @@ evaluation_config:
   env_config:
     inputfile: '' #Gets populated on runtime
     obs_type: image
-    Loglevel: 0
+    Loglevel: 1
     width: 84 #84
     height: 84 #84
-    maxMF_Elements: 5
+    maxMF_Elements: null
     outputScale: 10 #10
     render_mode: rgb_array
     factoryconfig: SMALLSQUARE
