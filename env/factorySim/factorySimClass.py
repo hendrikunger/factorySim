@@ -130,7 +130,7 @@ class FactorySim:
         else:
             #Create Random Materialflow
             self.dfMF = self.creator.createRandomMaterialFlow()
-        self.cleanMaterialFLow()
+        self.dfMF = self.creator.cleanMaterialFLow(self.dfMF)
         
     
         if(self.verboseOutput >= 3):
@@ -144,22 +144,9 @@ class FactorySim:
 
         self.dfMF = pd.concat([self.dfMF, newDF], ignore_index=True)
 
-        self.cleanMaterialFLow()
+        self.dfMF = self.creator.cleanMaterialFLow(self.dfMF)
 
-    def cleanMaterialFLow(self):
-        #Group by from and two, add up intensity of all duplicates in intensity_sum
-        self.dfMF['intensity_sum'] = self.dfMF.groupby(by=['source', 'target'])['intensity'].transform('sum')
-        #drop the duplicates and refresh index
-        self.dfMF = self.dfMF.drop_duplicates(subset=['source', 'target']).reset_index(drop=True)
-        #normalise intensity sum 
-        self.dfMF['intensity_sum_norm'] = self.dfMF['intensity_sum'] / self.dfMF["intensity_sum"].max()
-        #use machine index as sink and source for materialflow
-        #Replace Machine Names in Material flow (From Sketchup Import) with machine dict key
-        machine_dict = {machine.name: key for key, machine in self.machine_dict.items()}
-        self.dfMF[['source','target']] = self.dfMF[['source','target']].replace(machine_dict)
-        #set initial values for costs
-        self.dfMF['costs'] = 0
-        self.dfMF['trueCosts'] = 0  # using the true distances
+
 
         
  #------------------------------------------------------------------------------------------------------------
@@ -211,8 +198,6 @@ class FactorySim:
         #In case caluclation fails set default rating
         self.currentRating = -5
 
-        print(self.machine_dict.keys())
-        print(self.dfMF.head(10))
         
         self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.creator.bb)
         if self.fullPathGraph and self.reducedPathGraph and self.walkableArea is not None:

@@ -258,6 +258,7 @@ class FactoryCreator():
         #Rename Colums
         indexes = self.dfMF.columns.tolist()
         self.dfMF.rename(columns={indexes[0]:'source', indexes[1]:'target', indexes[2]:'intensity'}, inplace=True)
+        self.cleanMaterialFLow()
 
         return self.dfMF
     
@@ -267,11 +268,29 @@ class FactoryCreator():
         self.dfMF = externaldfMf if externaldfMf is not None else self.dfMF
 
         if self.dfMF is not None:
+            localmachine_dict = {key:machine.name for key, machine in self.machine_dict.items()}
             selected = self.dfMF[["source", "target", "intensity"]].rename(columns={'source': 'From', 'target': 'To', 'intensity': 'Intensity'})
+            selected[['From','To']] = selected[['From','To']].replace(localmachine_dict)
             selected.to_csv(path_to_materialflow_file, index=False)
         return 
 
+    def cleanMaterialFLow(self, externaldfMf:pd.DataFrame= None) -> pd.DataFrame:
 
+        self.dfMF = externaldfMf if externaldfMf is not None else self.dfMF
+        #Group by from and two, add up intensity of all duplicates in intensity_sum
+        self.dfMF['intensity_sum'] = self.dfMF.groupby(by=['source', 'target'])['intensity'].transform('sum')
+        #drop the duplicates and refresh index
+        self.dfMF = self.dfMF.drop_duplicates(subset=['source', 'target']).reset_index(drop=True)
+        #normalise intensity sum 
+        self.dfMF['intensity_sum_norm'] = self.dfMF['intensity_sum'] / self.dfMF["intensity_sum"].max()
+        #use machine index as sink and source for materialflow
+        #Replace Machine Names in Material flow (From Sketchup Import) with machine dict key
+        machine_dict = {machine.name: key for key, machine in self.machine_dict.items()}
+        self.dfMF[['source','target']] = self.dfMF[['source','target']].replace(machine_dict)
+        #set initial values for costs
+        self.dfMF['costs'] = 0
+        self.dfMF['trueCosts'] = 0  # using the true distances
+        return self.dfMF
 
     def save_ifc_factory(self, ifc_file_path:str , element_dicts: dict = None, bb: Polygon=None) -> None:
 
