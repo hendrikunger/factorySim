@@ -7,7 +7,11 @@ wandb/
 #Videos
 *.mp4
 *.gif
-
+#Output from live
+live.csv
+live.ifc
+live.json
+result.json
 #downloads of installscript
 *.deb
 
