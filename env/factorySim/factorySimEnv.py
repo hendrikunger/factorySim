@@ -124,7 +124,6 @@ class FactorySimEnv(gym.Env):
         if self.evaluationMode:
             self.currentEvalEnv = self.uid % len(self.evalFiles)  
             self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.currentEvalEnv])
-            print(self.inputfile)
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
         factoryConfig=self.factoryConfig,
