@@ -12,7 +12,7 @@
 #module load CUDA/12.1.1
 
 
-#wandb could not wirte to tis directory
+#wandb could not write to this directory
 #ws_allocate wandb 5
 #mkdir /lscratch/wandb
 

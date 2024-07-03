@@ -2,6 +2,7 @@ import os
 import multiprocessing
 import queue
 import yaml
+import argparse
 import numpy as np
 from env.factorySim.factorySimEnv import FactorySimEnv
 from deap import base, creator, tools
@@ -10,12 +11,10 @@ from tqdm import tqdm
 import random
 from supabase import create_client, Client
 from pprint import pp
+from pathlib import Path
+from datetime import datetime
+import ifcopenshell
 
-
-
-NUMGERATIONS = 70
-NUMTASKS = 32
-NUMPOP = 1000
 
 # CXPB  is the probability with which two individuals
 #       are crossed
@@ -26,10 +25,23 @@ NUMMACHINES = 5
 CXPB, MUTPB = 0.5, 0.3
 ETA = 0.9
 
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 2)))  #multiprocessing.cpu_count()
+parser.add_argument("--num-generations", type=int, default=5) 
+parser.add_argument("--num-population", type=int, default=100) 
+parser.add_argument(
+    "--envNr",
+    type=int,
+    default=1,
+    help="Which - in the list of evaluation environments to use. Default is 1.",
+)
+
 class Worker:
-    def __init__(self, env_config):
+    def __init__(self, env_config, starting_time):
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
+        self.starting_time = starting_time
        
 
     def process_action(self, action, render=False, generation=None):
@@ -43,13 +55,14 @@ class Worker:
             if generation is None:
                 self.env._render_frame()
             else:
-                output = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output", f"{generation}   {self.env.currentMappedReward}")
+                output = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output", f"{self.starting_time}___{generation}___{self.env.currentMappedReward}")
                 self.env._render_frame(output)
             self.env.render_mode = "rgb_array"
         return  self.env.currentMappedReward, self.env.info
 
 def worker_main(task_queue, result_queue, env_name):
-    worker = Worker(env_name)
+    starting_time = datetime.now().strftime("%Y-%m-%d___%H-%M-%S")
+    worker = Worker(env_name, starting_time)
     while True:
         try:
             task = task_queue.get(timeout=3)  # Adjust timeout as needed
@@ -94,10 +107,28 @@ def mycxBlend(ind1, ind2, alpha):
 
 def main():
 
+    args = parser.parse_args()
+    print(f"Using {args.num_workers} workers")
+    print(f"Started with {args.num_population} individuals for maximum {args.num_generations} generations." )
+
     rng = np.random.default_rng(42)
     last_best = None
     last_change_gen = 0
 
+
+    with open('config.yaml', 'r') as f:
+        f_config = yaml.load(f, Loader=yaml.FullLoader)
+
+    eval_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1"))
+    evalFiles = [x for x in eval_dir.iterdir() if x.is_file() and ".ifc" in x.name]
+    ifcpath = evalFiles[args.envNr % len(evalFiles)-1]
+    f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
+    f_config['evaluation_config']["env_config"]["reward_function"] = 1
+
+    ifc_file = ifcopenshell.open(ifcpath)
+    ifc_elements = ifc_file.by_type("IFCBUILDINGELEMENTPROXY")
+    NUMMACHINES = len(ifc_elements)
+    print(f"Found {NUMMACHINES} machines in ifc file.\n")
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list, fitness=creator.FitnessMax)
 
@@ -137,28 +168,22 @@ def main():
     hall = HallOfFame(10)
 
     # create an initial population of 300 individuals 
-    pop = toolbox.population(n=NUMPOP)
+    pop = toolbox.population(n=args.num_population)
 
 
     
 
-    with open('config.yaml', 'r') as f:
-        f_config = yaml.load(f, Loader=yaml.FullLoader)
 
-    ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
-    f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
-    f_config['evaluation_config']["env_config"]["reward_function"] = 1
 
     task_queue = multiprocessing.Queue()
     result_queue = multiprocessing.Queue()
 
     # Create worker processes
     workers = []
-    for i in range(NUMTASKS):
+    for i in range(args.num_workers):
         config = f_config['evaluation_config']["env_config"].copy()
         config["prefix"] = str(i)+"_"
         #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i
-        print(config)
         p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config))
         p.start()
         workers.append(p)
@@ -186,7 +211,7 @@ def main():
 
     hall.update(pop)
     
-    print(f"\n  Started with {len(pop)} individuals" )
+    
     print(f"  Best fitness is {hall[0].fitness.values}\n")
 
     # Extracting all the fitnesses of 
@@ -194,7 +219,7 @@ def main():
 
 
     # Begin the evolution
-    for g in tqdm(range(1,NUMGERATIONS+1)):
+    for g in tqdm(range(1,args.num_generations+1)):
 
         print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________")
 
@@ -302,7 +327,7 @@ def main():
         #pp(output[1][1])
 
     # Signal workers to exit
-    for _ in range(NUMTASKS):
+    for _ in range(args.num_workers):
         task_queue.put(None)
 
     # Wait for all worker processes to finish
