@@ -14,3 +14,5 @@ gymnasium
 pyyaml
 timm
 mathutils
+deap
+supabase

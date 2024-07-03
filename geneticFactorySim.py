@@ -10,7 +10,6 @@ from deap.tools.support import HallOfFame
 from tqdm import tqdm
 import random
 from supabase import create_client, Client
-from pprint import pp
 from pathlib import Path
 from datetime import datetime
 import ifcopenshell
