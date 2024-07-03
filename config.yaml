@@ -40,7 +40,7 @@ evaluation_config:
   env_config:
     inputfile: '' #Gets populated on runtime
     obs_type: image
-    Loglevel: 1
+    Loglevel: 0
     width: 84 #84
     height: 84 #84
     maxMF_Elements: null

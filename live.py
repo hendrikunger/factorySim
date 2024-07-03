@@ -114,14 +114,16 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
+        #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
+
 
         with open(configpath, 'r') as f:
             self.f_config = yaml.load(f, Loader=yaml.FullLoader)
 
         self.f_config['env_config']['inputfile'] = self.ifcPath
         self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
-        self.f_config['env_config']['maxMF_Elements'] = None
+        self.f_config["env_config"]["reward_function"] = 1
+
 
         self.f_config['evaluation_config']["env_config"]["inputfile"] = self.ifcPath
         self.f_config['evaluation_config']["env_config"]["reward_function"] = 1
@@ -497,7 +499,7 @@ class factorySimLive(mglw.WindowConfig):
                         Modes.MODE2 : False,
                         Modes.MODE3 : False,
                         Modes.MODE4 : False,
-                        Modes.MODE5 : False,
+                        Modes.MODE5 : True,
                         Modes.MODE6 : False,
                         Modes.MODE7 : False,
                         Modes.MODE8 : False,
@@ -596,11 +598,12 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
     def create_factory(self, ifcPath=None):
-        env_config = self.f_config['evaluation_config']['env_config'].copy()
+        env_config = self.f_config['env_config'].copy()
         if ifcPath:
             env_config['inputfile'] = ifcPath
             env_config["createMachines"] = False
             env_config["randomSeed"] = 42
+            print(env_config)
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
 
