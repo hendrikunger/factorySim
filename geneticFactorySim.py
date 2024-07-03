@@ -13,6 +13,7 @@ from supabase import create_client, Client
 from pathlib import Path
 from datetime import datetime
 import ifcopenshell
+from pprint import pp
 
 
 # CXPB  is the probability with which two individuals
@@ -54,7 +55,9 @@ class Worker:
             if generation is None:
                 self.env._render_frame()
             else:
-                output = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output", f"{self.starting_time}___{generation}___{self.env.currentMappedReward}")
+                output = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Output", f"{self.starting_time}___{generation}___{self.env.currentMappedReward}")
+
+                print(output)
                 self.env._render_frame(output)
             self.env.render_mode = "rgb_array"
         return  self.env.currentMappedReward, self.env.info
@@ -120,6 +123,7 @@ def main():
 
     eval_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1"))
     evalFiles = [x for x in eval_dir.iterdir() if x.is_file() and ".ifc" in x.name]
+    evalFiles.sort()
     ifcpath = evalFiles[args.envNr % len(evalFiles)-1]
     f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
     f_config['evaluation_config']["env_config"]["reward_function"] = 1
