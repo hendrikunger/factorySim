@@ -42,6 +42,10 @@ class Worker:
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
         self.starting_time = starting_time
+        inputPath = env_config["inputfile"]
+        problem_id= os.path.splitext(os.path.basename(inputPath))[0]
+        self.outputPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Output", problem_id)
+        os.makedirs(self.outputPath, exist_ok=True)
        
 
     def process_action(self, action, render=False, generation=None):
@@ -55,7 +59,7 @@ class Worker:
             if generation is None:
                 self.env._render_frame()
             else:
-                output = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Output", f"{self.starting_time}___{generation}___{self.env.currentMappedReward}")
+                output = os.path.join(self.outputPath, f"{self.starting_time}___{generation}___{self.env.currentMappedReward}")
 
                 print(output)
                 self.env._render_frame(output)
