@@ -12,6 +12,8 @@ live.csv
 live.ifc
 live.json
 result.json
+#slurm files
+slurm*
 #downloads of installscript
 *.deb
 
