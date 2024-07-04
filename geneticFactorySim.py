@@ -31,7 +31,7 @@ parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS
 parser.add_argument("--num-generations", type=int, default=5) 
 parser.add_argument("--num-population", type=int, default=100) 
 parser.add_argument(
-    "--envNr",
+    "--problemID",
     type=int,
     default=1,
     help="Which - in the list of evaluation environments to use. Default is 1.",
@@ -128,7 +128,7 @@ def main():
     eval_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1"))
     evalFiles = [x for x in eval_dir.iterdir() if x.is_file() and ".ifc" in x.name]
     evalFiles.sort()
-    ifcpath = evalFiles[args.envNr % len(evalFiles)-1]
+    ifcpath = evalFiles[args.problemID % len(evalFiles)-1]
     f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
     f_config['evaluation_config']["env_config"]["reward_function"] = 1
 
