@@ -97,6 +97,7 @@ class factorySimLive(mglw.WindowConfig):
     cursorPosition = None
     currenDebugMode = 0
     dpiScaler = 2 if sys.platform == "darwin" else 1
+    EVALUATION = True
 
       
     def __init__(self, **kwargs):
@@ -114,11 +115,12 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
 
 
         with open(configpath, 'r') as f:
             self.f_config = yaml.load(f, Loader=yaml.FullLoader)
+
 
         self.f_config['env_config']['inputfile'] = self.ifcPath
         self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
@@ -598,7 +600,10 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
     def create_factory(self, ifcPath=None):
-        env_config = self.f_config['env_config'].copy()
+        if self.EVALUATION:
+            env_config = self.f_config['evaluation_config']["env_config"].copy()
+        else:
+            env_config = self.f_config['env_config'].copy()
         if ifcPath:
             env_config['inputfile'] = ifcPath
             env_config["createMachines"] = False
