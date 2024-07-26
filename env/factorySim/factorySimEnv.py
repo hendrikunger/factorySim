@@ -1,6 +1,6 @@
 import os
 import yaml
-
+import glob
 
 import gymnasium as gym
 from gymnasium import error, spaces
@@ -65,6 +65,7 @@ class FactorySimEnv(gym.Env):
                 self.evalFiles = [x for x in os.listdir(self.evalPath) if ".ifc" in x]
             else:
                 self.evalFiles = [self.inputfile]
+            self.evalFiles.sort()
             self.createMachines = False
 
         self.materialflowpath = None #file_name + "_Materialflow.csv"
