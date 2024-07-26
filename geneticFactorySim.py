@@ -125,7 +125,7 @@ def main():
     with open('config.yaml', 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
-    eval_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1"))
+    eval_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "2"))
     evalFiles = [x for x in eval_dir.iterdir() if x.is_file() and ".ifc" in x.name]
     evalFiles.sort()
     ifcpath = evalFiles[args.problemID % len(evalFiles)-1]
