@@ -125,7 +125,7 @@ class FactorySim:
                     rotation = self.rng.uniform(low=-1, high=1))
         
         #Import Materialflow from Excel
-        if path_to_materialflow_file:
+        if path_to_materialflow_file and not createMachines:
             self.dfMF = self.creator.loadMaterialFlow(path_to_materialflow_file)
         else:
             #Create Random Materialflow

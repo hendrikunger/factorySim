@@ -58,6 +58,7 @@ class FactorySimEnv(gym.Env):
             "..")
         self.output_path = os.path.join(self.base_path, "Output")
         self.evalPath= os.path.join(self.base_path, "Evaluation", "1")
+        self.materialflowpath = None #file_name + "_Materialflow.csv"
 
         if self.evaluationMode:  
             print("\n\n-----------------------------------------------Evaluation Mode-----------------------------------------------\n\n")
@@ -68,7 +69,7 @@ class FactorySimEnv(gym.Env):
             self.evalFiles.sort()
             self.createMachines = False
 
-        self.materialflowpath = None #file_name + "_Materialflow.csv"
+        
         self.factoryConfig = baseConfigs.BaseFactoryConf.byStringName(env_config["factoryconfig"])
         self.render_mode = render_mode if not render_mode is None else env_config.get("render_mode", None)
         assert self.render_mode is None or self.render_mode in self.metadata["render_modes"]
@@ -125,6 +126,7 @@ class FactorySimEnv(gym.Env):
         if self.evaluationMode:
             self.currentEvalEnv = self.uid % len(self.evalFiles)  
             self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.currentEvalEnv])
+            self.materialflowpath = self.inputfile.replace(".ifc", ".csv")
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
         factoryConfig=self.factoryConfig,
@@ -152,6 +154,7 @@ class FactorySimEnv(gym.Env):
         self.currentMachine = 0
         self.currentReward = 0
         self.currentMappedReward = 0
+        self.materialflowpath = None
         
 
         self.tryEvaluate()
