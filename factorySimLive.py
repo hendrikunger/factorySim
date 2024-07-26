@@ -97,7 +97,7 @@ class factorySimLive(mglw.WindowConfig):
     cursorPosition = None
     currenDebugMode = 0
     dpiScaler = 2 if sys.platform == "darwin" else 1
-    EVALUATION = True
+    EVALUATION = False
 
       
     def __init__(self, **kwargs):
@@ -115,7 +115,8 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "2.ifc")
+        #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "1", "live.ifc")
+
 
 
         with open(configpath, 'r') as f:
@@ -123,6 +124,7 @@ class factorySimLive(mglw.WindowConfig):
 
 
         self.f_config['env_config']['inputfile'] = self.ifcPath
+        print(str(self.factoryConfig.NAME))
         self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
         self.f_config["env_config"]["reward_function"] = 1
 
@@ -257,22 +259,26 @@ class factorySimLive(mglw.WindowConfig):
             # Save Factory
             if key == keys.S:
                 self.env.factory.creator.save_ifc_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.ifc"))
-                self.env.factory.creator.saveMaterialFlow(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.csv"), self.env.factory.dfMF)
+                self.env.factory.creator.saveMaterialFlow(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live_mf.csv"), self.env.factory.dfMF)
             # Load Factory
             if key == keys.L:
-                self.create_factory(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.ifc"))
-                path_to_materialflow_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.csv")
-                if os.path.exists(path_to_materialflow_file):
-                    self.env.factory.dfMF = self.env.factory.creator.loadMaterialFlow(path_to_materialflow_file)
-                self.set_factoryScale()
-                self.nextGID = len(self.env.factory.machine_dict)
-                self.selected = None
+                path_to_ifc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.ifc")
+                if os.path.exists(path_to_ifc):
+                    self.create_factory(path_to_ifc)
+                    path_to_materialflow_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live_mf.csv")
+                    if os.path.exists(path_to_materialflow_file):
+                        self.env.factory.dfMF = self.env.factory.creator.loadMaterialFlow(path_to_materialflow_file)
+                    self.set_factoryScale()
+                    self.nextGID = len(self.env.factory.machine_dict)
+                    self.selected = None
+                else:
+                    print("No live.ifc found")
             #Save Positions
             if key == keys.END:
-                self.env.factory.creator.save_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live.json"))
+                self.env.factory.creator.save_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live_pos.json"))
             # Load Positions
             if key == keys.HOME:
-                self.env.factory.creator.load_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live.json"))
+                self.env.factory.creator.load_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live_pos.json"))
                 self.set_factoryScale()
                 self.nextGID = len(self.env.factory.machine_dict)
                 self.selected = None
@@ -608,7 +614,7 @@ class factorySimLive(mglw.WindowConfig):
             env_config['inputfile'] = ifcPath
             env_config["createMachines"] = False
             env_config["randomSeed"] = 42
-            print(env_config)
+            env_config["maxMF_Elements"] = None
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
 

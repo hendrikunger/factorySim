@@ -35,6 +35,8 @@ class BaseFactoryConf():
             return EDF
         elif name == "EDF_EMPTY":
             return EDF
+        elif name == "WIMMELBILD":
+            return WIMMELBILD
         else:
             raise ValueError("Unknown Factory Configuration")    
 
@@ -72,6 +74,18 @@ class SMALLSQUARE(BaseFactoryConf):
     MAXSHAPEHEIGHT = 2000
     AMOUNTRECT = 8
     AMOUNTPOLY = 3
+    MAXCORNERS = 3
+
+    BOUNDARYSPACING = 500
+
+class WIMMELBILD(BaseFactoryConf):
+    NAME="WIMMELBILD"
+    WIDTH = 10000
+    HEIGHT = 10000
+    MAXSHAPEWIDTH = 1000
+    MAXSHAPEHEIGHT = 1000
+    AMOUNTRECT = 20
+    AMOUNTPOLY = 10
     MAXCORNERS = 3
 
     BOUNDARYSPACING = 500
