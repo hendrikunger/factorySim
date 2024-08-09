@@ -32,7 +32,7 @@ parser.add_argument("--num-population", type=int, default=100)
 parser.add_argument(
     "--problemID",
     type=int,
-    default=16,
+    default=1,
     help="Which - in the list of evaluation environments to use. Default is 1.",
 )
 
@@ -108,6 +108,21 @@ def mycxBlend(ind1, ind2, alpha):
     
     return ind1, ind2
 
+def tournament_survial_selection(population:list, k:int):
+    """Selects the 5% best individuals of the population for the next generation, the rest is selected by tournament selection
+
+    Args:
+        population (list): poulation to select from
+        k (int): the total amount of individuals to select
+    """
+    #Select the 5% best individuals
+    population.sort(key=lambda x: x.fitness.values[0], reverse=True)
+    best = population[:int(len(population)*0.05)]
+    rest = population[int(len(population)*0.05):]
+    #Select the rest by tournament selection
+    selected = tools.selTournament(rest, k-len(best), tournsize=3)
+    return best + selected
+
 def main():
 
     args = parser.parse_args()
@@ -168,7 +183,7 @@ def main():
     # generation: each individual of the current generation
     # is replaced by the 'fittest' (best) of three individuals
     # drawn randomly from the current generation.
-    toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("select", tournament_survial_selection)
 
     hall = HallOfFame(10)
 
