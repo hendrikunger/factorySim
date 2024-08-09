@@ -115,7 +115,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "13.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "09.ifc")
 
 
 
