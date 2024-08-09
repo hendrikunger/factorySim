@@ -1,14 +1,25 @@
-from shapely.affinity import  scale
+from shapely.affinity import  scale, rotate, translate
 from ifcopenshell.api import run
+import numpy as np
 import ifcopenshell
 import copy
 
 def prepare_for_export(element_dict, bb):
     new_dict = copy.deepcopy(element_dict)
     for element in new_dict.values():
+        
+        print(f"Origin from export before rotate: {element.origin}")
+        element.poly = rotate(element.poly, element.rotation, origin="center", use_radians=True)
+        bounds = element.poly.bounds
+        print(f"Origin from export after rotate: {element.origin}")
+        #element.poly = translate(element.poly, xoff=-element.origin[0], yoff=-element.origin[1])
+        element.poly = translate(element.poly, xoff=-bounds[0], yoff=-bounds[1])
+        print(element.poly.bounds)
         element.poly = scale(element.poly, yfact=-1, origin=bb.centroid)
-        polybbox = element.poly.bounds
-        element.origin = (polybbox[0], polybbox[1])
+        print(element.poly.bounds)
+        print(f"Origin from export: {element.origin}")
+        print("\n")
+        
 
     return new_dict
 
@@ -18,8 +29,15 @@ def write_ifc_class(model, ifc_context, ifc_class, element_dict):
     for element in element_dict.values():
         ifc_element = run("root.create_entity", model, ifc_class=ifc_class, name=element.name)
         #matrix[:,3][0:3] = (element.origin[0]/1000, element.origin[1]/1000, 0)
-        run("geometry.edit_object_placement", model, product=ifc_element)
+        #run("geometry.edit_object_placement", model, product=ifc_element)
+        matrix = np.eye(4)
+       
+        # this rotates around the coordinate system origin, we need to rotate around the object center
+        matrix = ifcopenshell.util.placement.rotation(element.rotation, "Z", is_degrees=False) @ matrix
+        matrix[:,3][0:3] = (element.origin[0]/1000, -element.origin[1]/1000, 0)
+        ifcopenshell.api.geometry.edit_object_placement(model, product=ifc_element, matrix=matrix, is_si=True)
         #run("geometry.edit_object_placement", model, product=ifc_element, matrix=matrix, is_si=True)
+
         breps = []
         for poly in element.poly.geoms:
 

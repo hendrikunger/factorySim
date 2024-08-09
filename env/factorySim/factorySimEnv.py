@@ -57,7 +57,7 @@ class FactorySimEnv(gym.Env):
             "..",
             "..")
         self.output_path = os.path.join(self.base_path, "Output")
-        self.evalPath= os.path.join(self.base_path, "Evaluation", "1")
+        self.evalPath= os.path.join(self.base_path, "Evaluation")
         self.materialflowpath = None #file_name + "_Materialflow.csv"
 
         if self.evaluationMode:  
@@ -127,6 +127,7 @@ class FactorySimEnv(gym.Env):
             self.currentEvalEnv = self.uid % len(self.evalFiles)  
             self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.currentEvalEnv])
             self.materialflowpath = self.inputfile.replace(".ifc", "_mf.csv")
+            print(f"Loading materialflow from {self.materialflowpath}", flush=True)
 
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,

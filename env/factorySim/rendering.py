@@ -412,7 +412,7 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
 #------------------------------------------------------------------------------------------------------------
 def draw_text(ctx, text, color, pos, center=False, rightEdge=False, factoryCoordinates=True, input_width=None):
     width = input_width
-    ctx.set_font_size(ctx.device_to_user_distance(12, 12)[0])
+    ctx.set_font_size(ctx.device_to_user_distance(20, 20)[0])
     #select monospaced font
     ctx.select_font_face("Consolas", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
     if not factoryCoordinates:

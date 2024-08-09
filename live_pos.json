@@ -1,0 +1,77 @@
+{
+    "config": {
+        "0": {
+            "key": "2BTNP1SzfEEQtU5jek6LMe",
+            "position": [
+                0.5516588718368938,
+                -0.5823019535000237
+            ],
+            "rotation": -0.5
+        },
+        "1": {
+            "key": "2rP$C6jmX4P81RvvuEfp6x",
+            "position": [
+                -0.7216655316538753,
+                -0.5239418946658789
+            ],
+            "rotation": -1.0
+        },
+        "2": {
+            "key": "1Gn4GVVp13WfcJMShc6BV4",
+            "position": [
+                -0.18750099537230525,
+                0.4692212357394825
+            ],
+            "rotation": -1.0
+        },
+        "3": {
+            "key": "3$TRXZrBj91PBS1ATTCbGJ",
+            "position": [
+                0.07189785309664631,
+                0.02017737494213856
+            ],
+            "rotation": -1.0
+        },
+        "4": {
+            "key": "1E60MhJ5X9OxaF1H7M6KrM",
+            "position": [
+                0.07808087798381647,
+                -0.5959093872998664
+            ],
+            "rotation": -1.0
+        },
+        "5": {
+            "key": "31KBJEqZf1OwFBTYM9HEGO",
+            "position": [
+                0.30754488910700095,
+                -0.5911148330527589
+            ],
+            "rotation": -1.0
+        },
+        "6": {
+            "key": "32bEaasU1AnhI_Iw4RCPfq",
+            "position": [
+                0.5773005069686687,
+                -0.06981775846300153
+            ],
+            "rotation": -1.0
+        },
+        "7": {
+            "key": "205zWqfuDAvxBH_qgP0_uC",
+            "position": [
+                0.8914913146410941,
+                -0.42829371429718743
+            ],
+            "rotation": -1.0
+        },
+        "8": {
+            "key": "0aPzKlPqD4nOtp2KqGXy0N",
+            "position": [
+                -0.22414646968179353,
+                -0.19264080410192852
+            ],
+            "rotation": -1.0
+        }
+    },
+    "creator": "FactorySimLive"
+}

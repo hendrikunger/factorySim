@@ -203,7 +203,8 @@ class FactoryCreator():
                                                             name=name,
                                                             origin=(origin[0], origin[1]),
                                                             poly=singleElement,
-                                                            color=self.rng.random(size=3)
+                                                            color=self.rng.random(size=3),
+                                                            rotation = rotation
                                                             )
         del(ifc_file)  #Hopefully fixes memory leak
 
@@ -321,15 +322,15 @@ class FactoryCreator():
         storey = run("root.create_entity", model, ifc_class="IfcBuildingStorey", name="IfcBuildingStorey")
 
         # Spatially assign the site, building, and storey
-        run("aggregate.assign_object", model, relating_object=project, product=site)
-        run("aggregate.assign_object", model, relating_object=site, product=building)
-        run("aggregate.assign_object", model, relating_object=building, product=storey)
+        run("aggregate.assign_object", model, relating_object=project, products=[site])
+        run("aggregate.assign_object", model, relating_object=site, products=[building])
+        run("aggregate.assign_object", model, relating_object=building, products=[storey])
 
         for ifcElementName, element_dict in element_dicts.items():
             export = prepare_for_export(element_dict, bb)
             elements = write_ifc_class(model, body, ifcElementName, export)
             for element in elements:
-                run("spatial.assign_container", model, relating_structure=storey, product=element)
+                run("spatial.assign_container", model, relating_structure=storey, products=[element])
 
 
         # Write out to a file
@@ -344,12 +345,13 @@ class FactoryCreator():
         """
         import json
         data = {}
-        for key, machine in self.machine_dict.items():
+        for index, (key, machine) in enumerate(self.machine_dict.items()):
             bbox = self.bb.bounds
             mappedXPos = np.interp(machine.origin[0], (0, bbox[2] - machine.width), (-1.0, 1.0))  
-            mappedYPos = np.interp(machine.origin[1], (0, bbox[3] - machine.height), (-1.0, 1.0)) 
+            mappedYPos = np.interp(machine.origin[1], (0, bbox[3] - machine.height), (-1.0, 1.0))
+            mappedRot = np.interp(machine.rotation, (0, 2*np.pi), (-1.0, 1.0))
 
-            data[key] = {"position": (mappedXPos,mappedYPos), "rotation": machine.rotation}
+            data[index] = {"key": key, "position": (mappedXPos,mappedYPos), "rotation": mappedRot}
 
         fulljson ={"config":data, "creator": "FactorySimLive" }
 

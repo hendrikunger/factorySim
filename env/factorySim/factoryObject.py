@@ -6,7 +6,7 @@ from shapely.affinity import translate, rotate, scale
 
 class FactoryObject:
 
-    def __init__(self, gid="not_set", name="no_name", origin=(0,0), poly:Polygon=box(0.0, 0.0, 1.0, 1.0), color=None):
+    def __init__(self, gid="not_set", name="no_name", origin=(0,0), poly:Polygon=box(0.0, 0.0, 1.0, 1.0), color=None, rotation=0):
         
         self.gid = gid
         self.name = name
@@ -15,7 +15,8 @@ class FactoryObject:
         else:
             self.color = color
         self.origin = origin 
-        self.rotation = 0 # roational change
+        print(f"Origin: {origin}")
+        self.rotation = rotation # roational change
         self.poly = poly #Element Multi Polygon Representation
         bounds = poly.bounds
         self.width = bounds[2] - bounds[0]
@@ -26,20 +27,23 @@ class FactoryObject:
     
 
     def rotate_Item(self, r: float) -> None:
-        """_summary_ Rotate the item by r
+        """_summary_ Rotate the item to the given angle in radians
 
         Args:
             r (float): Rotation in radians
         """
+
         rotShift = r - self.rotation
         self.rotation = r
+        #print(f"Rotation by : {r},  Required Change: {rotShift} Total Rotation: {self.rotation} mapped rotation {np.interp(self.rotation, (0, 2*np.pi), (-1.0, 1.0))}")
         
         self.poly = rotate(self.poly, rotShift, origin='center', use_radians=True)
 
+
+        self.center = self.poly.representative_point()
         bounds = self.poly.bounds
         self.width = bounds[2] - bounds[0]
         self.height =  bounds[3] - bounds[1]
-        self.center = self.poly.representative_point()
         self.origin = (bounds[0], bounds[1])
 
 
@@ -47,8 +51,8 @@ class FactoryObject:
         """_summary_ Translate the item by x and y
 
         Args:
-            x (float): x Coordinate between -1 and 1
-            y (float): y Coordinate between -1 and 1
+            x (float): x Coordinate in factory space
+            y (float): y Coordinate in factory space
         """
                     
         xShift = x - self.origin[0]
@@ -56,14 +60,6 @@ class FactoryObject:
         self.origin = (x, y)
         self.poly = translate(self.poly, xShift, yShift)
         self.center = self.poly.representative_point()
-     
-
-    # def scale_Points(self, xScale, yScale, minx, miny):    
-    #     translate(self.poly, minx, miny)
-    #     self.poly = scale(self.poly, xfact=xScale, yfact=yScale, origin=(0, 0))
-
-    #     self.origin = ((self.origin[0] + minx) * xScale, (self.origin[1] + miny) * yScale)
-    #     self.center = self.poly.representative_point()
 
 
     def __del__(self):

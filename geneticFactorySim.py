@@ -60,8 +60,6 @@ class Worker:
                 self.env._render_frame()
             else:
                 output = os.path.join(self.outputPath, f"{self.starting_time}___{self.problem_id}___{generation}___{self.env.currentMappedReward}")
-
-                print(output)
                 self.env._render_frame(output)
             self.env.render_mode = "rgb_array"
         return  self.env.currentMappedReward, self.env.info
@@ -114,18 +112,19 @@ def mycxBlend(ind1, ind2, alpha):
 def main():
 
     args = parser.parse_args()
-    print(f"Using {args.num_workers} workers")
-    print(f"Started with {args.num_population} individuals for maximum {args.num_generations} generations." )
+    print(f"Using {args.num_workers} workers", flush=True)
+    print(f"Started with {args.num_population} individuals for maximum {args.num_generations} generations." , flush=True)
 
-    rng = np.random.default_rng(42)
     last_best = None
     last_change_gen = 0
 
 
     with open('config.yaml', 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
+    
+    rng = np.random.default_rng(f_config['evaluation_config']["env_config"]["randomSeed"])
 
-    eval_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "2"))
+    eval_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation"))
     evalFiles = [x for x in eval_dir.iterdir() if x.is_file() and ".ifc" in x.name]
     evalFiles.sort()
     ifcpath = evalFiles[args.problemID % len(evalFiles)-1]
@@ -178,6 +177,7 @@ def main():
     pop = toolbox.population(n=args.num_population)
 
 
+
     
 
 
@@ -195,8 +195,27 @@ def main():
         p.start()
         workers.append(p)
 
+    initialSolutionPath = str(ifcpath).replace(".ifc", "_pos.json")
+    if os.path.exists(initialSolutionPath):
+        print(f"Found initial solution {initialSolutionPath}. Loading...", flush=True)
+        import json
+        with open(initialSolutionPath, 'r') as f:
+            initialSolution = json.load(f)
+        #append initial solution to population
+        individual = []
+        for gene in initialSolution["config"].values():
+            individual.append(gene["position"][0])
+            individual.append(gene["position"][1])
+            individual.append(gene["rotation"])
+        pop.append(creator.Individual(individual))        
+        print(f"Added initial solution to population", flush=True)
+        print(individual, flush=True)
+        task_queue.put((-1,individual,True,-5))
+        result = result_queue.get()
+        pp(result[1][1])
 
-    print("Start of evolution")
+
+    print("Start of evolution", flush=True)
     CUR_ETA = ETA
 
 
@@ -204,9 +223,8 @@ def main():
 # --- EVOLUTION ---
 
     # Evaluate the entire population
-
-    # Enqueue initial tasks (e.g., "reset" command or actions) 
     num_tasks = len(pop) 
+    print(f"Evaluating {num_tasks} individuals", flush=True)
     for index, individual in enumerate(pop):
         task_queue.put((index,individual,False, None)) 
 
@@ -228,7 +246,7 @@ def main():
     # Begin the evolution
     for g in tqdm(range(1,args.num_generations+1)):
 
-        print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________")
+        print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________", flush=True)
 
         # Select the next generation individuals
         offspring = toolbox.select(pop, len(pop))
@@ -276,9 +294,9 @@ def main():
         hall.update(pop)
         fits = [ind.fitness.values[0] for ind in pop]
 
-        print("  Evaluated %i individuals" % len(invalid_ind))
+        print("  Evaluated %i individuals" % len(invalid_ind), flush=True)
         if last_best != hall[0]:
-            print(f"---> Found new best individual with fitness {hall[0].fitness.values}")
+            print(f"---> Found new best individual with fitness {hall[0].fitness.values}", flush=True)
             last_best = hall[0]
             last_change_gen = g
             #Render and evaluate the best individuals again
@@ -288,30 +306,30 @@ def main():
 
 
         else: 
-            print(f"  Best fitness is {hall[0].fitness.values}")
+            print(f"  Best fitness is {hall[0].fitness.values}", flush=True)
         print("\n\n")
         #Resetting crowding factor after new improvement
         if g - last_change_gen == 0 and g > 50 and CUR_ETA != ETA:
-            print(f"Resetting Crowding Factor to local search: {ETA}")
+            print(f"Resetting Crowding Factor to local search: {ETA}", flush=True)
             CUR_ETA = ETA
         #Change crowding factor if no improvement for 50 generations
         if g- last_change_gen > 50 and CUR_ETA > 0.1:  
             CUR_ETA-=0.01
-            print(f"No improvement for 50 generations. Decrease crowding factor for bigger search space to {CUR_ETA}")
+            print(f"No improvement for 50 generations. Decrease crowding factor for bigger search space to {CUR_ETA}", flush=True)
 
         if max(fits) > 0.9 or g - last_change_gen > 300:
-            print(f"No improvement for 300 generations or fitness > 0.9. Stopping...")
+            print(f"No improvement for 300 generations or fitness > 0.9. Stopping...", flush=True)
             break
 
-    print("-- End of (successful) evolution --\n\n")
+    print("-- End of (successful) evolution --\n\n", flush=True)
 
     result = {}
-    print("\n------------------------------------------------------------------------")
-    print("Hall of fame:")
-    print("------------------------------------------------------------------------\n")
+    print("\n------------------------------------------------------------------------", flush=True)
+    print("Hall of fame:", flush=True)
+    print("------------------------------------------------------------------------\n", flush=True)
 
     for i ,ind in enumerate(hall):
-        print(f"{i+1} - {ind.fitness.values} - {ind}")
+        print(f"{i+1} - {ind.fitness.values} - {ind}", flush=True)
         task_queue.put((i,ind,True,f"H{i+1}"))
 
         data = {}
@@ -327,7 +345,7 @@ def main():
                     }
 
     
-    print("------------------------------------------------------------------------\n\n")
+    print("------------------------------------------------------------------------\n\n", flush=True)
 
     for _ in range(len(hall)):
         output = result_queue.get()
@@ -369,7 +387,7 @@ def main():
 
     
     if len(records) == 0:
-        print("No results to upload")
+        print("No results to upload", flush=True)
     else:
         data, count = supabase.table('highscore').insert(records).execute()
 
