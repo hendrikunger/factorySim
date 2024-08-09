@@ -1,74 +1,50 @@
 {
     "config": {
         "0": {
-            "key": "2BTNP1SzfEEQtU5jek6LMe",
+            "key": "3vurGO3X18jh1B562Gmql3",
             "position": [
-                0.5516588718368938,
-                -0.5823019535000237
+                -0.6915119876256758,
+                -0.9336178861788538
             ],
-            "rotation": -0.5
+            "rotation": -1.0
         },
         "1": {
-            "key": "2rP$C6jmX4P81RvvuEfp6x",
+            "key": "1Ku8p4jm9B8fa3v1Jw9eez",
             "position": [
-                -0.7216655316538753,
-                -0.5239418946658789
+                -0.8204700861842584,
+                0.8370847461695485
             ],
             "rotation": -1.0
         },
         "2": {
-            "key": "1Gn4GVVp13WfcJMShc6BV4",
+            "key": "1SYooP97X0jhAt_oxKRgNG",
             "position": [
-                -0.18750099537230525,
-                0.4692212357394825
+                0.6599484305452197,
+                -0.2233174815026443
             ],
             "rotation": -1.0
         },
         "3": {
-            "key": "3$TRXZrBj91PBS1ATTCbGJ",
+            "key": "0F8iaczdbFmRiwSD4Ff7UC",
             "position": [
-                0.07189785309664631,
-                0.02017737494213856
+                0.46481189851268656,
+                -0.5608128601759175
             ],
             "rotation": -1.0
         },
         "4": {
-            "key": "1E60MhJ5X9OxaF1H7M6KrM",
+            "key": "1zqpb5qy540vLT51qexZaE",
             "position": [
-                0.07808087798381647,
-                -0.5959093872998664
+                -0.9137595696254915,
+                -0.23015319177217242
             ],
             "rotation": -1.0
         },
         "5": {
-            "key": "31KBJEqZf1OwFBTYM9HEGO",
+            "key": "3h9qxECqjF_xseJP$nv7$q",
             "position": [
-                0.30754488910700095,
-                -0.5911148330527589
-            ],
-            "rotation": -1.0
-        },
-        "6": {
-            "key": "32bEaasU1AnhI_Iw4RCPfq",
-            "position": [
-                0.5773005069686687,
-                -0.06981775846300153
-            ],
-            "rotation": -1.0
-        },
-        "7": {
-            "key": "205zWqfuDAvxBH_qgP0_uC",
-            "position": [
-                0.8914913146410941,
-                -0.42829371429718743
-            ],
-            "rotation": -1.0
-        },
-        "8": {
-            "key": "0aPzKlPqD4nOtp2KqGXy0N",
-            "position": [
-                -0.22414646968179353,
-                -0.19264080410192852
+                0.19765929778933677,
+                -0.818147696349817
             ],
             "rotation": -1.0
         }
