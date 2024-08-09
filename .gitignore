@@ -10,7 +10,8 @@ wandb/
 #Output from live
 live.csv
 live.ifc
-live.json
+live_pos.json
+live_mf.csv
 result.json
 #slurm files
 slurm*
@@ -147,3 +148,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
