@@ -21,7 +21,6 @@ from pprint import pp
 #
 # MUTPB is the probability for mutating an individual
 
-NUMMACHINES = 5
 CXPB, MUTPB = 0.5, 0.3
 ETA = 0.9
 
@@ -33,7 +32,7 @@ parser.add_argument("--num-population", type=int, default=100)
 parser.add_argument(
     "--problemID",
     type=int,
-    default=1,
+    default=16,
     help="Which - in the list of evaluation environments to use. Default is 1.",
 )
 

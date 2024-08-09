@@ -15,7 +15,6 @@ class FactoryObject:
         else:
             self.color = color
         self.origin = origin 
-        print(f"Origin: {origin}")
         self.rotation = rotation # roational change
         self.poly = poly #Element Multi Polygon Representation
         bounds = poly.bounds
@@ -35,10 +34,7 @@ class FactoryObject:
 
         rotShift = r - self.rotation
         self.rotation = r
-        #print(f"Rotation by : {r},  Required Change: {rotShift} Total Rotation: {self.rotation} mapped rotation {np.interp(self.rotation, (0, 2*np.pi), (-1.0, 1.0))}")
-        
         self.poly = rotate(self.poly, rotShift, origin='center', use_radians=True)
-
 
         self.center = self.poly.representative_point()
         bounds = self.poly.bounds

@@ -115,7 +115,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "09.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "04.ifc")
 
 
 
@@ -429,7 +429,7 @@ class factorySimLive(mglw.WindowConfig):
                 case 2:
                     draw_text(self.cctx,(f"Easteregg"), (0.7, 0.0, 0.0, 1.0), (self.window_size[0]/2,self.window_size[1]/2), factoryCoordinates=False)
         else:
-            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=False)
+            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=True)
             if self.activeModes[Modes.MODE7]: 
                 draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
                 draw_poly(self.cctx, self.env.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)

@@ -328,7 +328,7 @@ class FactoryCreator():
 
         for ifcElementName, element_dict in element_dicts.items():
             export = prepare_for_export(element_dict, bb)
-            elements = write_ifc_class(model, body, ifcElementName, export)
+            elements = write_ifc_class(model, body, ifcElementName, export, self.factoryHeight)
             for element in elements:
                 run("spatial.assign_container", model, relating_structure=storey, products=[element])
 
