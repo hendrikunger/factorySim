@@ -20,6 +20,7 @@ from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
 from factorySim.factoryObject import FactoryObject
 from factorySim.factorySimEnv import FactorySimEnv
+from factorySim.utils import check_internet_conn
 
 from ray.rllib.policy.policy import Policy
 
@@ -97,6 +98,7 @@ class factorySimLive(mglw.WindowConfig):
     cursorPosition = None
     currenDebugMode = 0
     dpiScaler = 2 if sys.platform == "darwin" else 1
+    is_online = check_internet_conn()
     EVALUATION = True
 
       
@@ -115,7 +117,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "04.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "16.ifc")
 
 
 
@@ -154,12 +156,13 @@ class factorySimLive(mglw.WindowConfig):
 
         #MQTT Connection
         self.mqtt_Q = queue.Queue(maxsize=100)
-        self.mqtt_client = mqtt.Client(client_id="factorySimLive")
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_disconnect = self.on_disconnect
-        self.mqtt_client.on_message = self.on_message
-        self.mqtt_client.connect(self.mqtt_broker, 1883)
-        self.mqtt_client.loop_start()
+        if self.is_online:
+            self.mqtt_client = mqtt.Client(client_id="factorySimLive")
+            self.mqtt_client.on_connect = self.on_connect
+            self.mqtt_client.on_disconnect = self.on_disconnect
+            self.mqtt_client.on_message = self.on_message
+            self.mqtt_client.connect(self.mqtt_broker, 1883)
+            self.mqtt_client.loop_start()
         
         #Agent 
         if False:
@@ -217,7 +220,8 @@ class factorySimLive(mglw.WindowConfig):
     def close(self):
         print("closing")
         self.executor.shutdown()
-        self.mqtt_client.loop_stop()
+        if self.is_online:
+            self.mqtt_client.loop_stop()
         
 
     def key_event(self, key, action, modifiers):
@@ -298,7 +302,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.activeModes[Modes.DRAWING] = DrawingModes.NONE
                 self.wnd.exit_key = keys.ESCAPE
             # Del to delete
-            if key == keys.DELETE and self.selected is not None and not self.is_calculating:
+            if key == keys.BACKSPACE and self.selected is not None and not self.is_calculating:
                 self.F_delete_item(self.selected)
                 self.selected = None
 
@@ -430,6 +434,8 @@ class factorySimLive(mglw.WindowConfig):
                     draw_text(self.cctx,(f"Easteregg"), (0.7, 0.0, 0.0, 1.0), (self.window_size[0]/2,self.window_size[1]/2), factoryCoordinates=False)
         else:
             drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=True)
+            if self.activeModes[Modes.MODE9]: 
+                draw_poly(self.cctx, self.env.factory.walkableArea, (0.9, 0.0, 0.0, 0.5), drawHoles=True)
             if self.activeModes[Modes.MODE7]: 
                 draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
                 draw_poly(self.cctx, self.env.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
@@ -507,7 +513,7 @@ class factorySimLive(mglw.WindowConfig):
                         Modes.MODE2 : False,
                         Modes.MODE3 : False,
                         Modes.MODE4 : False,
-                        Modes.MODE5 : True,
+                        Modes.MODE5 : False,
                         Modes.MODE6 : False,
                         Modes.MODE7 : False,
                         Modes.MODE8 : False,

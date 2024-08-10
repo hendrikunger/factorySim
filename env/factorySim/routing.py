@@ -68,7 +68,7 @@ class FactoryPath():
         elif union.geom_type == "Polygon":
             walls = MultiPolygon([union])
         elif union.geom_type == "GeometryCollection":
-            walls = multi.envelope
+            walls = multi.convex_hull
         else:
             print("Error: No valid Polygon in Wall Dictionary")
             return None, None, None
@@ -82,7 +82,7 @@ class FactoryPath():
             self.startTime = time.perf_counter()
             self.totalTime = self.startTime
 
-        machinesAndwalls = unary_union(machinelist + walllist + [bb.buffer(100)- bb]) 
+        machinesAndwalls = unary_union(machinelist + walllist + [walls.convex_hull.buffer(100)- walls.convex_hull]) 
 
 
 

@@ -1,9 +1,10 @@
 import networkx as nx
 import numpy as np
 from itertools import combinations
-from shapely.geometry import Polygon, MultiPolygon, LineString
+from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 from shapely.ops import unary_union, snap
 from shapely.prepared import prep
+from shapely import set_precision, intersection
 import scipy.cluster.hierarchy as hcluster
 
 
@@ -177,7 +178,7 @@ class FactoryRating():
             if a.poly.intersects(b.poly):
                 if(DEBUG):
                     print(f"Kollision Maschinen {a.name} und {b.name} gefunden.")
-                col = a.poly.intersection(b.poly)
+                col = a.poly.intersection(b.poly, grid_size = 0.1)
                 if col.type == "Polygon":
                     self.machineCollisionList.append(MultiPolygon([col]))
                 elif col.type == "MultiPolygon":
@@ -196,7 +197,7 @@ class FactoryRating():
                 if a.poly.intersects(b.poly):
                     if(DEBUG):
                         print(f"Kollision Wand {a.name} und Maschine {b.name} gefunden.")
-                    col = a.poly.intersection(b.poly)
+                    col = a.poly.intersection(b.poly, grid_size = 0.1)
                     if col.type == "Polygon":
                         self.wallCollisionList.append(MultiPolygon([col]))
                     elif col.type == "MultiPolygon":
@@ -256,7 +257,6 @@ class FactoryRating():
  #------------------------------------------------------------------------------------------------------------
     def evaluateMFIntersection(self):
         if len(self.dfMF.index) > 0:
-            lines=[]
             intersections=[]
             #get coordinates of all start and end points of Material Flows and build list of Linestrings
             totalIntensity = self.dfMF['intensity_sum_norm'].sum()
@@ -266,22 +266,18 @@ class FactoryRating():
 
             #Check for intersections between all pairs of materialflow lines
             for row1, row2 in combinations(self.dfMF.itertuples(),2):
+                #skip if source or target is the same
+                if row1.source == row2.source or row1.source == row2.target or row1.target == row2.source or row1.target == row2.target:
+                    continue
                 line1=LineString([self.machine_dict[row1.source].center, self.machine_dict[row1.target].center])
                 line2=LineString([self.machine_dict[row2.source].center, self.machine_dict[row2.target].center])
+                line1 = set_precision(line1,0.01)
+                line2 = set_precision(line2, 0.01)
                 if line1.intersects(line2):
-                    inter= line1.intersection(line2)
-                    #check if intersection is a point and if it is an endpoint of one of the lines
-                    #if not, add to intersection list
-                    found = None
-                    if inter.geom_type == "Point":
-                        for end in endpoints:
-                            if end.equals_exact(inter, tolerance=0.01):
-                                found = True
-                                break
-                        if not found: 
-                            intersections.append(inter)
-                            #calculate penalty for single intersection
-                            output += (row1.intensity_sum_norm + row2.intensity_sum_norm) / 2 * totalIntensity
+                    #intersection with lines has a bug. this returns the 4 partial lines of a intersection, we pick one of the ends that is the intersection point
+                    inter= unary_union([line1, line2])
+                    intersections.append(Point(inter.geoms[0].coords[1]))
+                    output += (row1.intensity_sum_norm + row2.intensity_sum_norm) / 2 * totalIntensity
             #calulate penalty for all intersections 
             return np.clip(1-(output)/len(self.dfMF.index), 0,1), intersections
         else:

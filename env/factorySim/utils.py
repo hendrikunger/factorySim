@@ -3,6 +3,7 @@ from ifcopenshell.api import run
 import numpy as np
 import ifcopenshell
 import copy
+import requests
 
 def prepare_for_export(element_dict, bb):
     """This function moves the geometry to the center of the bounding box and flips the y-axis to match the IFC coordinate system
@@ -88,3 +89,18 @@ def write_ifc_class(model, ifc_context, ifc_class, element_dict, factoryheight):
         run("geometry.assign_representation", model, product=ifc_element, representation=representation)
         elements.append(ifc_element)
     return elements
+
+def check_internet_conn():
+# initializing URL
+    url = "https://www.google.de"
+    timeout = 3
+    try:
+        # requesting URL
+        request = requests.get(url,
+                            timeout=timeout)
+        return True
+    
+    # catching exception
+    except (requests.ConnectionError,
+            requests.Timeout) as exception:
+        return False

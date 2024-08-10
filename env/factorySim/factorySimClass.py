@@ -209,7 +209,7 @@ class FactorySim:
 
             self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.creator.prep_bb, dfMF=self.dfMF)
 
-            self.RatingDict["ratingCollision"] = self.evaluateCollision()          
+            self.RatingDict["ratingCollision"] = self.evaluateCollision()    
             if(self.verboseOutput >= 3):
                 self.printTime("Kollisionsbewertung abgeschlossen")
 
@@ -314,19 +314,19 @@ class FactorySim:
             con = "\n"
         else:
             con = " | "
-        return (f"REWARD              : {self.RatingDict.get('TotalRating', 0): 1.2f}{con}"
+        return (f"REWARD              : {self.RatingDict.get('TotalRating', -100): 1.2f}{con}"
                 f"Evaluation Result   : {self.RatingDict.get('EvaluationResult', 0): 1.2f}{con}"
-                f"Material Flow       : {self.RatingDict.get('ratingMF', 0): 1.2f}{con}"
-                f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', 0): 1.2f}{con}"
-                f"MF Intersections    : {self.RatingDict.get('MFIntersection', 0): 1.2f}{con}"
-                f"Collisions          : {self.RatingDict.get('ratingCollision', 0): 1.2f}{con}"
-                f"Route Continuity    : {self.RatingDict.get('routeContinuity', 0): 1.2f}{con}"
-                f"Route Width Variance: {self.RatingDict.get('routeWidthVariance', 0): 1.2f}{con}"
-                f"Dead Ends           : {self.RatingDict.get('Deadends', 0): 1.2f}{con}"
-                f"Route Access        : {self.RatingDict.get('routeAccess', 0): 1.2f}{con}"
-                f"Path Efficiency     : {self.RatingDict.get('pathEfficiency', 0): 1.2f}{con}"
-                f"Area Utilization    : {self.RatingDict.get('areaUtilisation', 0): 1.2f}{con}"
-                f"Scalability         : {self.RatingDict.get('Scalability', 0): 1.2f}{con}"
+                f"Material Flow       : {self.RatingDict.get('ratingMF', -100): 1.2f}{con}"
+                f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', -100): 1.2f}{con}"
+                f"MF Intersections    : {self.RatingDict.get('MFIntersection', -100): 1.2f}{con}"
+                f"Collisions          : {self.RatingDict.get('ratingCollision', -100): 1.2f}{con}"
+                f"Route Continuity    : {self.RatingDict.get('routeContinuity', -100): 1.2f}{con}"
+                f"Route Width Variance: {self.RatingDict.get('routeWidthVariance', -100): 1.2f}{con}"
+                f"Dead Ends           : {self.RatingDict.get('Deadends', -100): 1.2f}{con}"
+                f"Route Access        : {self.RatingDict.get('routeAccess', -100): 1.2f}{con}"
+                f"Path Efficiency     : {self.RatingDict.get('pathEfficiency', -100): 1.2f}{con}"
+                f"Area Utilization    : {self.RatingDict.get('areaUtilisation', -100): 1.2f}{con}"
+                f"Scalability         : {self.RatingDict.get('Scalability', -100): 1.2f}{con}"
 
                 )
 

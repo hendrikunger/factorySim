@@ -12,7 +12,7 @@ live.csv
 live.ifc
 live_pos.json
 live_mf.csv
-result.json
+result*.json
 #slurm files
 slurm*
 #downloads of installscript

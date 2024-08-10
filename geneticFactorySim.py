@@ -2,9 +2,11 @@ import os
 import multiprocessing
 import queue
 import yaml
+import json
 import argparse
 import numpy as np
 from env.factorySim.factorySimEnv import FactorySimEnv
+from env.factorySim.utils import check_internet_conn
 from deap import base, creator, tools
 from deap.tools.support import HallOfFame
 from tqdm import tqdm
@@ -122,6 +124,34 @@ def tournament_survial_selection(population:list, k:int):
     #Select the rest by tournament selection
     selected = tools.selTournament(rest, k-len(best), tournsize=3)
     return best + selected
+    
+def saveJson(hallOfFame, problemID, generation=""):
+    result = {}
+    for i ,ind in enumerate(hallOfFame):
+        data = {}
+        for index, (x, y, r) in enumerate(zip(ind[::3], ind[1::3], ind[2::3])):
+            data[index] = {"position": (x,y), "rotation": r}
+
+        result[i] = {"fitness": ind.fitness.values[0],
+                    "individual": ind,
+                    "problem_id": problemID,
+                     "creator": "Hendrik Unger",
+                     "config": data
+                    }
+        
+    print("Saving to json...")
+    with open(f'result{generation}.json', 'w') as fp:
+        json.dump(result, fp, indent=4, sort_keys=True)
+    return result
+
+def saveImages(listToSave, task_queue, result_queue, prefix):
+    for i ,ind in enumerate(listToSave):
+        print(f"{i+1} - {ind.fitness.values}", flush=True)
+        task_queue.put((i,ind,True,f"{prefix}_{i+1}"))
+    for _ in range(len(listToSave)):
+        output = result_queue.get()
+        #pp(output[1][1])
+    
 
 def main():
 
@@ -261,6 +291,8 @@ def main():
     for g in tqdm(range(1,args.num_generations+1)):
 
         print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________", flush=True)
+        if(g%10 == 0):
+            saveImages(pop, task_queue, result_queue, prefix=g)
 
         # Select the next generation individuals
         offspring = toolbox.select(pop, len(pop))
@@ -337,33 +369,12 @@ def main():
 
     print("-- End of (successful) evolution --\n\n", flush=True)
 
-    result = {}
     print("\n------------------------------------------------------------------------", flush=True)
     print("Hall of fame:", flush=True)
     print("------------------------------------------------------------------------\n", flush=True)
-
-    for i ,ind in enumerate(hall):
-        print(f"{i+1} - {ind.fitness.values} - {ind}", flush=True)
-        task_queue.put((i,ind,True,f"H{i+1}"))
-
-        data = {}
-
-        for index, (x, y, r) in enumerate(zip(ind[::3], ind[1::3], ind[2::3])):
-            data[index] = {"position": (x,y), "rotation": r}
-
-        result[i] = {"fitness": ind.fitness.values[0],
-                    "individual": ind,
-                    "problem_id": os.path.splitext(os.path.basename(ifcpath))[0],
-                     "creator": "Hendrik Unger",
-                     "config": data
-                    }
-
-    
+    saveImages(hall, task_queue, result_queue, "H")
     print("------------------------------------------------------------------------\n\n", flush=True)
 
-    for _ in range(len(hall)):
-        output = result_queue.get()
-        #pp(output[1][1])
 
     # Signal workers to exit
     for _ in range(args.num_workers):
@@ -373,37 +384,32 @@ def main():
     for p in workers:
         p.join()
 
-
 # --- Result Processing ---
 
-    #json    
-    
-    print("Saving to json...")
-
-    import json
-    with open('result.json', 'w') as fp:
-        json.dump(result, fp, indent=4, sort_keys=True)
-
+    result = saveJson(hall, os.path.splitext(os.path.basename(ifcpath))[0])
     #Upload
-    print("Uploading results...")
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_KEY")
-    supabase: Client = create_client(url, key)
-    
-    records = []
-    for element in result.values():
-        if element["fitness"] < 0.6:
-            continue
+    if check_internet_conn():
+        print("Uploading results...")
+        url: str = os.environ.get("SUPABASE_URL")
+        key: str = os.environ.get("SUPABASE_KEY")
+        supabase: Client = create_client(url, key)
+        
+        records = []
+        for element in result.values():
+            if element["fitness"] < 0.8:
+                continue
 
-        copy = element.copy()
-        element["config"] = copy
-        records.append(element)
+            copy = element.copy()
+            element["config"] = copy
+            records.append(element)
 
-    
-    if len(records) == 0:
-        print("No results to upload", flush=True)
+        
+        if len(records) == 0:
+            print("No results to upload", flush=True)
+        else:
+            data, count = supabase.table('highscore').insert(records).execute()
     else:
-        data, count = supabase.table('highscore').insert(records).execute()
+        print("No connection to internet", flush=True)
 
 
 

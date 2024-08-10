@@ -1,6 +1,5 @@
 import os
 import yaml
-import glob
 
 import gymnasium as gym
 from gymnasium import error, spaces
@@ -127,7 +126,11 @@ class FactorySimEnv(gym.Env):
             self.currentEvalEnv = self.uid % len(self.evalFiles)  
             self.inputfile = os.path.join(self.evalPath, self.evalFiles[self.currentEvalEnv])
             self.materialflowpath = self.inputfile.replace(".ifc", "_mf.csv")
-            print(f"Loading materialflow from {self.materialflowpath}", flush=True)
+            if os.path.exists(self.materialflowpath):
+                print(f"Loading materialflow from {self.materialflowpath}", flush=True)
+            else:
+                print(f"Would load materialflow from {self.materialflowpath}, but file does not exist", flush=True)
+                self.materialflowpath = None
 
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
