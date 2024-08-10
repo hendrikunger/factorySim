@@ -291,7 +291,7 @@ def main():
     for g in tqdm(range(1,args.num_generations+1)):
 
         print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________", flush=True)
-        if(g%10 == 0):
+        if(g%1000 == 0):
             saveImages(pop, task_queue, result_queue, prefix=g)
 
         # Select the next generation individuals

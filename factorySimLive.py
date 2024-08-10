@@ -117,7 +117,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "16.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "04.ifc")
 
 
 
@@ -437,7 +437,7 @@ class factorySimLive(mglw.WindowConfig):
             if self.activeModes[Modes.MODE9]: 
                 draw_poly(self.cctx, self.env.factory.walkableArea, (0.9, 0.0, 0.0, 0.5), drawHoles=True)
             if self.activeModes[Modes.MODE7]: 
-                draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 0.8, 0.5), drawHoles=True)
+                draw_poly(self.cctx, self.env.factory.freeSpacePolygon, (0.0, 0.0, 1.0, 0.5), drawHoles=True)
                 draw_poly(self.cctx, self.env.factory.growingSpacePolygon, (1.0, 1.0, 0.0, 0.5), drawHoles=True)
             if self.activeModes[Modes.MODE_N0]: draw_poly(self.cctx,  self.env.factory.freespaceAlongRoutesPolygon, (0.0, 0.6, 0.0, 0.5))
             if self.activeModes[Modes.MODE_N9]: draw_poly(self.cctx, self.env.factory.extendedPathPolygon, (0.0, 0.3, 0.0, 1.0))
