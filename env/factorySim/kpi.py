@@ -81,7 +81,6 @@ class FactoryRating():
         temp = unary_union(walkableAreaPoly) - unary_union(pathPolygon) - unary_union(list(usedSpacePolygonDict.values()))
         
         temp = self.makeMultiPolygon(temp)
-        
 
         maxArea = 0
         maxAreaIndex = None
@@ -132,10 +131,10 @@ class FactoryRating():
         temp = unary_union(MultiPolygon(polys))-unary_union(pathPolygon)
         return self.makeMultiPolygon(temp)
  #------------------------------------------------------------------------------------------------------------
-    def evaluateScalability(self, freeSpacePolygon):
+    def evaluateScalability(self, freeSpacePolygon:MultiPolygon):
         '''Compares the area of a polygon against the Area of the minimum bounding rectangle of the polygon.'''
         if freeSpacePolygon.area > 0:
-            rectArea = freeSpacePolygon.minimum_rotated_rectangle.area
+            rectArea = freeSpacePolygon.envelope.area
             if rectArea > 0:
                 return np.clip(freeSpacePolygon.area / rectArea, 0, 1)
             else:
