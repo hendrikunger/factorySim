@@ -267,6 +267,12 @@ class FactorySim:
                     else:
                         self.currentRating = self.currentRating - self.lastRating
 
+                case 3:
+                    # Weighted average of all ratings
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated"])
+                    weights = np.ones_like(partialRatings)
+                    self.currentRating = np.average(partialRatings, weights=weights)
+
 
 
             self.RatingDict["Reward"] = self.currentRating                       
@@ -286,7 +292,7 @@ class FactorySim:
         else:
             if(self.verboseOutput >= 1):
                 print("Bewertung fehlgeschlagen")
-            self.RatingDict["TotalRating"] = -5
+            self.RatingDict["TotalRating"] = -10
             self.RatingDict["terminated"] = True
             return self.currentRating, self.currentRating, self.RatingDict, self.RatingDict["terminated"]
 
