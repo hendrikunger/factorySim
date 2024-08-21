@@ -24,7 +24,7 @@ from pprint import pp
 # MUTPB is the probability for mutating an individual
 
 CXPB, MUTPB = 0.4, 0.1
-GENMEMORY = 20
+GENMEMORY = 0
 ETA = 0.9
 
 parser = argparse.ArgumentParser()
@@ -137,6 +137,8 @@ def generationalMemory(population:list, hall:list, k:int, generation:int, n:int)
         n (int): every how many generations the individuals of the hall of fame are added to the population
 
     """
+    if n == 0:
+        return population
     if generation % n != 0:
         for ind in hall:
             if ind not in population:
@@ -258,7 +260,7 @@ def main():
     for i in range(args.num_workers):
         config = f_config['evaluation_config']["env_config"].copy()
         config["prefix"] = str(i)+"_"
-        start_time = datetime.now().strftime("%Y-%m-%d___%H-%M-%S")
+        start_time = datetime.now().strftime("%Y-%m-%d___%H-%M-00")
         #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i
         p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config, start_time))
         p.start()
@@ -319,6 +321,8 @@ def main():
 
         print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________", flush=True)
         if(g%10 == 0):
+            #sort population by fitness
+            pop.sort(key=lambda x: x.fitness.values[0], reverse=True)
             #save 20 best individuals to images
             saveImages(pop[:20], task_queue, result_queue, prefix=g)
 
