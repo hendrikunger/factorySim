@@ -23,7 +23,8 @@ from pprint import pp
 #
 # MUTPB is the probability for mutating an individual
 
-CXPB, MUTPB = 0.5, 0.3
+CXPB, MUTPB = 0.4, 0.1
+GENMEMORY = 20
 ETA = 0.9
 
 parser = argparse.ArgumentParser()
@@ -65,8 +66,7 @@ class Worker:
             self.env.render_mode = "rgb_array"
         return  self.env.currentMappedReward, self.env.info
 
-def worker_main(task_queue, result_queue, env_name):
-    starting_time = datetime.now().strftime("%Y-%m-%d___%H-%M-%S")
+def worker_main(task_queue, result_queue, env_name, starting_time):
     worker = Worker(env_name, starting_time)
     while True:
         try:
@@ -124,6 +124,28 @@ def tournament_survial_selection(population:list, k:int):
     #Select the rest by tournament selection
     selected = tools.selTournament(rest, k-len(best), tournsize=3)
     return best + selected
+
+
+def generationalMemory(population:list, hall:list, k:int, generation:int, n:int):
+    """Adds the individuals in the hall of fame to the population and caps the population size to k
+
+    Args:
+        population (list): poulation to select from
+        hall (list): hall of fame
+        k (int): the total amount of individuals to select
+        generation (int): the current generation
+        n (int): every how many generations the individuals of the hall of fame are added to the population
+
+    """
+    if generation % n != 0:
+        for ind in hall:
+            if ind not in population:
+                population.append(ind)
+        population.sort(key=lambda x: x.fitness.values[0], reverse=True)
+        return population[:k]
+    else:
+        return population
+
     
 def saveJson(hallOfFame, problemID, generation=""):
     result = {}
@@ -157,7 +179,6 @@ def main():
 
     args = parser.parse_args()
     print(f"Using {args.num_workers} workers", flush=True)
-    print(f"Started with {args.num_population} individuals for maximum {args.num_generations} generations." , flush=True)
 
     last_best = None
     last_change_gen = 0
@@ -173,12 +194,13 @@ def main():
     evalFiles.sort()
     ifcpath = evalFiles[args.problemID % len(evalFiles)-1]
     f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
-    f_config['evaluation_config']["env_config"]["reward_function"] = 1
+    f_config['evaluation_config']["env_config"]["reward_function"] = 3
 
     ifc_file = ifcopenshell.open(ifcpath)
     ifc_elements = ifc_file.by_type("IFCBUILDINGELEMENTPROXY")
     NUMMACHINES = len(ifc_elements)
     print(f"Found {NUMMACHINES} machines in ifc file.\n")
+    print(f"Started with {args.num_population * NUMMACHINES} individuals for maximum {args.num_generations} generations." , flush=True)
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list, fitness=creator.FitnessMax)
 
@@ -209,6 +231,8 @@ def main():
     # flip each attribute/gene of 0.05
     toolbox.register("mutate", tools.mutPolynomialBounded, low=-1.0, up=1.0, indpb=1/NUMMACHINES)
 
+    toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=GENMEMORY)
+
     # operator for selecting individuals for breeding the next
     # generation: each individual of the current generation
     # is replaced by the 'fittest' (best) of three individuals
@@ -218,7 +242,7 @@ def main():
     hall = HallOfFame(10)
 
     # create an initial population of 300 individuals 
-    pop = toolbox.population(n=args.num_population)
+    pop = toolbox.population(n=args.num_population * NUMMACHINES)
 
 
 
@@ -234,8 +258,9 @@ def main():
     for i in range(args.num_workers):
         config = f_config['evaluation_config']["env_config"].copy()
         config["prefix"] = str(i)+"_"
+        start_time = datetime.now().strftime("%Y-%m-%d___%H-%M-%S")
         #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i
-        p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config))
+        p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config, start_time))
         p.start()
         workers.append(p)
 
@@ -256,7 +281,9 @@ def main():
         print(individual, flush=True)
         task_queue.put((-1,individual,True,-5))
         result = result_queue.get()
+        pop[-1].fitness.values = (result[1][0],)
         pp(result[1][1])
+
 
 
     print("Start of evolution", flush=True)
@@ -291,8 +318,9 @@ def main():
     for g in tqdm(range(1,args.num_generations+1)):
 
         print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________", flush=True)
-        if(g%1000 == 0):
-            saveImages(pop, task_queue, result_queue, prefix=g)
+        if(g%10 == 0):
+            #save 20 best individuals to images
+            saveImages(pop[:20], task_queue, result_queue, prefix=g)
 
         # Select the next generation individuals
         offspring = toolbox.select(pop, len(pop))
@@ -338,6 +366,10 @@ def main():
         pop[:] = offspring
         #Update hall of fame
         hall.update(pop)
+        #Add the best individuals from the hall of fame to the population if they are not already in the population
+        pop = toolbox.generationalMemory(population=pop, hall=hall, generation=g)
+
+
         fits = [ind.fitness.values[0] for ind in pop]
 
         print("  Evaluated %i individuals" % len(invalid_ind), flush=True)
