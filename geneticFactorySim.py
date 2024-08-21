@@ -23,15 +23,15 @@ from pprint import pp
 #
 # MUTPB is the probability for mutating an individual
 
-CXPB, MUTPB = 0.4, 0.1
-GENMEMORY = 0
+CXPB, MUTPB = 0.4, 0.2
 ETA = 0.9
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 2)))  #multiprocessing.cpu_count()
 parser.add_argument("--num-generations", type=int, default=5) 
-parser.add_argument("--num-population", type=int, default=100) 
+parser.add_argument("--num-population", type=int, default=100)
+parser.add_argument("--num-genmemory", type=int, default=0) 
 parser.add_argument(
     "--problemID",
     type=int,
@@ -233,7 +233,7 @@ def main():
     # flip each attribute/gene of 0.05
     toolbox.register("mutate", tools.mutPolynomialBounded, low=-1.0, up=1.0, indpb=1/NUMMACHINES)
 
-    toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=GENMEMORY)
+    toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=args.num_genmemory)
 
     # operator for selecting individuals for breeding the next
     # generation: each individual of the current generation
@@ -319,7 +319,10 @@ def main():
     # Begin the evolution
     for g in tqdm(range(1,args.num_generations+1)):
 
-        print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________", flush=True)
+        #calculate average fitness
+        avg = sum(fits) / len(fits)        
+
+        print(f"____ Generation {g} ___________AVG Fitness:{avg:.5f}_____________________ last change at {last_change_gen}_____________", flush=True)
         if(g%10 == 0):
             #sort population by fitness
             pop.sort(key=lambda x: x.fitness.values[0], reverse=True)
