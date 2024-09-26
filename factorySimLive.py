@@ -99,7 +99,7 @@ class factorySimLive(mglw.WindowConfig):
     currenDebugMode = 0
     dpiScaler = 2 if sys.platform == "darwin" else 1
     is_online = check_internet_conn()
-    EVALUATION = True
+    EVALUATION = False
 
       
     def __init__(self, **kwargs):
