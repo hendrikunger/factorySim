@@ -1,0 +1,26 @@
+Programmieren:
+
+# 	                                    Vorhandensein eindeutiger Wegachsen
+# 	                                    Kontaktflächen Wegenetz - Länge der Schnittkante zwischen erweitertem Wegpolygon und Maschine
+# 2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
+# 1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
+# 2 - Ruhe	                            Erfüllung der Arbeitsplatzanforderungen
+# 3 - Erschütterungsfreiheit	        Erfüllung der Arbeitsplatzanforderungen
+# 4 - Sauberkeit	                    Erfüllung der Arbeitsplatzanforderungen
+# 5 - Temperatur	                    Erfüllung der Arbeitsplatzanforderungen
+
+
+
+Schreiben
+Stand der Forschung: 3.2	Reinforcement Learning im Kontext Prozessplanung und Produktion
+
+# 	                                    Vorhandensein eindeutiger Wegachsen
+# 	                                    Kontaktflächen Wegenetz - Länge der Schnittkante zwischen erweitertem Wegpolygon und Maschine
+# 2 - Medienverfügbarkeit	            Möglichkeit des Anschlusses von Maschinen an Prozessmedien (z.B. Wasser, Druckluft)
+# 1 - Beleuchtung	                    Erfüllung der Arbeitsplatzanforderungen
+# 2 - Ruhe	                            Erfüllung der Arbeitsplatzanforderungen
+# 3 - Erschütterungsfreiheit	        Erfüllung der Arbeitsplatzanforderungen
+# 4 - Sauberkeit	                    Erfüllung der Arbeitsplatzanforderungen
+# 5 - Temperatur	                    Erfüllung der Arbeitsplatzanforderungen
+
+4.4	Zwischenfazit 
