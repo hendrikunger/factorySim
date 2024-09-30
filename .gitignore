@@ -10,8 +10,9 @@ wandb/
 #Output from live
 live.csv
 live.ifc
-live.json
-result.json
+live_pos.json
+live_mf.csv
+result*.json
 #slurm files
 slurm*
 #downloads of installscript
@@ -147,3 +148,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+

@@ -3,40 +3,46 @@ from ifcopenshell.api import run
 import numpy as np
 import ifcopenshell
 import copy
+import requests
 
 def prepare_for_export(element_dict, bb):
+    """This function moves the geometry to the center of the bounding box and flips the y-axis to match the IFC coordinate system
+
+    Args:
+        element_dict (_type_): dict of factory objects to be exported
+        bb (_type_): bounding box of the factory
+
+    Returns:
+        _type_: dict of transformed factory objects
+    """
     new_dict = copy.deepcopy(element_dict)
     for element in new_dict.values():
-        
-        print(f"Origin from export before rotate: {element.origin}")
         element.poly = rotate(element.poly, element.rotation, origin="center", use_radians=True)
-        bounds = element.poly.bounds
-        print(f"Origin from export after rotate: {element.origin}")
-        #element.poly = translate(element.poly, xoff=-element.origin[0], yoff=-element.origin[1])
-        element.poly = translate(element.poly, xoff=-bounds[0], yoff=-bounds[1])
-        print(element.poly.bounds)
+        #Fix mirroring 
         element.poly = scale(element.poly, yfact=-1, origin=bb.centroid)
-        print(element.poly.bounds)
-        print(f"Origin from export: {element.origin}")
-        print("\n")
-        
-
+        #Set origin to the center of the bounding box
+        bounds = element.poly.bounds
+        element.poly = translate(element.poly, 
+                                 xoff=-(bounds[0] + (bounds[2] - bounds[0])/2), 
+                                 yoff=-(bounds[1] + (bounds[3] - bounds[1])/2)
+        )
+      
     return new_dict
 
-def write_ifc_class(model, ifc_context, ifc_class, element_dict):
+def write_ifc_class(model, ifc_context, ifc_class, element_dict, factoryheight):
     elements = []
 
     for element in element_dict.values():
         ifc_element = run("root.create_entity", model, ifc_class=ifc_class, name=element.name)
-        #matrix[:,3][0:3] = (element.origin[0]/1000, element.origin[1]/1000, 0)
-        #run("geometry.edit_object_placement", model, product=ifc_element)
         matrix = np.eye(4)
-       
-        # this rotates around the coordinate system origin, we need to rotate around the object center
+        #transform element.origin from y- down coordinates to y+ up coordinates
+        newOrigin = (element.origin[0], factoryheight - element.origin[1])
+        # this rotates around the coordinate system origin, for this reason prepare_for_export moves the geometry to
+        #the center of the bounding box
         matrix = ifcopenshell.util.placement.rotation(element.rotation, "Z", is_degrees=False) @ matrix
-        matrix[:,3][0:3] = (element.origin[0]/1000, -element.origin[1]/1000, 0)
+        #Set translation position to the new origin
+        matrix[:,3][0:3] = ((newOrigin[0] + element.width/2)/1000, ((newOrigin[1] - element.height/2)/1000), 0)
         ifcopenshell.api.geometry.edit_object_placement(model, product=ifc_element, matrix=matrix, is_si=True)
-        #run("geometry.edit_object_placement", model, product=ifc_element, matrix=matrix, is_si=True)
 
         breps = []
         for poly in element.poly.geoms:
@@ -83,3 +89,18 @@ def write_ifc_class(model, ifc_context, ifc_class, element_dict):
         run("geometry.assign_representation", model, product=ifc_element, representation=representation)
         elements.append(ifc_element)
     return elements
+
+def check_internet_conn():
+# initializing URL
+    url = "https://www.google.de"
+    timeout = 3
+    try:
+        # requesting URL
+        request = requests.get(url,
+                            timeout=timeout)
+        return True
+    
+    # catching exception
+    except (requests.ConnectionError,
+            requests.Timeout) as exception:
+        return False

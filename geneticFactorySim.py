@@ -2,9 +2,11 @@ import os
 import multiprocessing
 import queue
 import yaml
+import json
 import argparse
 import numpy as np
 from env.factorySim.factorySimEnv import FactorySimEnv
+from env.factorySim.utils import check_internet_conn
 from deap import base, creator, tools
 from deap.tools.support import HallOfFame
 from tqdm import tqdm
@@ -21,15 +23,15 @@ from pprint import pp
 #
 # MUTPB is the probability for mutating an individual
 
-NUMMACHINES = 5
-CXPB, MUTPB = 0.5, 0.3
+CXPB, MUTPB = 0.4, 0.2
 ETA = 0.9
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 2)))  #multiprocessing.cpu_count()
 parser.add_argument("--num-generations", type=int, default=5) 
-parser.add_argument("--num-population", type=int, default=100) 
+parser.add_argument("--num-population", type=int, default=100)
+parser.add_argument("--num-genmemory", type=int, default=0) 
 parser.add_argument(
     "--problemID",
     type=int,
@@ -64,8 +66,7 @@ class Worker:
             self.env.render_mode = "rgb_array"
         return  self.env.currentMappedReward, self.env.info
 
-def worker_main(task_queue, result_queue, env_name):
-    starting_time = datetime.now().strftime("%Y-%m-%d___%H-%M-%S")
+def worker_main(task_queue, result_queue, env_name, starting_time):
     worker = Worker(env_name, starting_time)
     while True:
         try:
@@ -109,11 +110,77 @@ def mycxBlend(ind1, ind2, alpha):
     
     return ind1, ind2
 
+def tournament_survial_selection(population:list, k:int):
+    """Selects the 5% best individuals of the population for the next generation, the rest is selected by tournament selection
+
+    Args:
+        population (list): poulation to select from
+        k (int): the total amount of individuals to select
+    """
+    #Select the 5% best individuals
+    population.sort(key=lambda x: x.fitness.values[0], reverse=True)
+    best = population[:int(len(population)*0.05)]
+    rest = population[int(len(population)*0.05):]
+    #Select the rest by tournament selection
+    selected = tools.selTournament(rest, k-len(best), tournsize=3)
+    return best + selected
+
+
+def generationalMemory(population:list, hall:list, k:int, generation:int, n:int):
+    """Adds the individuals in the hall of fame to the population and caps the population size to k
+
+    Args:
+        population (list): poulation to select from
+        hall (list): hall of fame
+        k (int): the total amount of individuals to select
+        generation (int): the current generation
+        n (int): every how many generations the individuals of the hall of fame are added to the population
+
+    """
+    if n == 0:
+        return population
+    if generation % n != 0:
+        for ind in hall:
+            if ind not in population:
+                population.append(ind)
+        population.sort(key=lambda x: x.fitness.values[0], reverse=True)
+        return population[:k]
+    else:
+        return population
+
+    
+def saveJson(hallOfFame, problemID, generation=""):
+    result = {}
+    for i ,ind in enumerate(hallOfFame):
+        data = {}
+        for index, (x, y, r) in enumerate(zip(ind[::3], ind[1::3], ind[2::3])):
+            data[index] = {"position": (x,y), "rotation": r}
+
+        result[i] = {"fitness": ind.fitness.values[0],
+                    "individual": ind,
+                    "problem_id": problemID,
+                     "creator": "Hendrik Unger",
+                     "config": data
+                    }
+        
+    print("Saving to json...")
+    with open(f'result{generation}.json', 'w') as fp:
+        json.dump(result, fp, indent=4, sort_keys=True)
+    return result
+
+def saveImages(listToSave, task_queue, result_queue, prefix):
+    for i ,ind in enumerate(listToSave):
+        print(f"{i+1} - {ind.fitness.values}", flush=True)
+        task_queue.put((i,ind,True,f"{prefix}_{i+1}"))
+    for _ in range(len(listToSave)):
+        output = result_queue.get()
+        #pp(output[1][1])
+    
+
 def main():
 
     args = parser.parse_args()
     print(f"Using {args.num_workers} workers", flush=True)
-    print(f"Started with {args.num_population} individuals for maximum {args.num_generations} generations." , flush=True)
 
     last_best = None
     last_change_gen = 0
@@ -129,12 +196,13 @@ def main():
     evalFiles.sort()
     ifcpath = evalFiles[args.problemID % len(evalFiles)-1]
     f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
-    f_config['evaluation_config']["env_config"]["reward_function"] = 1
+    f_config['evaluation_config']["env_config"]["reward_function"] = 3
 
     ifc_file = ifcopenshell.open(ifcpath)
     ifc_elements = ifc_file.by_type("IFCBUILDINGELEMENTPROXY")
     NUMMACHINES = len(ifc_elements)
     print(f"Found {NUMMACHINES} machines in ifc file.\n")
+    print(f"Started with {args.num_population * NUMMACHINES} individuals for maximum {args.num_generations} generations." , flush=True)
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Individual", list, fitness=creator.FitnessMax)
 
@@ -165,16 +233,18 @@ def main():
     # flip each attribute/gene of 0.05
     toolbox.register("mutate", tools.mutPolynomialBounded, low=-1.0, up=1.0, indpb=1/NUMMACHINES)
 
+    toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=args.num_genmemory)
+
     # operator for selecting individuals for breeding the next
     # generation: each individual of the current generation
     # is replaced by the 'fittest' (best) of three individuals
     # drawn randomly from the current generation.
-    toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("select", tournament_survial_selection)
 
     hall = HallOfFame(10)
 
     # create an initial population of 300 individuals 
-    pop = toolbox.population(n=args.num_population)
+    pop = toolbox.population(n=args.num_population * NUMMACHINES)
 
 
 
@@ -190,8 +260,9 @@ def main():
     for i in range(args.num_workers):
         config = f_config['evaluation_config']["env_config"].copy()
         config["prefix"] = str(i)+"_"
+        start_time = datetime.now().strftime("%Y-%m-%d___%H-%M-00")
         #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i
-        p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config))
+        p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config, start_time))
         p.start()
         workers.append(p)
 
@@ -212,7 +283,9 @@ def main():
         print(individual, flush=True)
         task_queue.put((-1,individual,True,-5))
         result = result_queue.get()
+        pop[-1].fitness.values = (result[1][0],)
         pp(result[1][1])
+
 
 
     print("Start of evolution", flush=True)
@@ -246,7 +319,15 @@ def main():
     # Begin the evolution
     for g in tqdm(range(1,args.num_generations+1)):
 
-        print(f"____ Generation {g} ___________________________________________ last change at {last_change_gen}_____________", flush=True)
+        #calculate average fitness
+        avg = sum(fits) / len(fits)        
+
+        print(f"____ Generation {g} ___________AVG Fitness:{avg:.5f}_____________________ last change at {last_change_gen}_____________", flush=True)
+        if(g%10 == 0):
+            #sort population by fitness
+            pop.sort(key=lambda x: x.fitness.values[0], reverse=True)
+            #save 20 best individuals to images
+            saveImages(pop[:20], task_queue, result_queue, prefix=g)
 
         # Select the next generation individuals
         offspring = toolbox.select(pop, len(pop))
@@ -292,6 +373,10 @@ def main():
         pop[:] = offspring
         #Update hall of fame
         hall.update(pop)
+        #Add the best individuals from the hall of fame to the population if they are not already in the population
+        pop = toolbox.generationalMemory(population=pop, hall=hall, generation=g)
+
+
         fits = [ind.fitness.values[0] for ind in pop]
 
         print("  Evaluated %i individuals" % len(invalid_ind), flush=True)
@@ -323,33 +408,12 @@ def main():
 
     print("-- End of (successful) evolution --\n\n", flush=True)
 
-    result = {}
     print("\n------------------------------------------------------------------------", flush=True)
     print("Hall of fame:", flush=True)
     print("------------------------------------------------------------------------\n", flush=True)
-
-    for i ,ind in enumerate(hall):
-        print(f"{i+1} - {ind.fitness.values} - {ind}", flush=True)
-        task_queue.put((i,ind,True,f"H{i+1}"))
-
-        data = {}
-
-        for index, (x, y, r) in enumerate(zip(ind[::3], ind[1::3], ind[2::3])):
-            data[index] = {"position": (x,y), "rotation": r}
-
-        result[i] = {"fitness": ind.fitness.values[0],
-                    "individual": ind,
-                    "problem_id": os.path.splitext(os.path.basename(ifcpath))[0],
-                     "creator": "Hendrik Unger",
-                     "config": data
-                    }
-
-    
+    saveImages(hall, task_queue, result_queue, "H")
     print("------------------------------------------------------------------------\n\n", flush=True)
 
-    for _ in range(len(hall)):
-        output = result_queue.get()
-        #pp(output[1][1])
 
     # Signal workers to exit
     for _ in range(args.num_workers):
@@ -359,37 +423,32 @@ def main():
     for p in workers:
         p.join()
 
-
 # --- Result Processing ---
 
-    #json    
-    
-    print("Saving to json...")
-
-    import json
-    with open('result.json', 'w') as fp:
-        json.dump(result, fp, indent=4, sort_keys=True)
-
+    result = saveJson(hall, os.path.splitext(os.path.basename(ifcpath))[0])
     #Upload
-    print("Uploading results...")
-    url: str = os.environ.get("SUPABASE_URL")
-    key: str = os.environ.get("SUPABASE_KEY")
-    supabase: Client = create_client(url, key)
-    
-    records = []
-    for element in result.values():
-        if element["fitness"] < 0.6:
-            continue
+    if check_internet_conn():
+        print("Uploading results...")
+        url: str = os.environ.get("SUPABASE_URL")
+        key: str = os.environ.get("SUPABASE_KEY")
+        supabase: Client = create_client(url, key)
+        
+        records = []
+        for element in result.values():
+            if element["fitness"] < 0.8:
+                continue
 
-        copy = element.copy()
-        element["config"] = copy
-        records.append(element)
+            copy = element.copy()
+            element["config"] = copy
+            records.append(element)
 
-    
-    if len(records) == 0:
-        print("No results to upload", flush=True)
+        
+        if len(records) == 0:
+            print("No results to upload", flush=True)
+        else:
+            data, count = supabase.table('highscore').insert(records).execute()
     else:
-        data, count = supabase.table('highscore').insert(records).execute()
+        print("No connection to internet", flush=True)
 
 
 
