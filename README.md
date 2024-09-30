@@ -33,13 +33,6 @@ apt-get update
 apt-get install build-essential ibcairo2-dev pkg-config python3-dev
 pip install -r requirements_factorySim.txt
 ```
-IFC Open Shell is not in the index and needs to be installed manually.
-Download appropriate version from http://ifcopenshell.org/python and unpack into site packages directory of your Python installation.
-e.g.
-```sh
-wget https://s3.amazonaws.com/ifcopenshell-builds/ifcopenshell-python-37-v0.6.0-517b819-linux64.zip
-unzip -q ifcopenshell-python-37-v0.6.0-517b819-linux64.zip -d $HOME/anaconda3/lib/python3.7/site-packages
-```
 Navigate to the factorySim/env directory
 ```sh
 cd env
