@@ -13,7 +13,7 @@ dependencies:
   - pandas
   - pip
   - pycairo
-  - python=3.10
+  - python=3.12
   - pyyaml
   - ray-all
   - scipy
@@ -23,4 +23,6 @@ dependencies:
   - moderngl
   - moderngl-window
   - paho-mqtt
+  - deap
+  - supabase
 
