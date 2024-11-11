@@ -14,11 +14,10 @@ from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.callbacks import DefaultCallbacks, MemoryTrackingCallbacks
 
 from ray.rllib.core.rl_module.rl_module import RLModule
-from factorySim.customRLModulTorch import MyPPOTorchRLModule
+#from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
-from factorySim.customModelsTorch import MyXceptionModel
+#from factorySim.customModelsTorch import MyXceptionModel
 
-from ray.rllib.core.rl_module.rl_module import SingleAgentRLModuleSpec
 
 from ray.air.integrations.wandb import WandbLoggerCallback
 
@@ -28,9 +27,7 @@ from ray.rllib.policy import Policy
 from typing import Dict
 from ray.rllib.evaluation.episode_v2 import EpisodeV2
 
-from ray.rllib.connectors.agent.lambdas import register_lambda_agent_connector
-from ray.rllib.policy.sample_batch import SampleBatch
-from ray.rllib.utils.typing import TensorStructType
+
 
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.env.env_runner import EnvRunner
@@ -56,7 +53,7 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 
 #Import Custom Models
 from ray.rllib.models import ModelCatalog
-ModelCatalog.register_custom_model("my_model", MyXceptionModel)
+#ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 
 
@@ -177,28 +174,9 @@ class MyAlgoCallback(DefaultCallbacks):
 
        
 
-    
-
-
-class MyCallback(Callback):
-    def on_trial_result(self, iteration, trials, trial, result, **info):
-        pass
-        #print(f"Got result: {result}")
 
 
 
-def preprocessObs(data: Dict[str, TensorStructType]) -> Dict[str, TensorStructType]:
-    #data[SampleBatch.NEXT_OBS] = data[SampleBatch.NEXT_OBS][:-2]
-    print(data[SampleBatch.NEXT_OBS].shape)
-    print(data[SampleBatch.NEXT_OBS].max())
-    print(data[SampleBatch.NEXT_OBS].max())
-    return data
-
-MyAgentConnector = register_lambda_agent_connector(
-    "MyAgentConnector", preprocessObs
-)
-
-#policy.agent_connectors.prepend(MyAgentConnector(ctx))
 
 
 with open('config.yaml', 'r') as f:
@@ -232,7 +210,10 @@ def run():
     )
 
     ppo_config = PPOConfig()
-    ppo_config.experimental(_enable_new_api_stack=False)
+    ppo_config.api_stack(
+        enable_rl_module_and_learner=True,
+        enable_env_runner_and_connector_v2=True,
+    )
     #ppo_config.train_batch_size=200
     #ppo_config.lr=0.00005
                  #0.003
@@ -240,13 +221,7 @@ def run():
     #ppo_config.rl_module(rl_module_spec=myRLModule,))
         
 
-    ppo_config.training(model={
-                                        "use_attention": False,
-                                        "use_lstm": False,
-                                        #"custom_model": "my_model",
 
-                                    },
-                        )
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
     ppo_config.callbacks(MyAlgoCallback)
@@ -256,7 +231,7 @@ def run():
                         enable_connectors=True,)
     #ppo_config.train_batch_size=256
     ppo_config.framework(framework="torch",
-                         eager_tracing=False,)
+                         )
 
     eval_config = f_config['evaluation_config']["env_config"]
 
@@ -270,11 +245,9 @@ def run():
                           evaluation_interval=50,
                           evaluation_config={"env_config": eval_config},
                         )   
-    ppo_config.resources(num_gpus=int(os.getenv("$SLURM_GPUS", "1")),
-                         num_learner_workers=1,
-                         num_gpus_per_learner_worker=int(os.getenv("$SLURM_GPUS", "1")),
+    ppo_config.learners( num_learners=int(os.getenv("$SLURM_GPUS", "1")),
+                         num_gpus_per_learner=1,
                          )
-    ppo_config._disable_preprocessor_api=True
 
 
     

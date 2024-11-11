@@ -73,8 +73,8 @@ class factorySimLive(mglw.WindowConfig):
     fps_counter = 30
     #window_size = (3840, 4320)
     #window_size = (3840, 2160)
-    #window_size = (1920, 1080)
-    window_size = (1280, 720)
+    window_size = (1920, 1080)
+    #window_size = (1280, 720)
     #window_size = (1920*6, 1080)
     mqtt_broker = "broker.emqx.io"
     #mqtt_broker = "10.54.129.47"
