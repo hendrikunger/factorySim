@@ -1,5 +1,5 @@
 
-
+import pprint
 
 from pathlib import Path
 import os
@@ -41,6 +41,7 @@ from  typing import Any
 from datetime import datetime
 
 
+
 #filename = "Overlapp"
 filename = "Basic"
 #filename = "EP_v23_S1_clean"
@@ -63,6 +64,14 @@ class MyAlgoCallback(DefaultCallbacks):
         #super().__init__()    
         self.ratingkeys = ['Reward', 'TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends',]
 
+    def clear_memory(self):
+        self.memory = {}
+        self.memory["ratings"] = []
+        self.memory["images"] = []
+        self.memory["captions"] = []
+        self.memory["currentStep"] = []
+        self.memory["evalEnvID"] = []
+
     def on_episode_start(
         self,
         *,
@@ -77,12 +86,9 @@ class MyAlgoCallback(DefaultCallbacks):
         policies: Optional[Dict[PolicyID, Policy]] = None,
         **kwargs,
     ) -> None: 
-        episode.media["tabledata"] = {}
-        episode.media["tabledata"]["ratings"] = []
-        episode.media["tabledata"]["images"] = []
-        episode.media["tabledata"]["captions"] = []
-        episode.media["tabledata"]["currentStep"] = []
-        episode.media["tabledata"]["evalEnvID"] = []
+        metrics_logger.log_dict
+  
+
 
         #this should give us the initial info dict, but it is empty
         #info = episode._last_infos['agent0']
@@ -101,37 +107,39 @@ class MyAlgoCallback(DefaultCallbacks):
         policies: Optional[Dict[PolicyID, Policy]] = None,
         **kwargs,
     ) -> None:
-
-        if "Evaluation" in episode._last_infos['agent0']:
-            info = episode._last_infos['agent0']
-            episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
-            episode.media["tabledata"]["images"] += [info.get("Image", None)]
-            episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
-            episode.media["tabledata"]["currentStep"] += [info.get('Step', -1)]
-            episode.media["tabledata"]["evalEnvID"] += [f"{info.get('evalEnvID', 0)}_{info.get('Step', -1)}"]
+        
+        if self.EVALUATION:
+            print(f"--------------------------------------------EVAL STEP")
+            # info = episode._last_infos['agent0']
+            # episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
+            # episode.media["tabledata"]["images"] += [info.get("Image", None)]
+            # episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
+            # episode.media["tabledata"]["currentStep"] += [info.get('Step', -1)]
+            # episode.media["tabledata"]["evalEnvID"] += [f"{info.get('evalEnvID', 0)}_{info.get('Step', -1)}"]
       
 
 
-    def on_episode_end(
-        self,
-        *,
-        episode: Union[EpisodeType, Episode, EpisodeV2],
-        env_runner: Optional["EnvRunner"] = None,
-        metrics_logger: Optional[MetricsLogger] = None,
-        env: Optional[gym.Env] = None,
-        env_index: int,
-        rl_module: Optional[RLModule] = None,
-        worker: Optional["EnvRunner"] = None,
-        base_env: Optional[BaseEnv] = None,
-        policies: Optional[Dict[PolicyID, Policy]] = None,
-        **kwargs,
-    ) -> None:
-        if "Evaluation" in episode._last_infos['agent0']:
-            info = episode._last_infos['agent0']
-            for key in self.ratingkeys:
-                episode.custom_metrics[key] = info.get(key, -1)
-        else:
-            episode.media.pop("tabledata", None)
+    # def on_episode_end(
+    #     self,
+    #     *,
+    #     episode: Union[EpisodeType, Episode, EpisodeV2],
+    #     env_runner: Optional["EnvRunner"] = None,
+    #     metrics_logger: Optional[MetricsLogger] = None,
+    #     env: Optional[gym.Env] = None,
+    #     env_index: int,
+    #     rl_module: Optional[RLModule] = None,
+    #     worker: Optional["EnvRunner"] = None,
+    #     base_env: Optional[BaseEnv] = None,
+    #     policies: Optional[Dict[PolicyID, Policy]] = None,
+    #     **kwargs,
+    # ) -> None:
+        
+    #     if "Evaluation" in episode._last_infos['agent0']:
+    #         info = episode._last_infos['agent0']
+    #         for key in self.ratingkeys:
+    #             episode.custom_metrics[key] = info.get(key, -1)
+    #     else:
+    #         episode.media.pop("tabledata", None)
 
 
 
@@ -144,6 +152,8 @@ class MyAlgoCallback(DefaultCallbacks):
         **kwargs,
     ) -> None:
         print(f"--------------------------------------------EVAL START")
+        self.clear_memory()
+        self.EVALUATION = True
 
 
 
@@ -158,6 +168,12 @@ class MyAlgoCallback(DefaultCallbacks):
 
 
         print(f"--------------------------------------------EVAL END")
+        self.EVALUATION = False
+        pprint.pp(f"------------------------------------>{dir(metrics_logger)}")
+        pprint.pp(f"------------------------------------>{dir(evaluation_metrics)}")
+        pprint.pp(f"------------------------------------>{evaluation_metrics}")
+
+
 
         data = evaluation_metrics["episode_media"].pop("tabledata", None)
 
@@ -170,6 +186,7 @@ class MyAlgoCallback(DefaultCallbacks):
                     tbl.add_data(f"{episode_id}_{step}", episode_id, evalEnvID, logImage, *rating)
 
             evaluation_metrics["episode_media"]["Eval_Table"] = tbl
+        
 
 
        
@@ -194,7 +211,13 @@ f_config['env_config']['inputfile'] = ifcpath
 
 
 def run():
-    ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+    runtime_env = {
+    "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning"},
+    "working_dir": os.path.join(os.path.dirname(os.path.realpath(__file__))),
+    "excludes": ["/.git", "/.vscode", "/wandb", "/artifacts", "*.skp"]
+    }
+    
+    ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False, runtime_env=runtime_env) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
     #"training_iteration": 20,
@@ -214,7 +237,11 @@ def run():
         enable_rl_module_and_learner=True,
         enable_env_runner_and_connector_v2=True,
     )
-    #ppo_config.train_batch_size=200
+    ppo_config.training(
+                    train_batch_size=f_config['train_batch_size_per_learner'],
+                    mini_batch_size_per_learner=f_config['mini_batch_size_per_learner'],
+
+    ) 
     #ppo_config.lr=0.00005
                  #0.003
                  #0.000005
@@ -226,7 +253,8 @@ def run():
 
     ppo_config.callbacks(MyAlgoCallback)
     #ppo_config.callbacks(MemoryTrackingCallbacks)
-    ppo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
+    ppo_config.env_runners(#num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
+                        num_env_runners=0,
                         num_envs_per_env_runner=1,  #2
                         enable_connectors=True,)
     #ppo_config.train_batch_size=256
@@ -234,15 +262,15 @@ def run():
                          )
 
     eval_config = f_config['evaluation_config']["env_config"]
-
+    eval_config['inputfile'] = ifcpath
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation") 
 
     eval_duration = len([x for x in os.listdir(path) if ".ifc" in x])
-
+    print(f"---->Eval Duration: {eval_duration}")
     ppo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
-                          evaluation_interval=50,
+                          evaluation_interval=f_config["evaluation_interval"],
                           evaluation_config={"env_config": eval_config},
                         )   
     ppo_config.learners( num_learners=int(os.getenv("$SLURM_GPUS", "1")),
@@ -305,4 +333,6 @@ def run():
 
 
 if __name__ == "__main__":
+    from gymnasium import logger
+    logger.set_level(logger.ERROR)
     run()

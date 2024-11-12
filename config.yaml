@@ -67,9 +67,9 @@ log_level: ERROR
 recreate_failed_workers: true
 restart_failed_sub_environments: true
 
-rollout_fragment_length: 200
-train_batch_size:  200 #3200
-sgd_minibatch_size: 100
+rollout_fragment_length: 20 
+train_batch_size_per_learner:  20 #3200
+mini_batch_size_per_learner: 10 #100
 num_sgd_iter: 4
 gamma: 0.99
 # The default learning rate.
