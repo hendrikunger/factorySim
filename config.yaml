@@ -17,8 +17,6 @@ env_config:
 
 # Evaluate once per training iteration.
 evaluation_interval: 1
-# Run evaluation on (at least) ten episodes
-evaluation_duration: 50
 # ... using one evaluation worker (setting this to 0 will cause
 # evaluation to run on the local evaluation worker, blocking
 # training until evaluation is done).

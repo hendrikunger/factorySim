@@ -1,5 +1,6 @@
 
 import pprint
+import numpy as np
 
 from pathlib import Path
 import os
@@ -86,7 +87,7 @@ class MyAlgoCallback(DefaultCallbacks):
         policies: Optional[Dict[PolicyID, Policy]] = None,
         **kwargs,
     ) -> None: 
-        metrics_logger.log_dict
+        pass
   
 
 
@@ -108,38 +109,46 @@ class MyAlgoCallback(DefaultCallbacks):
         **kwargs,
     ) -> None:
         
-        if self.EVALUATION:
-            print(f"--------------------------------------------EVAL STEP")
+        if env_runner.config["env_config"]["evaluation"]:
+            pass
             # info = episode._last_infos['agent0']
             # episode.media["tabledata"]["captions"] += [f"{episode.episode_id}_{info.get('Step', 0):04d}"]
             # episode.media["tabledata"]["images"] += [info.get("Image", None)]
             # episode.media["tabledata"]["ratings"] += [[info.get(key, -1) for key in self.ratingkeys]]
             # episode.media["tabledata"]["currentStep"] += [info.get('Step', -1)]
             # episode.media["tabledata"]["evalEnvID"] += [f"{info.get('evalEnvID', 0)}_{info.get('Step', -1)}"]
-      
 
 
-    # def on_episode_end(
-    #     self,
-    #     *,
-    #     episode: Union[EpisodeType, Episode, EpisodeV2],
-    #     env_runner: Optional["EnvRunner"] = None,
-    #     metrics_logger: Optional[MetricsLogger] = None,
-    #     env: Optional[gym.Env] = None,
-    #     env_index: int,
-    #     rl_module: Optional[RLModule] = None,
-    #     worker: Optional["EnvRunner"] = None,
-    #     base_env: Optional[BaseEnv] = None,
-    #     policies: Optional[Dict[PolicyID, Policy]] = None,
-    #     **kwargs,
-    # ) -> None:
+
+    def on_episode_end(
+        self,
+        *,
+        episode: Union[EpisodeType, Episode, EpisodeV2],
+        env_runner: Optional["EnvRunner"] = None,
+        metrics_logger: Optional[MetricsLogger] = None,
+        env: Optional[gym.Env] = None,
+        env_index: int,
+        rl_module: Optional[RLModule] = None,
+        worker: Optional["EnvRunner"] = None,
+        base_env: Optional[BaseEnv] = None,
+        policies: Optional[Dict[PolicyID, Policy]] = None,
+        **kwargs,
+    ) -> None:
         
-    #     if "Evaluation" in episode._last_infos['agent0']:
-    #         info = episode._last_infos['agent0']
-    #         for key in self.ratingkeys:
-    #             episode.custom_metrics[key] = info.get(key, -1)
-    #     else:
-    #         episode.media.pop("tabledata", None)
+        if env_runner.config["env_config"]["evaluation"]:
+            print(f"--------------------------------------------EVAL Episode ENd ") 
+            infos = episode.get_infos()
+            #metrics_logger.log_value("Länge", len(episode), reduce=None,)
+            #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
+            metrics_logger.log_value(("myData",infos[0].get('evalEnvID', 0)), infos ,reduce=None, clear_on_reduce=True)
+
+
+        # if "Evaluation" in episode._last_infos['agent0']:
+        #     info = episode._last_infos['agent0']
+        #     for key in self.ratingkeys:
+        #         episode.custom_metrics[key] = info.get(key, -1)
+        # else:
+        #     episode.media.pop("tabledata", None)
 
 
 
@@ -152,8 +161,7 @@ class MyAlgoCallback(DefaultCallbacks):
         **kwargs,
     ) -> None:
         print(f"--------------------------------------------EVAL START")
-        self.clear_memory()
-        self.EVALUATION = True
+
 
 
 
@@ -168,24 +176,38 @@ class MyAlgoCallback(DefaultCallbacks):
 
 
         print(f"--------------------------------------------EVAL END")
-        self.EVALUATION = False
-        pprint.pp(f"------------------------------------>{dir(metrics_logger)}")
-        pprint.pp(f"------------------------------------>{dir(evaluation_metrics)}")
-        pprint.pp(f"------------------------------------>{evaluation_metrics}")
+        #print(algorithm.eval_env_runner_group.local_env_runner.metrics)
+        #eval_metrics = algorithm.eval_env_runner_group.local_env_runner.metrics
+        print("metrics object---------------------------------------------------------------")
+        evaluation_metrics["mainlevel"] = np.random.rand(1)
+        evaluation_metrics["env_runners"]["Länge2"] = np.random.rand(1)
+        #pprint.pp(evaluation_metrics)
+        print(len(evaluation_metrics["env_runners"]["myData"]))
+        pprint.pp(evaluation_metrics["env_runners"]["myData"].keys())
+
+        #This is a dict with the evalEnvID as key and the infos of all steps in array form as value
+        data = evaluation_metrics["env_runners"]["myData"]
 
 
-
-        data = evaluation_metrics["episode_media"].pop("tabledata", None)
-
-
-        tbl = wandb.Table(columns=["id", "episode","evalEnvID", "image"] + self.ratingkeys)
+        tbl = wandb.Table(columns=["id", "episode","evalEnvID", "Image"] + self.ratingkeys)
         if data:
-            for episode_id, episode in enumerate(data):
-                for step, image, caption , rating, evalEnvID in zip(episode["currentStep"], episode["images"], episode["captions"], episode["ratings"], episode["evalEnvID"]):
-                    logImage = wandb.Image(image, caption=caption, grouping=episode_id) 
-                    tbl.add_data(f"{episode_id}_{step}", episode_id, evalEnvID, logImage, *rating)
+            #iterate over all eval episodes
+            for episode_id, episode in data.items():
+                #episode is a list of dicts, each dict is a step info
+                print(episode_id)
+                for info in episode:
+                    step = info.get("Step", -1)
+                    print(f"    {step}")
+                    image = info.get("Image", np.random.randint(low=0, high=255, size=(100, 100, 3)))
+                    caption = f"{episode_id}_{step:04d}"
+                    logImage = wandb.Image(image, caption=caption, grouping=episode_id)
+                    rating = [info.get(key, -1) for key in self.ratingkeys]
+ 
+                    tbl.add_data(f"{episode_id}_{step}", episode_id, info.get("evalEnvID", -1), logImage, *rating)
+            evaluation_metrics["table"] = tbl
+            #pprint.pp(tbl.data)
+        print("fertsch")
 
-            evaluation_metrics["episode_media"]["Eval_Table"] = tbl
         
 
 
@@ -220,8 +242,8 @@ def run():
     ray.init(num_gpus=int(os.getenv("$SLURM_GPUS", "1")), include_dashboard=False, runtime_env=runtime_env) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    #"training_iteration": 20,
-    "timesteps_total": 15000000,
+    "training_iteration": 20,
+    #"num_env_steps_sampled_lifetime": 15000000,
     #"episode_reward_mean": 5,
     }
 
@@ -272,6 +294,7 @@ def run():
                           evaluation_duration_unit="episodes", 
                           evaluation_interval=f_config["evaluation_interval"],
                           evaluation_config={"env_config": eval_config},
+                          evaluation_parallel_to_training=False,
                         )   
     ppo_config.learners( num_learners=int(os.getenv("$SLURM_GPUS", "1")),
                          num_gpus_per_learner=1,
@@ -292,6 +315,7 @@ def run():
                                                     log_config=True,
                                                     upload_checkpoints=True,
                                                     name=name,
+                                                    group="default",
                                                     ),
                                 #MyCallback(),
                         ],
