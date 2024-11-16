@@ -97,7 +97,8 @@ class factorySimLive(mglw.WindowConfig):
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
     currenDebugMode = 0
-    dpiScaler = 2 if sys.platform == "darwin" else 1
+    #dpiScaler = 2 if sys.platform == "darwin" else 1
+    dpiScaler = 1
     is_online = check_internet_conn()
     EVALUATION = False
 
@@ -750,4 +751,8 @@ class factorySimLive(mglw.WindowConfig):
 
 
 if __name__ == "__main__":
-    factorySimLive.run()
+    if sys.platform == "darwin":
+        mglw.run_window_config(factorySimLive, args=('--window', 'pygame2'))
+    else:
+        mglw.run_window_config(factorySimLive)
+
