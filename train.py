@@ -131,11 +131,9 @@ class MyAlgoCallback(DefaultCallbacks):
     ) -> None:
         
         if env_runner.config["env_config"]["evaluation"]:
-            print(f"--------------------------------------------EVAL Episode End ") 
             infos = episode.get_infos()
-            #metrics_logger.log_value("Länge", len(episode), reduce=None,)
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
-            metrics_logger.log_value(("myData",infos[0].get('evalEnvID', 0)), infos, reduce=None, clear_on_reduce=True)
+            metrics_logger.log_value(("myData",infos[0].get('evalEnvID', 0)+1), infos, reduce=None, clear_on_reduce=True)
 
 
 
@@ -186,11 +184,20 @@ class MyAlgoCallback(DefaultCallbacks):
 
 
        
+def _env_to_module(env):
+# Create the env-to-module connector pipeline.
+    return [
+        PrevActionsPrevRewards(
+            multi_agent=args.num_agents > 0,
+            n_prev_rewards=args.n_prev_rewards,
+            n_prev_actions=args.n_prev_actions,
+        ),
+        FlattenObservations(multi_agent=args.num_agents > 0),
+            ]
 
 
-
-
-
+def _make_learner_connector(input_observation_space, input_action_space):
+    pass
 
 with open('config.yaml', 'r') as f:
     f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -236,6 +243,8 @@ def run():
     ppo_config.training(
                     train_batch_size=f_config['train_batch_size_per_learner'],
                     minibatch_size=f_config['mini_batch_size_per_learner'],
+                    learner_connector=_make_learner_connector,
+            ),
 
     ) 
     #ppo_config.lr=0.00005
@@ -252,7 +261,9 @@ def run():
     ppo_config.env_runners(#num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
                         num_env_runners=0,
                         num_envs_per_env_runner=1,  #2
-                        enable_connectors=True,)
+                        enable_connectors=True,
+                        env_to_module_connector=_env_to_module,
+                        )
     #ppo_config.train_batch_size=256
     ppo_config.framework(framework="torch",
                          )
