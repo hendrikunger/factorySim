@@ -237,7 +237,7 @@ class FactorySimEnv(gym.Env):
         #Format (width, height, 2)
         output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
         
-        return output/ 255.0
+        return output
     
       
 

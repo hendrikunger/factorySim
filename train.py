@@ -33,6 +33,7 @@ from ray.rllib.evaluation.episode_v2 import EpisodeV2
 
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.env.env_runner import EnvRunner
+from ray.rllib.connectors import ObservationPreprocessor
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
@@ -163,7 +164,14 @@ class MyAlgoCallback(DefaultCallbacks):
                     tbl.add_data(f"{episode_id}_{step}", episode_id, info.get("evalEnvID", -1), logImage, *rating)
             evaluation_metrics["table"] = tbl
 
-        
+
+
+class NormalizeObservations(ObservationPreprocessor):
+    def preprocess(self, observation: Dict[AgentID, Dict[str, np.ndarray]]) -> Dict[AgentID, Dict[str, np.ndarray]]:
+
+        return observation / 255.0
+
+
        
 def _env_to_module(env):
 # Create the env-to-module connector pipeline.
@@ -177,8 +185,6 @@ def _env_to_module(env):
             ]
 
 
-def _make_learner_connector(input_observation_space, input_action_space):
-    pass
 
 with open('config.yaml', 'r') as f:
     f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -224,8 +230,6 @@ def run():
     ppo_config.training(
                     train_batch_size=f_config['train_batch_size_per_learner'],
                     minibatch_size=f_config['mini_batch_size_per_learner'],
-                    learner_connector=_make_learner_connector,
-            ),
 
     ) 
     #ppo_config.lr=0.00005
