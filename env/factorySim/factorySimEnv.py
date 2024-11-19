@@ -84,11 +84,11 @@ class FactorySimEnv(gym.Env):
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
-        self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float64)
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
-            self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(self.width, self.height, 2), dtype=np.float64)
+            self.observation_space = spaces.Box(low=0.0, high=255.0, shape=(self.width, self.height, 2), dtype=np.float32)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
 
@@ -236,7 +236,7 @@ class FactorySimEnv(gym.Env):
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         
         #Format (width, height, 2)
-        output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
+        output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2, dtype=np.float32)
         
         return output
     
