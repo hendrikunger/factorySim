@@ -13,9 +13,9 @@ import ray
 from ray.tune import Tuner, Callback
 from ray.air.config import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.ppo import PPOConfig
-from ray.rllib.algorithms.callbacks import DefaultCallbacks, MemoryTrackingCallbacks
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 
-from ray.rllib.core.rl_module.rl_module import RLModule
+from ray.rllib.core.rl_module.rl_module import RLModule, DefaultModelConfig
 #from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
 #from factorySim.customModelsTorch import MyXceptionModel
@@ -175,14 +175,7 @@ class NormalizeObservations(ObservationPreprocessor):
        
 def _env_to_module(env):
 # Create the env-to-module connector pipeline.
-    return [
-        PrevActionsPrevRewards(
-            multi_agent=args.num_agents > 0,
-            n_prev_rewards=args.n_prev_rewards,
-            n_prev_actions=args.n_prev_actions,
-        ),
-        FlattenObservations(multi_agent=args.num_agents > 0),
-            ]
+    return NormalizeObservations()
 
 
 
@@ -231,18 +224,33 @@ def run():
                     train_batch_size=f_config['train_batch_size_per_learner'],
                     minibatch_size=f_config['mini_batch_size_per_learner'],
 
+
     ) 
     #ppo_config.lr=0.00005
                  #0.003
                  #0.000005
-    #ppo_config.rl_module(rl_module_spec=myRLModule,))
+    ppo_config.rl_module(model_config=DefaultModelConfig(),
+                         model_config=DefaultModelConfig(
+                                        #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
+
+                                        conv_filters= [
+                                                        (32, 8, 4),  # Reduces spatial size from 84x84 -> 20x20
+                                                        (64, 4, 2),  # Reduces spatial size from 20x20 -> 9x9
+                                                        (128, 3, 1),  # Reduces spatial size from 9x9 -> 7x7
+                                                        (256, 7, 1),  # Reduces spatial size from 7x7 -> 1x1
+                                                    ],
+                                        conv_activation="relu",
+                                        post_fcnet_hiddens=[256],
+                                        vf_share_layers=True,
+                                    ),
+                        #rl_module_spec=myRLModule,
+                         )
         
 
 
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
     ppo_config.callbacks(MyAlgoCallback)
-    #ppo_config.callbacks(MemoryTrackingCallbacks)
     ppo_config.env_runners(#num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
                         num_env_runners=0,
                         num_envs_per_env_runner=1,  #2

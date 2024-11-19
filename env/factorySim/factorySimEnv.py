@@ -234,6 +234,7 @@ class FactorySimEnv(gym.Env):
 
         materialflow_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
+        
         #Format (width, height, 2)
         output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2)
         
