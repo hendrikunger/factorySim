@@ -66,53 +66,40 @@ class MyAlgoCallback(DefaultCallbacks):
         #super().__init__()    
         self.ratingkeys = ['Reward', 'TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends',]
 
-    def clear_memory(self):
-        self.memory = {}
-        self.memory["ratings"] = []
-        self.memory["images"] = []
-        self.memory["captions"] = []
-        self.memory["currentStep"] = []
-        self.memory["evalEnvID"] = []
-
-    def on_episode_start(
-        self,
-        *,
-        episode: Union[EpisodeType, Episode, EpisodeV2],
-        env_runner: Optional["EnvRunner"] = None,
-        metrics_logger: Optional[MetricsLogger] = None,
-        env: Optional[gym.Env] = None,
-        env_index: int,
-        rl_module: Optional[RLModule] = None,
-        worker: Optional["EnvRunner"] = None,
-        base_env: Optional[BaseEnv] = None,
-        policies: Optional[Dict[PolicyID, Policy]] = None,
-        **kwargs,
-    ) -> None: 
-        pass
+    # def on_episode_start(
+    #     self,
+    #     *,
+    #     episode: Union[EpisodeType, Episode, EpisodeV2],
+    #     env_runner: Optional["EnvRunner"] = None,
+    #     metrics_logger: Optional[MetricsLogger] = None,
+    #     env: Optional[gym.Env] = None,
+    #     env_index: int,
+    #     rl_module: Optional[RLModule] = None,
+    #     worker: Optional["EnvRunner"] = None,
+    #     base_env: Optional[BaseEnv] = None,
+    #     policies: Optional[Dict[PolicyID, Policy]] = None,
+    #     **kwargs,
+    # ) -> None: 
+    #     pass
   
 
-
-        #this should give us the initial info dict, but it is empty
-        #info = episode._last_infos['agent0']
-
-    def on_episode_step(
-        self,
-        *,
-        episode: Union[EpisodeType, Episode, EpisodeV2],
-        env_runner: Optional["EnvRunner"] = None,
-        metrics_logger: Optional[MetricsLogger] = None,
-        env: Optional[gym.Env] = None,
-        env_index: int,
-        rl_module: Optional[RLModule] = None,
-        worker: Optional["EnvRunner"] = None,
-        base_env: Optional[BaseEnv] = None,
-        policies: Optional[Dict[PolicyID, Policy]] = None,
-        **kwargs,
-    ) -> None:
+    # def on_episode_step(
+    #     self,
+    #     *,
+    #     episode: Union[EpisodeType, Episode, EpisodeV2],
+    #     env_runner: Optional["EnvRunner"] = None,
+    #     metrics_logger: Optional[MetricsLogger] = None,
+    #     env: Optional[gym.Env] = None,
+    #     env_index: int,
+    #     rl_module: Optional[RLModule] = None,
+    #     worker: Optional["EnvRunner"] = None,
+    #     base_env: Optional[BaseEnv] = None,
+    #     policies: Optional[Dict[PolicyID, Policy]] = None,
+    #     **kwargs,
+    # ) -> None:
         
-        if env_runner.config["env_config"]["evaluation"]:
-            pass
-
+    #     if env_runner.config["env_config"]["evaluation"]:
+    #         pass
 
 
     def on_episode_end(
@@ -135,8 +122,6 @@ class MyAlgoCallback(DefaultCallbacks):
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
             metrics_logger.log_value(("myData",infos[0].get('evalEnvID', 0)+1), infos, reduce=None, clear_on_reduce=True)
 
-
-
         
     def on_evaluate_start(
         self,
@@ -145,7 +130,7 @@ class MyAlgoCallback(DefaultCallbacks):
         metrics_logger: Optional[MetricsLogger] = None,
         **kwargs,
     ) -> None:
-        print(f"--------------------------------------------EVAL START")
+        print(f"--------------------------------------------EVAL START--------------------------------------------")
 
 
 
@@ -160,12 +145,10 @@ class MyAlgoCallback(DefaultCallbacks):
     ) -> None:
 
 
-        print(f"--------------------------------------------EVAL END")
+        print(f"--------------------------------------------EVAL END--------------------------------------------")
         #This is a dict with the evalEnvID as key and the infos of all steps in array form as value
         data = evaluation_metrics["env_runners"]["myData"]
 
-
-        #tbl = wandb.Table(columns=["id", "episode","evalEnvID", "Image"] + self.ratingkeys)
         tbl = wandb.Table(columns=["id", "episode","evalEnvID", "Image"] + self.ratingkeys)
         if data:
             #iterate over all eval episodes
@@ -181,8 +164,6 @@ class MyAlgoCallback(DefaultCallbacks):
             evaluation_metrics["table"] = tbl
 
         
-
-
        
 def _env_to_module(env):
 # Create the env-to-module connector pipeline.
