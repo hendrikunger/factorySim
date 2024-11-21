@@ -52,7 +52,7 @@ evaluation_config:
     createMachines: false
 
 render_env: false
-num_workers: 1  # parallelism  #12
+num_workers: 0  # parallelism  #12
 num_envs_per_env_runner: 1
 
 # Should be one of DEBUG, INFO, WARN, or ERROR

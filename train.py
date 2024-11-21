@@ -14,8 +14,8 @@ from ray.tune import Tuner, Callback
 from ray.air.config import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
-
-from ray.rllib.core.rl_module.rl_module import RLModule, DefaultModelConfig
+from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
+from ray.rllib.core.rl_module.rl_module import RLModule
 #from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
 #from factorySim.customModelsTorch import MyXceptionModel
@@ -24,7 +24,6 @@ from ray.rllib.core.rl_module.rl_module import RLModule, DefaultModelConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
 
 from ray.rllib.env import BaseEnv
-from ray.rllib.evaluation import Episode, RolloutWorker
 from ray.rllib.policy import Policy
 from typing import Dict
 from ray.rllib.evaluation.episode_v2 import EpisodeV2
@@ -33,7 +32,7 @@ from ray.rllib.evaluation.episode_v2 import EpisodeV2
 
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.env.env_runner import EnvRunner
-from ray.rllib.connectors import ObservationPreprocessor
+from ray.rllib.connectors.env_to_module.observation_preprocessor import ObservationPreprocessor
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
@@ -106,7 +105,7 @@ class MyAlgoCallback(DefaultCallbacks):
     def on_episode_end(
         self,
         *,
-        episode: Union[EpisodeType, Episode, EpisodeV2],
+        episode: Union[EpisodeType, EpisodeV2],
         env_runner: Optional["EnvRunner"] = None,
         metrics_logger: Optional[MetricsLogger] = None,
         env: Optional[gym.Env] = None,
@@ -216,21 +215,16 @@ def run():
     )
 
     ppo_config = PPOConfig()
-    ppo_config.api_stack(
-        enable_rl_module_and_learner=True,
-        enable_env_runner_and_connector_v2=True,
-    )
-    ppo_config.training(
-                    train_batch_size=f_config['train_batch_size_per_learner'],
-                    minibatch_size=f_config['mini_batch_size_per_learner'],
+    # ppo_config.training(
+    #                 train_batch_size=f_config['train_batch_size_per_learner'],
+    #                 minibatch_size=f_config['mini_batch_size_per_learner'],
 
 
-    ) 
+    #) 
     #ppo_config.lr=0.00005
                  #0.003
                  #0.000005
-    ppo_config.rl_module(model_config=DefaultModelConfig(),
-                         model_config=DefaultModelConfig(
+    ppo_config.rl_module(model_config=DefaultModelConfig(
                                         #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
 
                                         conv_filters= [
@@ -240,7 +234,7 @@ def run():
                                                         (256, 7, 1),  # Reduces spatial size from 7x7 -> 1x1
                                                     ],
                                         conv_activation="relu",
-                                        post_fcnet_hiddens=[256],
+                                        head_fcnet_hiddens=[256],
                                         vf_share_layers=True,
                                     ),
                         #rl_module_spec=myRLModule,
@@ -251,8 +245,8 @@ def run():
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
     ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.env_runners(#num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
-                        num_env_runners=0,
+    ppo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
+                        #num_env_runners=0,
                         num_envs_per_env_runner=1,  #2
                         enable_connectors=True,
                         env_to_module_connector=_env_to_module,
@@ -352,6 +346,6 @@ def run():
 
 
 if __name__ == "__main__":
-    from gymnasium import logger
-    logger.set_level(logger.ERROR)
+    #from gymnasium import logger
+    #logger.set_level(logger.ERROR)
     run()
