@@ -58,7 +58,7 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 from ray.rllib.models import ModelCatalog
 #ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
-
+NO_TUNE = True
 
 
 class MyAlgoCallback(DefaultCallbacks):
@@ -310,8 +310,25 @@ def run():
         results = tuner.fit() 
 
     else:
+        if NO_TUNE:
+            algo = ppo_config.build()
+            for i in range(stop.get("training_iteration",2)):
+                results = algo.train()
+                if "envrunners" in results:
+                    mean_return = results["env_runners"].get(
+                        "episode_return_mean", np.nan
+                    )
+                    print(f"iter={i} R={mean_return}", end="")
+                if "evaluation" in results:
+                    Reval = results["evaluation"]["envrunners"][
+                        "episode_return_mean"
+                    ]
+                    print(f" R(eval)={Reval}", end="")
+                print()
+
         tuner = Tuner("PPO", run_config=run_config, param_space=ppo_config)
         results = tuner.fit()
+
 
     #Loading for Evaluation
 
