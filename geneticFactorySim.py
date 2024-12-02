@@ -126,6 +126,8 @@ def tournament_survial_selection(population:list, k:int):
     return best + selected
 
 
+
+
 def generationalMemory(population:list, hall:list, k:int, generation:int, n:int):
     """Adds the individuals in the hall of fame to the population and caps the population size to k
 
@@ -239,7 +241,10 @@ def main():
     # generation: each individual of the current generation
     # is replaced by the 'fittest' (best) of three individuals
     # drawn randomly from the current generation.
-    toolbox.register("select", tournament_survial_selection)
+    # toolbox.register("select", tournament_survial_selection, k=args.num_population * NUMMACHINES)
+
+    #TODO Try roulette wheel selection
+    #toolbox.register("select", tools.selRoulette)
 
     hall = HallOfFame(10)
 
