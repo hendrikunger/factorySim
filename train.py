@@ -119,8 +119,9 @@ class MyAlgoCallback(DefaultCallbacks):
         
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
+            print(f"Episode {int(infos[0].get('evalEnvID', 0))}, {len(infos)} steps")
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
-            metrics_logger.log_value(("myData",infos[0].get('evalEnvID', 0)+1), infos, reduce=None, clear_on_reduce=True)
+            metrics_logger.log_value(("myData",int(infos[0].get('evalEnvID', 0)+1)), infos, reduce=None, clear_on_reduce=True)
 
         
     def on_evaluate_start(
@@ -154,7 +155,12 @@ class MyAlgoCallback(DefaultCallbacks):
             #iterate over all eval episodes
             for episode_id, episode in data.items():
                 #episode is a list of dicts, each dict is a step info
+                print(len(episode))
+                print(type(episode))
                 for info in episode:
+                    
+                    print(f"   {len(info)}")
+                    print(f"   {type(info)}")
                     step = info.get("Step", -1)
                     image = info.get("Image", np.random.randint(low=0, high=255, size=(100, 100, 3)))
                     caption = f"{episode_id}_{step:04d}"
@@ -162,6 +168,8 @@ class MyAlgoCallback(DefaultCallbacks):
                     rating = [info.get(key, -1) for key in self.ratingkeys]
                     tbl.add_data(f"{episode_id}_{step}", episode_id, info.get("evalEnvID", -1), logImage, *rating)
             evaluation_metrics["table"] = tbl
+            
+
 
 
 
@@ -320,14 +328,12 @@ def run():
                     )
                     print(f"iter={i} R={mean_return}", end="")
                 if "evaluation" in results:
-                    Reval = results["evaluation"]["envrunners"][
-                        "episode_return_mean"
-                    ]
+                    Reval = results["evaluation"]["env_runners"]["agent_episode_returns_mean"]["default_agent"]
                     print(f" R(eval)={Reval}", end="")
                 print()
-
-        tuner = Tuner("PPO", run_config=run_config, param_space=ppo_config)
-        results = tuner.fit()
+        else:
+            tuner = Tuner("PPO", run_config=run_config, param_space=ppo_config)
+            results = tuner.fit()
 
 
     #Loading for Evaluation
