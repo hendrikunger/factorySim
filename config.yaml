@@ -16,11 +16,7 @@ env_config:
 
 
 # Evaluate once per training iteration.
-evaluation_interval: 1
-# ... using one evaluation worker (setting this to 0 will cause
-# evaluation to run on the local evaluation worker, blocking
-# training until evaluation is done).
-evaluation_num_workers: 2
+evaluation_interval: 100
 
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
@@ -52,7 +48,7 @@ evaluation_config:
     createMachines: false
 
 render_env: false
-num_workers: 0  # parallelism  #12
+num_workers: 32  # parallelism  #12
 num_envs_per_env_runner: 1
 
 # Should be one of DEBUG, INFO, WARN, or ERROR
@@ -65,9 +61,9 @@ log_level: ERROR
 recreate_failed_workers: true
 restart_failed_sub_environments: true
 
-rollout_fragment_length: 20 
-train_batch_size_per_learner:  20 #3200
-mini_batch_size_per_learner: 10 #100
+rollout_fragment_length: 4096 
+train_batch_size_per_learner:  4096 #3200
+mini_batch_size_per_learner: 1024 #100
 num_sgd_iter: 4
 gamma: 0.99
 # The default learning rate.

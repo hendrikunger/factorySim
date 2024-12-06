@@ -1,5 +1,4 @@
 
-import pprint
 import numpy as np
 import sys
 
@@ -58,13 +57,13 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 from ray.rllib.models import ModelCatalog
 #ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
-NO_TUNE = True
-
+NO_TUNE = False
+os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
 class MyAlgoCallback(DefaultCallbacks):
     def __init__(self, legacy_callbacks_dict: Dict[str, Any] = None):
-        #super().__init__()    
-        self.ratingkeys = ['Reward', 'TotalRating', 'ratingCollision', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability', 'routeContinuity', 'routeWidthVariance', 'Deadends',]
+        super().__init__()
+        self.ratings = ['TotalRating', 'EvaluationResult', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'ratingCollision', 'routeContinuity', 'routeWidthVariance', 'Deadends', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability']
 
     # def on_episode_start(
     #     self,
@@ -121,8 +120,16 @@ class MyAlgoCallback(DefaultCallbacks):
             infos = episode.get_infos()
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
             for info in infos:
-                #metrics_logger.log_value(("myData",int(infos[0].get('evalEnvID', 0)+1)), info, reduce=None, clear_on_reduce=True)
-                metrics_logger.log_dict(info, key=("myData",int(infos[0].get('evalEnvID', 0)+1)), reduce=None, clear_on_reduce=True)
+                episode_id = int(infos[0].get('evalEnvID', 0)+1)
+                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=False)
+                #Full Logging of all metrics
+                for key, value in info.items():
+                    if key in self.ratings:
+                        metrics_logger.log_value(("myLogs",episode_id,key), value, reduce="mean", clear_on_reduce=True)
+
+
+            
+            
         
     def on_evaluate_start(
         self,
@@ -150,22 +157,24 @@ class MyAlgoCallback(DefaultCallbacks):
         #This is a dict with the evalEnvID as key and the infos of all steps in array form as value
         data = evaluation_metrics["env_runners"]["myData"]
 
-        tbl = wandb.Table(columns=["id", "episode","evalEnvID", "Image"] + self.ratingkeys)
+        
         if data:
+            column_names = [key for key in next(iter(data.values()))]
+            tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
-            for episode_id, episode in data.items():
-                #episode is a list of dicts, each dict is a step info
-                print(len(episode))
-                print(type(episode))
-                print(episode)
-                for info in episode:
-                    print(info["evalEnvID"], info["Step"], info["Reward"])
-                    step = info.get("Step", -1)
-                    image = info.get("Image", np.random.randint(low=0, high=255, size=(100, 100, 3)))
-                    caption = f"{episode_id}_{step:04d}"
-                    logImage = wandb.Image(image, caption=caption, grouping=int(episode_id))
-                    rating = [info.get(key, -1) for key in self.ratingkeys]
-                    tbl.add_data(f"{episode_id}_{step}", episode_id, info.get("evalEnvID", -1), logImage, *rating)
+            for episode_id, infos in data.items():
+                #infos is a dict of all metrics each value is a list of the values of all steps
+                for step in range(len(infos['Step'])):
+                    row = []                     
+                    row_id = f"{episode_id}_{infos['Step'][step]}"
+                    row.append(row_id)
+                    for key, values in infos.items():
+
+                        value = values[step]
+                        if key == "Image":
+                            value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
+                        row.append(value)
+                    tbl.add_data(*row)
             evaluation_metrics["table"] = tbl
             
 
@@ -209,25 +218,25 @@ def run():
     ray.init(num_gpus=NUMGPUS, include_dashboard=False, runtime_env=runtime_env) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    "training_iteration": 20,
-    #"num_env_steps_sampled_lifetime": 15000000,
+    #"training_iteration": 2,
+    "num_env_steps_sampled_lifetime": 15000000,
     #"episode_reward_mean": 5,
     }
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
-                                         checkpoint_frequency=50, 
+                                         checkpoint_frequency=100, 
                                          checkpoint_score_order="max", 
                                          checkpoint_score_attribute="episode_reward_mean", 
                                          num_to_keep=5 
     )
 
     ppo_config = PPOConfig()
-    ppo_config.training(
-                    train_batch_size=f_config['train_batch_size_per_learner'],
-                    minibatch_size=f_config['mini_batch_size_per_learner'],
+    # ppo_config.training(
+    #                 train_batch_size=f_config['train_batch_size_per_learner'],
+    #                 minibatch_size=f_config['mini_batch_size_per_learner'],
 
 
-    ) 
+    #) 
     #ppo_config.lr=0.00005
                  #0.003
                  #0.000005
@@ -252,14 +261,16 @@ def run():
     ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
     ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
-                        #num_env_runners=0,
+    ppo_config.debugging(logger_config={"type": "ray.tune.logger.NoopLogger"}) # Disable slow tbx logging
+    ppo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
                         num_envs_per_env_runner=1,  #2
+                        num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         )
-    #ppo_config.train_batch_size=256
-    ppo_config.framework(framework="torch",
+    ppo_config.learners( num_learners=NUMGPUS,
+                         num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
                          )
+
 
     eval_config = f_config['evaluation_config']["env_config"]
     eval_config['inputfile'] = ifcpath
@@ -267,16 +278,12 @@ def run():
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation") 
 
     eval_duration = len([x for x in os.listdir(path) if ".ifc" in x])
-    print(f"---->Eval Duration: {eval_duration}")
     ppo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
                           evaluation_interval=f_config["evaluation_interval"],
                           evaluation_config={"env_config": eval_config},
                           evaluation_parallel_to_training=False,
                         )   
-    ppo_config.learners( num_learners=NUMGPUS,
-                         num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
-                         )
 
 
     
