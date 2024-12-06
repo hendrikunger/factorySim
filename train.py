@@ -119,10 +119,10 @@ class MyAlgoCallback(DefaultCallbacks):
         
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
-            print(f"Episode {int(infos[0].get('evalEnvID', 0))}, {len(infos)} steps")
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
-            metrics_logger.log_value(("myData",int(infos[0].get('evalEnvID', 0)+1)), infos, reduce=None, clear_on_reduce=True)
-
+            for info in infos:
+                #metrics_logger.log_value(("myData",int(infos[0].get('evalEnvID', 0)+1)), info, reduce=None, clear_on_reduce=True)
+                metrics_logger.log_dict(info, key=("myData",int(infos[0].get('evalEnvID', 0)+1)), reduce=None, clear_on_reduce=True)
         
     def on_evaluate_start(
         self,
@@ -157,10 +157,9 @@ class MyAlgoCallback(DefaultCallbacks):
                 #episode is a list of dicts, each dict is a step info
                 print(len(episode))
                 print(type(episode))
+                print(episode)
                 for info in episode:
-                    
-                    print(f"   {len(info)}")
-                    print(f"   {type(info)}")
+                    print(info["evalEnvID"], info["Step"], info["Reward"])
                     step = info.get("Step", -1)
                     image = info.get("Image", np.random.randint(low=0, high=255, size=(100, 100, 3)))
                     caption = f"{episode_id}_{step:04d}"
@@ -223,12 +222,12 @@ def run():
     )
 
     ppo_config = PPOConfig()
-    # ppo_config.training(
-    #                 train_batch_size=f_config['train_batch_size_per_learner'],
-    #                 minibatch_size=f_config['mini_batch_size_per_learner'],
+    ppo_config.training(
+                    train_batch_size=f_config['train_batch_size_per_learner'],
+                    minibatch_size=f_config['mini_batch_size_per_learner'],
 
 
-    #) 
+    ) 
     #ppo_config.lr=0.00005
                  #0.003
                  #0.000005
@@ -256,7 +255,6 @@ def run():
     ppo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,  #f_config['num_workers'], 
                         #num_env_runners=0,
                         num_envs_per_env_runner=1,  #2
-                        enable_connectors=True,
                         env_to_module_connector=_env_to_module,
                         )
     #ppo_config.train_batch_size=256
