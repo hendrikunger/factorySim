@@ -65,21 +65,28 @@ class MyAlgoCallback(DefaultCallbacks):
         super().__init__()
         self.ratings = ['TotalRating', 'EvaluationResult', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'ratingCollision', 'routeContinuity', 'routeWidthVariance', 'Deadends', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability']
 
-    # def on_episode_start(
-    #     self,
-    #     *,
-    #     episode: Union[EpisodeType, Episode, EpisodeV2],
-    #     env_runner: Optional["EnvRunner"] = None,
-    #     metrics_logger: Optional[MetricsLogger] = None,
-    #     env: Optional[gym.Env] = None,
-    #     env_index: int,
-    #     rl_module: Optional[RLModule] = None,
-    #     worker: Optional["EnvRunner"] = None,
-    #     base_env: Optional[BaseEnv] = None,
-    #     policies: Optional[Dict[PolicyID, Policy]] = None,
-    #     **kwargs,
-    # ) -> None: 
-    #     pass
+    def on_episode_start(
+        self,
+        *,
+        episode: Union[EpisodeType, EpisodeV2],
+        env_runner: Optional["EnvRunner"] = None,
+        metrics_logger: Optional[MetricsLogger] = None,
+        env: Optional[gym.Env] = None,
+        env_index: int,
+        rl_module: Optional[RLModule] = None,
+        worker: Optional["EnvRunner"] = None,
+        base_env: Optional[BaseEnv] = None,
+        policies: Optional[Dict[PolicyID, Policy]] = None,
+        **kwargs,
+    ) -> None: 
+        if env_runner.config["env_config"]["evaluation"]:
+            infos = episode.get_infos()
+            for info in infos:
+                episode_id = int(info.get('evalEnvID', 0)+1)
+                print(f"Episode {episode_id} started")
+                #delete old data
+                metrics_logger.delete(("myData",episode_id), key_error=False)
+
   
 
     # def on_episode_step(
@@ -218,15 +225,15 @@ def run():
     ray.init(num_gpus=NUMGPUS, include_dashboard=False, runtime_env=runtime_env) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
-    #"training_iteration": 2,
-    "num_env_steps_sampled_lifetime": 15000000,
+    "training_iteration": 2,
+    #"num_env_steps_sampled_lifetime": 15000000,
     #"episode_reward_mean": 5,
     }
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
                                          checkpoint_frequency=100, 
                                          checkpoint_score_order="max", 
-                                         checkpoint_score_attribute="episode_reward_mean", 
+                                         checkpoint_score_attribute="env_runners/episode_return_mean", 
                                          num_to_keep=5 
     )
 
