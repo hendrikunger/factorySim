@@ -1,4 +1,4 @@
-name: factorysim
+name: factorysim_tf
 channels:
   - conda-forge
   - defaults

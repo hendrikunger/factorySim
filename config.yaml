@@ -10,7 +10,7 @@ env_config:
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
   evaluation: false #Gets populated on runtime
-  reward_function: 2
+  reward_function: 3
   randomSeed: null
   createMachines: true
 
@@ -44,7 +44,7 @@ evaluation_config:
     prefix: null #Gets populated on runtime
     evaluation: true
     randomSeed: 42
-    reward_function: 2
+    reward_function: 3
     createMachines: false
 
 render_env: false

@@ -36,6 +36,7 @@ from ray.rllib.connectors.env_to_module.observation_preprocessor import Observat
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
+from ray.tune.registry import register_env
 
 import wandb
 import yaml
@@ -58,7 +59,13 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 from ray.rllib.models import ModelCatalog
 #ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
-NO_TUNE = False
+
+def env_creator(env_config):
+    return FactorySimEnv(env_config=env_config)  # return an env instance
+
+register_env("FactorySimEnv", env_creator)
+
+NO_TUNE = True
 ALGO = "Dreamer"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
@@ -224,7 +231,7 @@ def run():
     "excludes": ["/.git", "/.vscode", "/wandb", "/artifacts", "*.skp"]
     }
     NUMGPUS = int(os.getenv("$SLURM_GPUS", 0 if sys.platform == "darwin" else 1))
-    ray.init(num_gpus=NUMGPUS, include_dashboard=False, runtime_env=runtime_env) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+    ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
 
     stop = {
     "training_iteration": 2,
@@ -243,12 +250,12 @@ def run():
         case "PPO":
     
             algo_config = PPOConfig()
-            # algo_config.training(
-            #                 train_batch_size=f_config['train_batch_size_per_learner'],
-            #                 minibatch_size=f_config['mini_batch_size_per_learner'],
+            algo_config.training(
+                            train_batch_size=f_config['train_batch_size_per_learner'],
+                            minibatch_size=f_config['mini_batch_size_per_learner'],
 
 
-            #) 
+            ) 
             #algo_config.lr=0.00005
                         #0.003
                         #0.000005
@@ -264,15 +271,20 @@ def run():
                                                 conv_activation="relu",
                                                 head_fcnet_hiddens=[256],
                                                 vf_share_layers=True,
-                                                vf_loss_coeff=0.5 ,       # Coefficient of the value function loss. IMPORTANT: you must tune this if you set vf_share_layers=True inside your model’s config.
+                 
 
 
                                             ),
                                 #rl_module_spec=myRLModule,
                                 )
+            algo_config.vf_loss_coeff=0.5   # Coefficient of the value function loss. IMPORTANT: you must tune this if you set vf_share_layers=True inside your model’s config.
         #PPO END ------------------------------------------------------------------------------------------------------
         case "Dreamer":
             algo_config = DreamerV3Config()
+
+            #Dreamer needs 64x64x3 input
+            f_config['env_config']['width'] = 64
+            f_config['env_config']['height'] = 64
 
             w = algo_config.world_model_lr
             c = algo_config.critic_lr
@@ -289,7 +301,7 @@ def run():
             )
         #Dreamer END ------------------------------------------------------------------------------------------------------
 
-    algo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
+    algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False)
 
     algo_config.callbacks(MyAlgoCallback)
     algo_config.debugging(logger_config={"type": "ray.tune.logger.NoopLogger"}) # Disable slow tbx logging
