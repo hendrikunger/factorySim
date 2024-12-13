@@ -88,7 +88,7 @@ class FactorySimEnv(gym.Env):
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
-            self.observation_space = spaces.Box(low=0.0, high=255.0, shape=(self.width, self.height, 2), dtype=np.float32)
+            self.observation_space = spaces.Box(low=0.0, high=255.0, shape=(self.width, self.height, 3), dtype=np.float32)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
 
@@ -236,7 +236,7 @@ class FactorySimEnv(gym.Env):
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         
         #Format (width, height, 2)
-        output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2, dtype=np.float32)
+        output = np.concatenate((machines_greyscale, materialflow_greyscale, materialflow_greyscale), axis=2, dtype=np.float32)
         
         return output
     
@@ -263,7 +263,8 @@ class FactorySimEnv(gym.Env):
             self.info = {}
             self.terminated = True
         
-        
+    def __str__():
+        return "FactorySimEnv"
 
 MultiFactorySimEnv = make_multi_agent(lambda config: FactorySimEnv(config))
 
