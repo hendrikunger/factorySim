@@ -12,6 +12,7 @@ import ray
 from ray.tune import Tuner, Callback
 from ray.air.config import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
 from ray.rllib.core.rl_module.rl_module import RLModule
@@ -58,6 +59,7 @@ from ray.rllib.models import ModelCatalog
 #ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 NO_TUNE = False
+ALGO = "Dreamer"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
 class MyAlgoCallback(DefaultCallbacks):
@@ -237,44 +239,51 @@ def run():
                                          num_to_keep=5 
     )
 
-    ppo_config = PPOConfig()
-    # ppo_config.training(
-    #                 train_batch_size=f_config['train_batch_size_per_learner'],
-    #                 minibatch_size=f_config['mini_batch_size_per_learner'],
+    match ALGO:
+        case "PPO":
+    
+            algo_config = PPOConfig()
+            # algo_config.training(
+            #                 train_batch_size=f_config['train_batch_size_per_learner'],
+            #                 minibatch_size=f_config['mini_batch_size_per_learner'],
 
 
-    #) 
-    #ppo_config.lr=0.00005
-                 #0.003
-                 #0.000005
-    ppo_config.rl_module(model_config=DefaultModelConfig(
-                                        #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
+            #) 
+            #algo_config.lr=0.00005
+                        #0.003
+                        #0.000005
+            algo_config.rl_module(model_config=DefaultModelConfig(
+                                                #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
 
-                                        conv_filters= [
-                                                        (32, 8, 4),  # Reduces spatial size from 84x84 -> 20x20
-                                                        (64, 4, 2),  # Reduces spatial size from 20x20 -> 9x9
-                                                        (128, 3, 1),  # Reduces spatial size from 9x9 -> 7x7
-                                                        (256, 7, 1),  # Reduces spatial size from 7x7 -> 1x1
-                                                    ],
-                                        conv_activation="relu",
-                                        head_fcnet_hiddens=[256],
-                                        vf_share_layers=True,
-                                    ),
-                        #rl_module_spec=myRLModule,
-                         )
-        
+                                                conv_filters= [
+                                                                (32, 8, 4),  # Reduces spatial size from 84x84 -> 20x20
+                                                                (64, 4, 2),  # Reduces spatial size from 20x20 -> 9x9
+                                                                (128, 3, 1),  # Reduces spatial size from 9x9 -> 7x7
+                                                                (256, 7, 1),  # Reduces spatial size from 7x7 -> 1x1
+                                                            ],
+                                                conv_activation="relu",
+                                                head_fcnet_hiddens=[256],
+                                                vf_share_layers=True,
+                                                vf_loss_coeff=0.5 ,       # Coefficient of the value function loss. IMPORTANT: you must tune this if you set vf_share_layers=True inside your model’s config.
 
 
-    ppo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
+                                            ),
+                                #rl_module_spec=myRLModule,
+                                )
+        case "Dreamer":
+            algo_config = DreamerV3Config()
 
-    ppo_config.callbacks(MyAlgoCallback)
-    ppo_config.debugging(logger_config={"type": "ray.tune.logger.NoopLogger"}) # Disable slow tbx logging
-    ppo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
+
+    algo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
+
+    algo_config.callbacks(MyAlgoCallback)
+    algo_config.debugging(logger_config={"type": "ray.tune.logger.NoopLogger"}) # Disable slow tbx logging
+    algo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
                         num_envs_per_env_runner=1,  #2
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         )
-    ppo_config.learners( num_learners=NUMGPUS,
+    algo_config.learners( num_learners=NUMGPUS,
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
                          )
 
@@ -285,7 +294,7 @@ def run():
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation") 
 
     eval_duration = len([x for x in os.listdir(path) if ".ifc" in x])
-    ppo_config.evaluation(evaluation_duration=eval_duration,
+    algo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
                           evaluation_interval=f_config["evaluation_interval"],
                           evaluation_config={"env_config": eval_config},
@@ -326,12 +335,12 @@ def run():
         print("--------------------------------------------------------------------------------------------------------")
         #Continuing training
 
-        tuner = Tuner.restore(path.as_posix(), "PPO", param_space=ppo_config)
+        tuner = Tuner.restore(path.as_posix(), "PPO", param_space=algo_config)
         results = tuner.fit() 
 
     else:
         if NO_TUNE:
-            algo = ppo_config.build()
+            algo = algo_config.build()
             for i in range(stop.get("training_iteration",2)):
                 results = algo.train()
                 if "envrunners" in results:
@@ -344,7 +353,7 @@ def run():
                     print(f" R(eval)={Reval}", end="")
                 print()
         else:
-            tuner = Tuner("PPO", run_config=run_config, param_space=ppo_config)
+            tuner = Tuner("PPO", run_config=run_config, param_space=algo_config)
             results = tuner.fit()
 
 
