@@ -270,9 +270,24 @@ def run():
                                             ),
                                 #rl_module_spec=myRLModule,
                                 )
+        #PPO END ------------------------------------------------------------------------------------------------------
         case "Dreamer":
             algo_config = DreamerV3Config()
 
+            w = algo_config.world_model_lr
+            c = algo_config.critic_lr
+            algo_config.training(
+                model_size="M",
+                training_ratio=512, #Should be lower for larger models e.g. 64 for XL  
+                batch_size_B=16 * (NUMGPUS or 1),
+                # Use a well established 4-GPU lr scheduling recipe:
+                # ~ 1000 training updates with 0.4x[default rates], then over a few hundred
+                # steps, increase to 4x[default rates].
+                world_model_lr=[[0, 0.4 * w], [8000, 0.4 * w], [10000, 3 * w]],
+                critic_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
+                actor_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
+            )
+        #Dreamer END ------------------------------------------------------------------------------------------------------
 
     algo_config.environment(FactorySimEnv, env_config=f_config['env_config'], render_env=False)
 
