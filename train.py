@@ -125,6 +125,8 @@ class MyAlgoCallback(DefaultCallbacks):
         **kwargs,
     ) -> None:
         
+
+        # test You can base your custom logic on whether the calling EnvRunner is a regular “training” EnvRunner, used to collect training samples, or an evaluation EnvRunner, used to play through episodes for evaluation only. Access the env_runner.config.in_evaluation boolean flag, which is True on evaluation EnvRunner actors and False on EnvRunner actors used to collect training data.
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
