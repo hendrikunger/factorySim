@@ -204,6 +204,8 @@ def draw_pathwidth_circles2(ctx, fullPathGraph, reducedPathGraph):
     return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_route_lines(ctx, route_lines):
+    if type(route_lines) == list:
+       return ctx
     for line in route_lines.geoms:
         ctx.move_to(*line.coords[0])
         for x,y in line.coords[1:]:
