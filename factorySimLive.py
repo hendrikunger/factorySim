@@ -213,19 +213,19 @@ class factorySimLive(mglw.WindowConfig):
         )
 
 
-    def resize(self, width: int, height: int):
+    def on_resize(self, width: int, height: int):
         self.window_size = (width, height)
         self.set_factoryScale()
 
 
-    def close(self):
+    def on_close(self):
         print("closing")
         self.executor.shutdown()
         if self.is_online:
             self.mqtt_client.loop_stop()
         
 
-    def key_event(self, key, action, modifiers):
+    def on_key_event(self, key, action, modifiers):
         keys = self.wnd.keys
         # 65453  Num Minus
         # 65451  Num Plus
@@ -233,6 +233,7 @@ class factorySimLive(mglw.WindowConfig):
         if action == keys.ACTION_PRESS:
             # Toggle Fullscreen
             if key == keys.F:
+                print("Toggling Fullscreen")
                 self.wnd.fullscreen = not self.wnd.fullscreen   
             # Toggle Text Rendering under selection
             if key == keys.E:
@@ -316,12 +317,12 @@ class factorySimLive(mglw.WindowConfig):
                 self.wnd.exit_key = None
 
 
-    def mouse_position_event(self, x, y, dx, dy):
+    def on_mouse_position_event(self, x, y, dx, dy):
         x *= self.dpiScaler
         y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
-    def mouse_drag_event(self, x, y, dx, dy):
+    def on_mouse_drag_event(self, x, y, dx, dy):
         x *= self.dpiScaler
         y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
@@ -333,7 +334,7 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
 
-    def mouse_press_event(self, x, y, button):
+    def on_mouse_press_event(self, x, y, button):
         #Highlight and prepare for Drag
         x *= self.dpiScaler
         y *= self.dpiScaler
@@ -387,12 +388,12 @@ class factorySimLive(mglw.WindowConfig):
                 
 
 
-    def mouse_release_event(self, x: int, y: int, button: int):
+    def on_mouse_release_event(self, x: int, y: int, button: int):
         if button == 1:
             #self.selected = None
             pass
 
-    def render(self, time, frame_time):
+    def on_render(self, time, frame_time):
         if time > self.lastTime + 0.5:
             self.fps_counter = 1/(frame_time+0.00000001)
             self.lastTime = time
