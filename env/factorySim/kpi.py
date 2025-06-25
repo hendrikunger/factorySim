@@ -27,9 +27,9 @@ class FactoryRating():
         max_pathwidth = np.array(list((nx.get_edge_attributes(self.reducedPathGraph,'max_pathwidth').values())))
         temp = np.power(min_pathwidth/max_pathwidth,2)
         if len(temp) > 0:
-            return np.mean(temp)
+            return np.mean(temp).item() 
         else:
-            return 0
+            return 0.0
  #------------------------------------------------------------------------------------------------------------
 
     def PathPolygon(self):
@@ -70,11 +70,11 @@ class FactoryRating():
             subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()]) 
             totalWeight = subview.size(weight='weight')
             if totalWeight > 0:
-                return np.clip(machineSquares.sum()/totalWeight,0,1)
+                return np.clip(machineSquares.sum()/totalWeight,0,1).item()  
             else:
-                return 0
+                return 0.0
         else:
-            return 0      
+            return 0.0      
  #------------------------------------------------------------------------------------------------------------
     def FreeSpacePolygon(self, pathPolygon, walkableAreaPoly, usedSpacePolygonDict):
 
@@ -136,22 +136,22 @@ class FactoryRating():
         if freeSpacePolygon.area > 0:
             rectArea = freeSpacePolygon.envelope.area
             if rectArea > 0:
-                return np.clip(freeSpacePolygon.area / rectArea, 0, 1)
+                return np.clip(freeSpacePolygon.area / rectArea, 0, 1).item() 
             else:
-                return 0    
+                return 0.0    
         else:
-            return 0
+            return 0.0
  #------------------------------------------------------------------------------------------------------------
     def evaluateDeadends(self):
         '''Compares amount of deadends to amount of edges in simplified graph'''
         if self.reducedPathGraph:
             subview = self.reducedPathGraph.subgraph([n for n in self.reducedPathGraph.nodes() if n not in self.machine_dict.keys()])
             if len(subview.edges()) > 0:            
-                return np.clip(1-(len([x for x in subview.nodes() if subview.degree(x) == 1])/(len(subview.edges()))),0,1)
+                return (np.clip(1-(len([x for x in subview.nodes() if subview.degree(x) == 1])/(len(subview.edges()))),0,1)).item()  
             else:
-                return 0
+                return 0.0
         else :
-            return 0
+            return 0.0
  #------------------------------------------------------------------------------------------------------------
     def evaluateCompactness(self, usedSpacePolygonDict):
         '''Compares the area of a polygon against the area of a circle with the same area as the polygon.'''
@@ -166,7 +166,7 @@ class FactoryRating():
         if walkableAreaPoly.area > 0:
             return 1-(freeSpacePolygon.area / walkableAreaPoly.area)
         else:
-            return 0
+            return 0.0
 
  #------------------------------------------------------------------------------------------------------------
     def findCollisions(self, lastUpdatedMachine=None):
@@ -234,9 +234,9 @@ class FactoryRating():
             output = 1 - (np.power(self.dfMF['costs'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
             if(output < 0): output = 0
 
-            return np.power(output,2)
+            return np.power(output,2).item()
         else:
-            return 0
+            return 0.0
 
  #------------------------------------------------------------------------------------------------------------
     def evaluateTrueMF(self, boundingBox):
@@ -250,9 +250,9 @@ class FactoryRating():
             output = 1 - (np.power(self.dfMF['trueCosts'].sum(),2) / self.dfMF['intensity_sum_norm'].sum())
             if(output < 0): output = 0
 
-            return np.power(output,2)
+            return np.power(output,2).item()  
         else:
-            return 0
+            return 0.0
  #------------------------------------------------------------------------------------------------------------
     def evaluateMFIntersection(self):
         if len(self.dfMF.index) > 0:
@@ -278,9 +278,9 @@ class FactoryRating():
                     intersections.append(Point(inter.geoms[0].coords[1]))
                     output += (row1.intensity_sum_norm + row2.intensity_sum_norm) / 2 * totalIntensity
             #calulate penalty for all intersections 
-            return np.clip(1-(output)/len(self.dfMF.index), 0,1), intersections
+            return np.clip(1-(output)/len(self.dfMF.index), 0,1).item() , intersections
         else:
-            return 0, []
+            return 0.0, []
  #------------------------------------------------------------------------------------------------------------
     def evaluateRouteContinuity(self):
         #angleList holds smallest angle in degrees between two edges (0-180)
@@ -299,14 +299,14 @@ class FactoryRating():
         angleList = (1-(1/numBends)) * angleList + (1/numBends) #* 1        
         #Normalze to a sum of 1
         normed = angleList.sum() / numBends
-        return normed
+        return normed.item() 
     
  #------------------------------------------------------------------------------------------------------------
     def evaluateRouteAccess(self, MachinesFarFromPath):
         if len(self.machine_dict) > 0:
             return 1-(len(MachinesFarFromPath) / len(self.machine_dict))
         else:
-            return 0
+            return 0.0
  #------------------------------------------------------------------------------------------------------------
     def makeMultiPolygon(self, poly):
         if type(poly) == Polygon:

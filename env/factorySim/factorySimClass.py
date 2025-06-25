@@ -209,32 +209,32 @@ class FactorySim:
 
             self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.creator.prep_bb, dfMF=self.dfMF)
 
-            self.RatingDict["ratingCollision"] = self.evaluateCollision()    
+            self.RatingDict["ratingCollision"] = self.evaluateCollision()      
             if(self.verboseOutput >= 3):
                 self.printTime("Kollisionsbewertung abgeschlossen")
 
-            self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.creator.bb) 
+            self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.creator.bb)   
             self.RatingDict["ratingTrueMF"] = self.factoryRating.evaluateTrueMF(self.creator.bb)
             #sort MF Dict for Rendering
             self.dfMF.sort_values(by=['intensity_sum_norm'], inplace=True, ascending=False) 
-            self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()        
+            self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()         
             if(self.verboseOutput >= 3):
                 self.printTime("Bewertung des Materialfluss abgeschlossen")
 
             self.pathPolygon, self.extendedPathPolygon = self.factoryRating.PathPolygon()
             self.MachinesFarFromPath = self.factoryRating.getMachinesFarFromPath(self.extendedPathPolygon)
-            self.RatingDict["routeAccess"] = self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath)
+            self.RatingDict["routeAccess"] = self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath) 
             self.RatingDict["pathEfficiency"] = self.factoryRating.PathEfficiency()
             #20 % of the maximum dimension of the factory as grouping threshold
             self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
             self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
-            self.RatingDict["areaUtilisation"] = self.factoryRating.evaluateAreaUtilisation(self.walkableArea, self.freeSpacePolygon)
-            self.RatingDict["Scalability"] = self.factoryRating.evaluateScalability(self.growingSpacePolygon)
+            self.RatingDict["areaUtilisation"] = self.factoryRating.evaluateAreaUtilisation(self.walkableArea, self.freeSpacePolygon) 
+            self.RatingDict["Scalability"] = self.factoryRating.evaluateScalability(self.growingSpacePolygon) 
             #Currently not used, does not make relevant difference
             self.factoryRating.evaluateCompactness(self.usedSpacePolygonDict)
             self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
-            self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
-            self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
+            self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity() 
+            self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance() 
             self.RatingDict["Deadends"] =self.factoryRating.evaluateDeadends()
             
 
@@ -249,17 +249,17 @@ class FactorySim:
                     weights = np.ones_like(partialRatings)
 
                     if(self.RatingDict.get("ratingCollision", -1) >= 0.5):
-                        self.currentRating = np.average(partialRatings, weights=weights)
+                        self.currentRating = np.average(partialRatings, weights=weights).item()  
                     else: 
-                        self.currentRating = -1
+                        self.currentRating = -1.0
 
                 case 2:
                     # Rating the difference to the last rating
                     partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "EvaluationResult"])
                     weights = np.ones_like(partialRatings)
 
-                    self.currentRating = np.average(partialRatings, weights=weights)
-                    self.RatingDict["EvaluationResult"] = self.currentRating
+                    self.currentRating = np.average(partialRatings, weights=weights).item() 
+                    self.RatingDict["EvaluationResult"] = self.currentRating.item()  
                     
 
                     if self.currentRating > self.lastRating: 
@@ -271,11 +271,11 @@ class FactorySim:
                     # Weighted average of all ratings
                     partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated"])
                     weights = np.ones_like(partialRatings)
-                    self.currentRating = np.average(partialRatings, weights=weights)
+                    self.currentRating = np.average(partialRatings, weights=weights).item() 
 
 
 
-            self.RatingDict["Reward"] = self.currentRating                       
+            self.RatingDict["Reward"] = self.currentRating                 
 
             #if(output["ratingCollision"] >= 0.5):
             #    self.currentRating = 0.1
@@ -292,7 +292,7 @@ class FactorySim:
         else:
             if(self.verboseOutput >= 1):
                 print("Bewertung fehlgeschlagen")
-            self.RatingDict["TotalRating"] = -10
+            self.RatingDict["TotalRating"] = -10.0
             self.RatingDict["terminated"] = True
             return self.currentRating, self.currentRating, self.RatingDict, self.RatingDict["terminated"]
 

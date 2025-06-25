@@ -244,7 +244,7 @@ def main():
     # toolbox.register("select", tournament_survial_selection, k=args.num_population * NUMMACHINES)
 
     #TODO Try roulette wheel selection
-    #toolbox.register("select", tools.selRoulette)
+    toolbox.register("select", tools.selRoulette)
 
     hall = HallOfFame(10)
 
