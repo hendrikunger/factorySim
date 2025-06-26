@@ -1,7 +1,7 @@
 
 import numpy as np
 import sys
-
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union, Optional, Sequence
 from pathlib import Path
 import os
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
@@ -9,38 +9,33 @@ import gymnasium as gym
 
 import ray
 
-from ray.tune import Tuner, Callback
+from ray.tune import Tuner
+from ray.rllib.callbacks.callbacks import RLlibCallback
 from ray.air.config import RunConfig, CheckpointConfig
+from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
-from ray.rllib.core.rl_module.rl_module import RLModule
+#from ray.rllib.core.rl_module.rl_module import RLModule
 #from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
 #from factorySim.customModelsTorch import MyXceptionModel
 
-
 from ray.air.integrations.wandb import WandbLoggerCallback
-
-from ray.rllib.env import BaseEnv
-from ray.rllib.policy import Policy
 from typing import Dict
-from ray.rllib.evaluation.episode_v2 import EpisodeV2
 
 
 
-from ray.rllib.algorithms.algorithm import Algorithm
-from ray.rllib.env.env_runner import EnvRunner
+
+
 from ray.rllib.connectors.env_to_module.observation_preprocessor import ObservationPreprocessor
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union
+
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
 from ray.tune.registry import register_env
 
 import wandb
 import yaml
-from  typing import Any
 from datetime import datetime
 
 
@@ -66,28 +61,25 @@ def env_creator(env_config):
 register_env("FactorySimEnv", env_creator)
 
 NO_TUNE = True
-ALGO = "Dreamer"
+ALGO = "PPO"  # "Dreamer" or "PPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
-class MyAlgoCallback(DefaultCallbacks):
-    def __init__(self, legacy_callbacks_dict: Dict[str, Any] = None):
+class MyAlgoCallback(RLlibCallback):
+    def __init__(self, env_runner_indices: Optional[Sequence[int]] = None):
         super().__init__()
         self.ratings = ['TotalRating', 'EvaluationResult', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'ratingCollision', 'routeContinuity', 'routeWidthVariance', 'Deadends', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability']
 
     def on_episode_start(
         self,
         *,
-        episode: Union[EpisodeType, EpisodeV2],
-        env_runner: Optional["EnvRunner"] = None,
-        metrics_logger: Optional[MetricsLogger] = None,
-        env: Optional[gym.Env] = None,
-        env_index: int,
-        rl_module: Optional[RLModule] = None,
-        worker: Optional["EnvRunner"] = None,
-        base_env: Optional[BaseEnv] = None,
-        policies: Optional[Dict[PolicyID, Policy]] = None,
+        episode,
+        env_runner,
+        metrics_logger,
+        env,
+        env_index,
+        rl_module,
         **kwargs,
-    ) -> None: 
+    ) -> None:
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
             for info in infos:
@@ -101,15 +93,12 @@ class MyAlgoCallback(DefaultCallbacks):
     # def on_episode_step(
     #     self,
     #     *,
-    #     episode: Union[EpisodeType, Episode, EpisodeV2],
-    #     env_runner: Optional["EnvRunner"] = None,
-    #     metrics_logger: Optional[MetricsLogger] = None,
-    #     env: Optional[gym.Env] = None,
-    #     env_index: int,
-    #     rl_module: Optional[RLModule] = None,
-    #     worker: Optional["EnvRunner"] = None,
-    #     base_env: Optional[BaseEnv] = None,
-    #     policies: Optional[Dict[PolicyID, Policy]] = None,
+    #     episode,
+    #     env_runner,
+    #     metrics_logger,
+    #     env,
+    #     env_index,
+    #     rl_module,
     #     **kwargs,
     # ) -> None:
         
@@ -120,15 +109,12 @@ class MyAlgoCallback(DefaultCallbacks):
     def on_episode_end(
         self,
         *,
-        episode: Union[EpisodeType, EpisodeV2],
-        env_runner: Optional["EnvRunner"] = None,
-        metrics_logger: Optional[MetricsLogger] = None,
-        env: Optional[gym.Env] = None,
-        env_index: int,
-        rl_module: Optional[RLModule] = None,
-        worker: Optional["EnvRunner"] = None,
-        base_env: Optional[BaseEnv] = None,
-        policies: Optional[Dict[PolicyID, Policy]] = None,
+        episode,
+        env_runner,
+        metrics_logger,
+        env,
+        env_index,
+        rl_module,
         **kwargs,
     ) -> None:
         
@@ -206,7 +192,7 @@ class NormalizeObservations(ObservationPreprocessor):
 
 
        
-def _env_to_module(env):
+def _env_to_module(env=None, spaces=None, device=None) -> ObservationPreprocessor:
 # Create the env-to-module connector pipeline.
     return NormalizeObservations()
 
@@ -243,7 +229,7 @@ def run():
 
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
                                          checkpoint_frequency=100, 
-                                         checkpoint_score_order="max", 
+                                         checkpoint_score_order="max",
                                          checkpoint_score_attribute="env_runners/episode_return_mean", 
                                          num_to_keep=5 
     )
@@ -265,17 +251,14 @@ def run():
                                                 #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
 
                                                 conv_filters= [
-                                                                (32, 8, 4),  # Reduces spatial size from 84x84 -> 20x20
-                                                                (64, 4, 2),  # Reduces spatial size from 20x20 -> 9x9
-                                                                (128, 3, 1),  # Reduces spatial size from 9x9 -> 7x7
-                                                                (256, 7, 1),  # Reduces spatial size from 7x7 -> 1x1
+                                                                [32, 8, 4],  # Reduces spatial size from 84x84 -> 20x20
+                                                                [64, 4, 2],  # Reduces spatial size from 20x20 -> 9x9
+                                                                [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
+                                                                [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
                                                             ],
                                                 conv_activation="relu",
                                                 head_fcnet_hiddens=[256],
                                                 vf_share_layers=True,
-                 
-
-
                                             ),
                                 #rl_module_spec=myRLModule,
                                 )
@@ -369,7 +352,7 @@ def run():
 
     else:
         if NO_TUNE:
-            algo = algo_config.build()
+            algo = algo_config.build_algo()
             for i in range(stop.get("training_iteration",2)):
                 results = algo.train()
                 if "envrunners" in results:

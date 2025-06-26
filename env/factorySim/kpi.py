@@ -346,7 +346,7 @@ if __name__ == "__main__":
         factoryConfig=baseConfigs.SMALLSQUARE,
         randomPos=False,
         createMachines=True,
-        verboseOutput=0,
+        logLevel=0,
         maxMF_Elements=None
         )
 

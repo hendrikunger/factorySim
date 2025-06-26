@@ -21,7 +21,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randSeed = int(time()), randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
+    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randSeed = int(time()), randomPos = False, createMachines = False, logLevel = 0, maxMF_Elements = None):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.DRAWINGORIGIN = (0,0)
         self.MAXMF_ELEMENTS = maxMF_Elements
@@ -33,7 +33,7 @@ class FactorySim:
             factoryConfig.MAXCORNERS,
             randSeed=randSeed
             )
-        self.verboseOutput = verboseOutput
+        self.verboseOutput = logLevel
         self.pathPolygon = None
         self.MFIntersectionPoints = None
         self.rng = np.random.default_rng(randSeed)
@@ -196,7 +196,7 @@ class FactorySim:
 
         self.RatingDict = {}
         #In case caluclation fails set default rating
-        self.currentRating = -5
+        self.currentRating = -5.0
 
         
         self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.creator.bb)
@@ -421,13 +421,13 @@ def main():
         factoryConfig=baseConfigs.SMALL,
         randomPos=False,
         createMachines=True,
-        verboseOutput=4,
+        logLevel=4,
         maxMF_Elements = 3)
     
     surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
     draw_BG(ctx, demoFactory.DRAWINGORIGIN, *img_resolution)
-    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -452,7 +452,7 @@ def main():
     demoFactory.evaluate()
 
     draw_BG(ctx, demoFactory.DRAWINGORIGIN, *img_resolution)
-    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",

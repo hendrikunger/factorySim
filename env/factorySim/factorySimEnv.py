@@ -31,7 +31,7 @@ class FactorySimEnv(gym.Env):
         self.factory = None
         self.stepCount = 0
         self._obs_type = env_config["obs_type"]
-        self.Loglevel = env_config["Loglevel"]
+        self.logLevel = env_config["logLevel"]
         self.uid = -1
         self.width = env_config["width"]
         self.height = env_config["height"]
@@ -138,7 +138,7 @@ class FactorySimEnv(gym.Env):
         randomPos=False,
         createMachines=self.createMachines,
         randSeed = self.seed,
-        verboseOutput=self.Loglevel,
+        logLevel=self.logLevel,
         maxMF_Elements = self.maxMF_Elements)
         self.info = {}
         if self.surface:
@@ -301,6 +301,7 @@ def main():
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
     f_config['env_config']['randomSeed'] = 42
+ 
 
     run = wandb.init(
         project="factorySim_ENVTEST",

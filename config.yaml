@@ -13,6 +13,8 @@ env_config:
   reward_function: 3
   randomSeed: null
   createMachines: true
+  logLevel: 5
+
 
 
 # Evaluate once per training iteration.
@@ -46,13 +48,14 @@ evaluation_config:
     randomSeed: 42
     reward_function: 3
     createMachines: false
+    logLevel: 5
+
 
 render_env: false
-num_workers: 32  # parallelism  #12
+num_workers: 2  # parallelism  #12
 num_envs_per_env_runner: 1
 
-# Should be one of DEBUG, INFO, WARN, or ERROR
-log_level: ERROR
+
 # Whether - upon a worker failure - RLlib will try to recreate the lost worker as
 # an identical copy of the failed one. The new worker will only differ from the
 # failed one in its `self.recreated_worker=True` property value. It will have
