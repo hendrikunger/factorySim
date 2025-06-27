@@ -41,3 +41,43 @@ print(f"Expected reduced value: {expected_reduced}, peek: {logger.peek(key)}")
 np.ones((10,2,3))
 
 # %%
+import numpy as np
+from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
+logger = MetricsLogger()
+
+
+
+
+logger.log_value("loss", np.float64(0.001), reduce=None, clear_on_reduce=False)
+logger.log_value("loss", np.float64(0.002), reduce=None, clear_on_reduce=False)
+logger.peek("loss")
+
+# %%
+dd= {"test": np.float64(0.001), "accuracy": np.float64(0.9)}
+dd
+#%%
+
+logger.log_dict(dd, reduce=None, clear_on_reduce=False)
+logger.log_dict({"test": np.float64(0.005), "accuracy": np.float64(0.3)}, reduce=None, clear_on_reduce=False)
+
+result = logger.reduce()
+result["test"]
+# %%
+from ray.rllib.utils.metrics.stats import Stats
+import numpy as np
+stats = Stats(reduce=None, clear_on_reduce=True)
+
+stats.push(np.float64(0.001))
+stats.push(np.float64(0.002))
+stats.push(np.float64(0.003))
+stats.push(np.float64(0.004))
+
+stats
+
+# %%
+stats.peek()
+# %%
+stats.reduce()
+# %%
+stats
+# %%

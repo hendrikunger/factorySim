@@ -1,11 +1,11 @@
 
 import numpy as np
 import sys
+
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union, Optional, Sequence
 from pathlib import Path
 import os
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
-import gymnasium as gym
 
 import ray
 
@@ -16,6 +16,7 @@ from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
 from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
+from ray.rllib.env.single_agent_episode import SingleAgentEpisode
 #from ray.rllib.core.rl_module.rl_module import RLModule
 #from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
@@ -24,8 +25,7 @@ from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
 from typing import Dict
 
-
-
+import pprint
 
 
 from ray.rllib.connectors.env_to_module.observation_preprocessor import ObservationPreprocessor
@@ -60,7 +60,7 @@ def env_creator(env_config):
 
 register_env("FactorySimEnv", env_creator)
 
-NO_TUNE = True
+NO_TUNE = False
 ALGO = "PPO"  # "Dreamer" or "PPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
@@ -93,7 +93,7 @@ class MyAlgoCallback(RLlibCallback):
     # def on_episode_step(
     #     self,
     #     *,
-    #     episode,
+    #     episode : SingleAgentEpisode,
     #     env_runner,
     #     metrics_logger,
     #     env,
@@ -103,7 +103,7 @@ class MyAlgoCallback(RLlibCallback):
     # ) -> None:
         
     #     if env_runner.config["env_config"]["evaluation"]:
-    #         pass
+    #         episode.custom_data["Experiment"] = f"{len(episode)}"
 
 
     def on_episode_end(
@@ -117,19 +117,20 @@ class MyAlgoCallback(RLlibCallback):
         rl_module,
         **kwargs,
     ) -> None:
-        
-
-        # test You can base your custom logic on whether the calling EnvRunner is a regular “training” EnvRunner, used to collect training samples, or an evaluation EnvRunner, used to play through episodes for evaluation only. Access the env_runner.config.in_evaluation boolean flag, which is True on evaluation EnvRunner actors and False on EnvRunner actors used to collect training data.
+                
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
+            episode_id = str(int(infos[0].get('evalEnvID', 0)+1))
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
+
             for info in infos:
-                episode_id = int(infos[0].get('evalEnvID', 0)+1)
-                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=False)
+                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=True)
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
-                        metrics_logger.log_value(("myLogs",episode_id,key), value, reduce="mean", clear_on_reduce=True)
+                        metrics_logger.log_value(("means",episode_id,key), value, reduce="mean", clear_on_reduce=True)
+
+            
 
 
             
@@ -158,12 +159,30 @@ class MyAlgoCallback(RLlibCallback):
 
 
         print(f"--------------------------------------------EVAL END--------------------------------------------")
-        #This is a dict with the evalEnvID as key and the infos of all steps in array form as value
-        data = evaluation_metrics["env_runners"]["myData"]
+
+        #Remove the shortened myData key from the evaluation metrics, calculate correctly
+        evaluation_metrics["env_runners"].pop("myData", None)
+
+        #pprint.pp(metrics_logger.stats)
+        #Workaround for the fact that the metrics_logger does not respect the reduce= None setting when having nested keys
+
+
+        data = {}
+
+
+        myData = metrics_logger.peek(('evaluation','env_runners', 'myData'), compile=False)
+        episodes = list(myData.keys())
+        column_names = list(myData["1"].keys())
+        for index in episodes:
+            data[index] = {}
+            for key in column_names:
+                data[index][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key), compile=False)
 
         
+        #num_iterations = int(evaluation_metrics["env_runners"]['num_episodes_lifetime']/len(episodes))
+        
         if data:
-            column_names = [key for key in next(iter(data.values()))]
+            #column_names = [key for key in next(iter(data.values()))]
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
             for episode_id, infos in data.items():
@@ -177,6 +196,7 @@ class MyAlgoCallback(RLlibCallback):
                         value = values[step]
                         if key == "Image":
                             value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
+   
                         row.append(value)
                     tbl.add_data(*row)
             evaluation_metrics["table"] = tbl
@@ -211,18 +231,20 @@ f_config['env_config']['inputfile'] = ifcpath
 
 
 
-
 def run():
     runtime_env = {
     "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning"},
     "working_dir": os.path.join(os.path.dirname(os.path.realpath(__file__))),
-    "excludes": ["/.git", "/.vscode", "/wandb", "/artifacts", "*.skp"]
+    "excludes": ["/.git", "/.vscode", "/wandb", "/artifacts", "*.skp"],
     }
     NUMGPUS = int(os.getenv("$SLURM_GPUS", 0 if sys.platform == "darwin" else 1))
-    ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) #int(os.environ.get("RLLIB_NUM_GPUS", "0"))
+  
+    ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
+
+
 
     stop = {
-    "training_iteration": 2,
+    "training_iteration": f_config.get("training_iteration", 2), #Number of training iterations
     #"num_env_steps_sampled_lifetime": 15000000,
     #"episode_reward_mean": 5,
     }
@@ -230,7 +252,7 @@ def run():
     checkpoint_config = CheckpointConfig(checkpoint_at_end=True, 
                                          checkpoint_frequency=100, 
                                          checkpoint_score_order="max",
-                                         checkpoint_score_attribute="env_runners/episode_return_mean", 
+                                         #checkpoint_score_attribute="env_runners/episode_return_mean", 
                                          num_to_keep=5 
     )
 
@@ -244,9 +266,7 @@ def run():
 
 
             ) 
-            #algo_config.lr=0.00005
-                        #0.003
-                        #0.000005
+
             algo_config.rl_module(model_config=DefaultModelConfig(
                                                 #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
 
@@ -295,10 +315,10 @@ def run():
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         )
-    algo_config.learners( num_learners=NUMGPUS,
+    algo_config.learners(num_learners= 0 if NUMGPUS <= 1 else NUMGPUS,  
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
                          )
-
+    
 
     eval_config = f_config['evaluation_config']["env_config"]
     eval_config['inputfile'] = ifcpath
@@ -354,6 +374,7 @@ def run():
         if NO_TUNE:
             algo = algo_config.build_algo()
             for i in range(stop.get("training_iteration",2)):
+                print(f"Training iteration {i+1}/{stop.get('training_iteration',2)}")
                 results = algo.train()
                 if "envrunners" in results:
                     mean_return = results["env_runners"].get(
@@ -365,8 +386,10 @@ def run():
                     print(f" R(eval)={Reval}", end="")
                 print()
         else:
-            tuner = Tuner("PPO", run_config=run_config, param_space=algo_config)
+            tuner = Tuner(algo_config.algo_class, run_config=run_config, param_space=algo_config)
             results = tuner.fit()
+
+        print("Training finished")
 
 
     #Loading for Evaluation
@@ -377,14 +400,9 @@ def run():
 
 
 
-    ray.shutdown()
-
-
-
 # std log and std error need to go to wandb, they are in the main folder of the run
 
 
 if __name__ == "__main__":
-    #from gymnasium import logger
-    #logger.set_level(logger.ERROR)
+
     run()

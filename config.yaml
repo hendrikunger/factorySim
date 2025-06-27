@@ -13,12 +13,13 @@ env_config:
   reward_function: 3
   randomSeed: null
   createMachines: true
-  logLevel: 5
+  logLevel: 0
 
 
 
 # Evaluate once per training iteration.
-evaluation_interval: 100
+evaluation_interval: 1
+training_iteration: 4 # Number of training iterations to run.
 
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
@@ -48,11 +49,11 @@ evaluation_config:
     randomSeed: 42
     reward_function: 3
     createMachines: false
-    logLevel: 5
+    logLevel: 0
 
 
 render_env: false
-num_workers: 2  # parallelism  #12
+num_workers: 20  # parallelism  #12
 num_envs_per_env_runner: 1
 
 
@@ -64,9 +65,9 @@ num_envs_per_env_runner: 1
 recreate_failed_workers: true
 restart_failed_sub_environments: true
 
-rollout_fragment_length: 4096 
-train_batch_size_per_learner:  4096 #3200
-mini_batch_size_per_learner: 1024 #100
+rollout_fragment_length: 1000 #4096
+train_batch_size_per_learner:  1000 #4096
+mini_batch_size_per_learner: 100 #100
 num_sgd_iter: 4
 gamma: 0.99
 # The default learning rate.
