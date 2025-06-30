@@ -53,8 +53,10 @@ evaluation_config:
 
 
 render_env: false
-num_workers: 20  # parallelism  #12
+num_workers: 32  # parallelism  #12
 num_envs_per_env_runner: 1
+evaluation_parallel_to_training: false
+evaluation_num_env_runners: 0
 
 
 # Whether - upon a worker failure - RLlib will try to recreate the lost worker as
@@ -65,8 +67,8 @@ num_envs_per_env_runner: 1
 recreate_failed_workers: true
 restart_failed_sub_environments: true
 
-rollout_fragment_length: 1000 #4096
-train_batch_size_per_learner:  1000 #4096
+rollout_fragment_length: 4000 #4096
+train_batch_size_per_learner:  4000 #4096
 mini_batch_size_per_learner: 100 #100
 num_sgd_iter: 4
 gamma: 0.99
