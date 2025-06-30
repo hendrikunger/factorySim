@@ -64,6 +64,9 @@ NO_TUNE = False
 ALGO = "PPO"  # "Dreamer" or "PPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
+
+#Callbacks----------------------------------------------------------------------------------------------------------------------------------------------------------
+
 class MyAlgoCallback(RLlibCallback):
     def __init__(self, env_runner_indices: Optional[Sequence[int]] = None):
         super().__init__()
@@ -201,7 +204,7 @@ class MyAlgoCallback(RLlibCallback):
                     tbl.add_data(*row)
             evaluation_metrics["table"] = tbl
             
-
+#Preprocessor----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 
@@ -216,13 +219,9 @@ def _env_to_module(env=None, spaces=None, device=None) -> ObservationPreprocesso
 # Create the env-to-module connector pipeline.
     return NormalizeObservations()
 
+#RL Module----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-with open('config.yaml', 'r') as f:
-    f_config = yaml.load(f, Loader=yaml.FullLoader)
-
-#f_config['env'] = FactorySimEnv
-f_config['env_config']['inputfile'] = ifcpath
 
 # myRLModule = SingleAgentRLModuleSpec(
 #     module_class=MyPPOTorchRLModule,
@@ -231,7 +230,19 @@ f_config['env_config']['inputfile'] = ifcpath
 
 
 
+
+
+#Main Function----------------------------------------------------------------------------------------------------------------------------------------------------------
+
 def run():
+
+    with open('config.yaml', 'r') as f:
+        f_config = yaml.load(f, Loader=yaml.FullLoader)
+
+    #f_config['env'] = FactorySimEnv
+    f_config['env_config']['inputfile'] = ifcpath
+
+
     runtime_env = {
     "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning"},
     "working_dir": os.path.join(os.path.dirname(os.path.realpath(__file__))),
@@ -263,6 +274,7 @@ def run():
             algo_config.training(
                             train_batch_size=f_config['train_batch_size_per_learner'],
                             minibatch_size=f_config['mini_batch_size_per_learner'],
+                            vf_loss_coeff= f_config['vf_loss_coeff'], 
 
 
             ) 
@@ -278,7 +290,8 @@ def run():
                                                             ],
                                                 conv_activation="relu",
                                                 head_fcnet_hiddens=[256],
-                                                vf_share_layers=True,
+                                                vf_share_layers=True,   #Need to tune  vf_loss_coeff on Training config if you set this to True
+
                                             ),
                                 #rl_module_spec=myRLModule,
                                 )
