@@ -328,9 +328,10 @@ def run():
     eval_duration = len([x for x in os.listdir(path) if ".ifc" in x])
     algo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
-                          evaluation_interval=f_config["evaluation_interval"],
+                          evaluation_interval=f_config["evaluation_interval"], 
                           evaluation_config={"env_config": eval_config},
-                          evaluation_parallel_to_training=False,
+                          evaluation_parallel_to_training=f_config["evaluation_parallel_to_training"],
+                          evaluation_num_env_runners=f_config["evaluation_num_env_runners"],
                         )   
 
 
