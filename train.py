@@ -281,12 +281,20 @@ def run():
 
             algo_config.rl_module(model_config=DefaultModelConfig(
                                                 #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
+                                                
+                                                conv_filters= [# [ num_filters, kernel, stride]
+                                                                # [32, 8, 4],  # Reduces spatial size from 84x84 -> 20x20
+                                                                # [64, 4, 2],  # Reduces spatial size from 20x20 -> 9x9
+                                                                # [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
+                                                                # [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
+                                                                
+                                                                [32, 5, 2],   # 84x84 → 40x40
+                                                                [64, 3, 2],   # 40x40 → 19x19
+                                                                [128, 3, 2],  # 19x19 → 9x9
+                                                                [128, 3, 1],  # 9x9   → 7x7
+                                                                [256, 3, 2],  # 7x7   → 3x3
+                                                                [256, 3, 1],  # 3x3   → 1x1
 
-                                                conv_filters= [
-                                                                [32, 8, 4],  # Reduces spatial size from 84x84 -> 20x20
-                                                                [64, 4, 2],  # Reduces spatial size from 20x20 -> 9x9
-                                                                [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
-                                                                [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
                                                             ],
                                                 conv_activation="relu",
                                                 head_fcnet_hiddens=[256],
@@ -420,3 +428,7 @@ def run():
 if __name__ == "__main__":
 
     run()
+
+
+
+# Todo: CoordConv: "An intriguing failing of CNNs and the CoordConv solution" (Liu et al., 2018).  Add coordinates to the input image, so that the model can learn to use them.
