@@ -157,8 +157,8 @@ class FactorySim:
 
         Args:
             machineIndex (_type_): Index or Name of the machine to update. If an integer is given, it is interpreted as index in the machine_dict.
-            xPosition (float, optional): x - Coordinate of the machine in range -1.0 to 1.0. Defaults to 0.0, which is the center of the factory.
-            yPosition (float, optional): y - Coordinate of the machine in range -1.0 to 1.0. Defaults to 0.0, which is the center of the factory.
+            xPosition (float, optional): x - Coordinate of the machine in range -1.0 to 1.0. Defaults to 0.0, which is the center of the factory. x-Axis is horizontal.
+            yPosition (float, optional): y - Coordinate of the machine in range -1.0 to 1.0. Defaults to 0.0, which is the center of the factory. y-Axis is vertical.
             rotation (float, optional): Rotation of the machine in range -1.0 to 1.0, where -1.0 is -180° and 1.0 is 180°. Defaults to None, which means no rotation.
             skip (int, optional): Optional parameter to skip the update. If skip is greater than 0.8, the update is skipped. Defaults to 0.
         """
@@ -177,15 +177,15 @@ class FactorySim:
                 print(f"Update: {self.machine_dict[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
             if (rotation is not None):
-                mappedRot = np.interp(rotation, (-1.0, 1.0), (0, 2*np.pi))
+                mappedRot = np.interp(rotation, (0.0, 1.0), (0, 2*np.pi))
                 self.machine_dict[machineIndex].rotate_Item(mappedRot)
 
             bbox = self.creator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
             #np.interp also Clips Position to Output Range
                     
-            mappedXPos = np.interp(xPosition, (-1.0, 1.0), (0, bbox[2] - self.machine_dict[machineIndex].width))  
-            mappedYPos = np.interp(yPosition, (-1.0, 1.0), (0, bbox[3] - self.machine_dict[machineIndex].height)) 
+            mappedXPos = np.interp(xPosition, (0.0, 1.0), (0, bbox[2] - self.machine_dict[machineIndex].width))  
+            mappedYPos = np.interp(yPosition, (0.0, 1.0), (0, bbox[3] - self.machine_dict[machineIndex].height)) 
 
 
             self.machine_dict[machineIndex].translate_Item(mappedXPos, mappedYPos)
@@ -429,7 +429,7 @@ def main():
         path_to_materialflow_file = materialflowpath,
         factoryConfig=baseConfigs.SMALL,
         randomPos=False,
-        createMachines=True,
+        createMachines=False,
         logLevel=4,
         maxMF_Elements = 3)
     
@@ -456,7 +456,11 @@ def main():
     #demoFactory.evaluate()
     #demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
     #demoFactory.evaluate()
-    demoFactory.update(1,-1 ,-1 , 0.2)
+    #demoFactory.update(1,-1 ,-1 , 0.2)
+    #demoFactory.update(1,1.0 ,1.0 , 0.2)
+    #demoFactory.update(1,0.5 ,0.5 , 0.2)
+    #demoFactory.update(1,0.75 ,0.75 , 0.2)
+    #demoFactory.update(1,1.0 ,0.0 , 0.2)
     ##Rate current Layout
     demoFactory.evaluate()
 

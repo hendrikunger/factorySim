@@ -84,13 +84,18 @@ class FactorySimEnv(gym.Env):
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
+        self.action_space = spaces.Box(low=0.0, high=1.0, shape=(3,), dtype=np.float32)
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
-            self.observation_space = spaces.Box(low=0.0, high=255.0, shape=(self.width, self.height, 3), dtype=np.float32)
+            dimensions =  4 if env_config.get("coordinateChannels", False) else 2
+            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, dimensions), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
+        
+        if env_config.get("coordinateChannels", False):
+            # Precalculate the coordinates of the factory as channels
+            self.coordinate_channels = np.zeros((self.width, self.height, 2), dtype=np.float32)
 
 
 
@@ -236,7 +241,7 @@ class FactorySimEnv(gym.Env):
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         
         #Format (width, height, 2)
-        output = np.concatenate((machines_greyscale, materialflow_greyscale, materialflow_greyscale), axis=2, dtype=np.float32)
+        output = np.concatenate((machines_greyscale, materialflow_greyscale, materialflow_greyscale), axis=2, dtype=np.uint8)
         
         return output
     
@@ -301,6 +306,7 @@ def main():
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
     f_config['env_config']['randomSeed'] = 42
+    f_config['env_config']['logLevel'] = 4
  
 
     run = wandb.init(
@@ -308,7 +314,7 @@ def main():
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=f_config,
         save_code=True,
-        mode="offline",
+        mode="online",
     )
 
     env = FactorySimEnv( env_config = f_config['env_config'])

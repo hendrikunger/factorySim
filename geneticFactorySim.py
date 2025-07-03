@@ -215,7 +215,7 @@ def main():
     #                      which corresponds to integers sampled uniformly
     #                      from the range [0,1] (i.e. 0 or 1 with equal
     #                      probability)
-    toolbox.register("attr_float", rng.uniform, -1, 1)
+    toolbox.register("attr_float", rng.uniform, 0, 1)
 
     # Structure initializers
     #                         define 'individual' to be an individual
@@ -233,7 +233,7 @@ def main():
 
     # register a mutation operator with a probability to
     # flip each attribute/gene of 0.05
-    toolbox.register("mutate", tools.mutPolynomialBounded, low=-1.0, up=1.0, indpb=1/NUMMACHINES)
+    toolbox.register("mutate", tools.mutPolynomialBounded, low=0.0, up=1.0, indpb=1/NUMMACHINES)
 
     toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=args.num_genmemory)
 
