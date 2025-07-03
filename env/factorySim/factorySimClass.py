@@ -153,6 +153,15 @@ class FactorySim:
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
     def update(self, machineIndex, xPosition : float  = 0.0, yPosition: float = 0.0, rotation: float = None, skip = 0):
+        """_summary_
+
+        Args:
+            machineIndex (_type_): Index or Name of the machine to update. If an integer is given, it is interpreted as index in the machine_dict.
+            xPosition (float, optional): x - Coordinate of the machine in range -1.0 to 1.0. Defaults to 0.0, which is the center of the factory.
+            yPosition (float, optional): y - Coordinate of the machine in range -1.0 to 1.0. Defaults to 0.0, which is the center of the factory.
+            rotation (float, optional): Rotation of the machine in range -1.0 to 1.0, where -1.0 is -180° and 1.0 is 180°. Defaults to None, which means no rotation.
+            skip (int, optional): Optional parameter to skip the update. If skip is greater than 0.8, the update is skipped. Defaults to 0.
+        """
         if type(machineIndex) == int:
             if machineIndex< len(self.machine_dict):
                 machineIndex = list(self.machine_dict)[machineIndex]
