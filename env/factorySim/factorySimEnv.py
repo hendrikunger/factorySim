@@ -76,6 +76,8 @@ class FactorySimEnv(gym.Env):
         
         self.surface = None
         self.rsurface = None
+        self.ctx = None
+        self.rctx = None
         self.prefix = env_config.get("prefix", "0") 
 
         self.info = {}
