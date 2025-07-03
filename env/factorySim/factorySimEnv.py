@@ -158,9 +158,13 @@ class FactorySimEnv(gym.Env):
         if self.surface:
             self.surface.finish()
             del(self.surface)
+        if self.ctx:
+            del(self.ctx)
         if self.rsurface:
             self.rsurface.finish()
             del(self.rsurface)
+        if self.rctx:
+            del(self.rctx)
         self.surface, self.ctx = self.factory.provideCairoDrawingData(self.width, self.height)
         self.rsurface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width * self.scale, self.height*self.scale)
         self.rctx = cairo.Context(self.rsurface)
