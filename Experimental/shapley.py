@@ -63,21 +63,26 @@ logger.log_dict({"test": np.float64(0.005), "accuracy": np.float64(0.3)}, reduce
 result = logger.reduce()
 result["test"]
 # %%
-from ray.rllib.utils.metrics.stats import Stats
+
 import numpy as np
-stats = Stats(reduce=None, clear_on_reduce=True)
 
-stats.push(np.float64(0.001))
-stats.push(np.float64(0.002))
-stats.push(np.float64(0.003))
-stats.push(np.float64(0.004))
+width = 20
+height = 8
+max_value = 255
 
-stats
+
+y,x = np.mgrid[ 0:(height/2), -(width/2):(width/2)]
+
+
 
 # %%
-stats.peek()
+y = np.linspace(0, max_value, height, dtype=np.uint8)
+x = np.linspace(0, max_value, width, dtype=np.uint8)
+y_coords, x_coords = np.meshgrid(y, x, indexing='ij')
+
+x,y
 # %%
-stats.reduce()
+x_coords.astype(np.uint8), y_coords.astype(np.uint8)
 # %%
-stats
+x_coords, y_coords
 # %%

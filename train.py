@@ -274,7 +274,7 @@ def run():
             algo_config.training(
                             train_batch_size=f_config['train_batch_size_per_learner'],
                             minibatch_size=f_config['mini_batch_size_per_learner'],
-                            vf_loss_coeff= f_config['vf_loss_coeff'], 
+                            vf_loss_coeff= f_config['vf_loss_coeff']
 
 
             ) 
@@ -303,7 +303,6 @@ def run():
                                             ),
                                 #rl_module_spec=myRLModule,
                                 )
-            algo_config.vf_loss_coeff=0.5   # Coefficient of the value function loss. IMPORTANT: you must tune this if you set vf_share_layers=True inside your model’s config.
         #PPO END ------------------------------------------------------------------------------------------------------
         case "Dreamer":
             algo_config = DreamerV3Config()
@@ -352,7 +351,7 @@ def run():
                           evaluation_interval=f_config["evaluation_interval"], 
                           evaluation_config={"env_config": eval_config},
                           evaluation_parallel_to_training=f_config["evaluation_parallel_to_training"],
-                          evaluation_num_env_runners=f_config["evaluation_num_env_runners"],
+                          evaluation_num_env_runners=f_config.get("evaluation_num_env_runners", 0), #Number of env runners for evaluation
                         )   
 
 

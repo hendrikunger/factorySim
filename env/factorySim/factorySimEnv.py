@@ -42,6 +42,7 @@ class FactorySimEnv(gym.Env):
         self.evalFiles = [None]
         self.currentEvalEnv = None
         self.seed = env_config["randomSeed"]
+        self.useCoordinateChannels = env_config.get("coordinateChannels", False)
         if env_config.get("inputfile", None) is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
@@ -93,9 +94,17 @@ class FactorySimEnv(gym.Env):
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
         
-        if env_config.get("coordinateChannels", False):
+        if self.useCoordinateChannels:
             # Precalculate the coordinates of the factory as channels
-            self.coordinate_channels = np.zeros((self.width, self.height, 2), dtype=np.float32)
+            x = np.linspace(0, 255, self.width, dtype=np.uint8)
+            y = np.linspace(0, 255, self.height, dtype=np.uint8)
+            self.y_coordChannel, self.x_coordChannel = np.meshgrid(y, x, indexing='ij')
+
+            #Add third axis for the coordinate channels
+            self.x_coordChannel = np.expand_dims(self.x_coordChannel, axis=2)
+            self.y_coordChannel = np.expand_dims(self.y_coordChannel, axis=2)
+
+
 
 
 
@@ -241,7 +250,10 @@ class FactorySimEnv(gym.Env):
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         
         #Format (width, height, 2)
-        output = np.concatenate((machines_greyscale, materialflow_greyscale, materialflow_greyscale), axis=2, dtype=np.uint8)
+        if self.useCoordinateChannels:
+            output = np.concatenate((machines_greyscale, materialflow_greyscale, self.x_coordChannel, self.y_coordChannel), axis=2, dtype=np.uint8)
+        else:
+            output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2, dtype=np.uint8)
         
         return output
     
@@ -306,7 +318,9 @@ def main():
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
     f_config['env_config']['randomSeed'] = 42
-    f_config['env_config']['logLevel'] = 4
+    f_config['env_config']['logLevel'] = 0
+    f_config['env_config']['width'] = 8
+    f_config['env_config']['height'] = 4
  
 
     run = wandb.init(
@@ -332,7 +346,7 @@ def main():
     image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
-    for index in tqdm(range(0,60)):
+    for index in tqdm(range(0,10)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   

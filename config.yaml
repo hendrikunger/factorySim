@@ -1,7 +1,7 @@
 num_workers: 32  # parallelism  #12
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
-#evaluation_num_env_runners: 0
+evaluation_num_env_runners: 0
 
 # Whether - upon a worker failure - RLlib will try to recreate the lost worker as
 # an identical copy of the failed one. The new worker will only differ from the
@@ -12,18 +12,18 @@ recreate_failed_workers: true
 restart_failed_sub_environments: true
 
 #Gneral Algorithm Config
-train_batch_size_per_learner:  4000 #4096
-mini_batch_size_per_learner: 100 #100
+train_batch_size_per_learner:  4096 #4096
+mini_batch_size_per_learner: 512 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 200
-training_iteration: 10000 # Number of training iterations to run.
+evaluation_interval: 1 #100
+training_iteration: 3 #10000 # Number of training iterations to run.
 
 ##PPO Config
 
 gamma: 0.9 # Discount factor for rewards.  1 means future rewards and immediate rewards are equally important. We need to discount future rewards to avoid infinite returns. Lower is more short-sighted, higher is more far-sighted.
 # The default learning rate.
-lr: 0.00025  #0.00002,
+lr: 0.0002  #0.00002,
 lambda: 0.95  # Generalized Advantage Estimation (GAE) lambda 0.0 makes the GAE rely only on immediate rewards 
 #(and vf predictions from there on, reducing variance, but increasing bias), while a lambda_ of 1.0 only 
 #incorporates vf predictions at the truncation points of the given episodes or episode chunks (reducing bias but increasing variance)
@@ -61,6 +61,7 @@ env_config:
   randomSeed: null
   createMachines: true
   logLevel: 0
+  coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
@@ -80,3 +81,4 @@ evaluation_config:
     reward_function: 3
     createMachines: false
     logLevel: 0
+    coordinateChannels: true
