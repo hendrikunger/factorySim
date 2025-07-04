@@ -414,7 +414,7 @@ class factorySimLive(mglw.WindowConfig):
         if self.is_dirty:
             if self.is_calculating:
                 if self.future.done():
-                    _, _ , self.rating, _ = self.future.result()
+                    self.future.result()
                     self.is_dirty = False
                     self.is_calculating = False
                     #if we had changes during last calulation, recalulate
@@ -630,7 +630,7 @@ class factorySimLive(mglw.WindowConfig):
 
 
         self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
-        _, _ , self.rating, _ = self.future.result()
+        self.future.result()
 
     def set_factoryScale(self):
         self.currentScale = self.env.factory.creator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])

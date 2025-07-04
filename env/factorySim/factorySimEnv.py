@@ -129,7 +129,7 @@ class FactorySimEnv(gym.Env):
             self.info["Step"] = self.stepCount
             self.info["evalEnvID"] = self.currentEvalEnv
      
-        return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
+        return (self._get_obs(), self.currentReward, self.terminated, False, self.info)
 
     def reset(self, seed=None, options={}):
         if seed is not None:
@@ -178,7 +178,6 @@ class FactorySimEnv(gym.Env):
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0
-        self.currentMappedReward = 0
         self.materialflowpath = None
         
 
@@ -210,11 +209,7 @@ class FactorySimEnv(gym.Env):
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         drawCollisions(self.rctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
-        # draw_text(self.rctx, 
-        #           f"{self.uid:02d}.{self.stepCount:02d}       Mapped Reward: {self.currentMappedReward:1.2f} | Reward: {self.currentReward:1.2f}",
-        #           (1,0,0),
-        #           (20, 20),
-        #           factoryCoordinates=False)
+
         
         if self.render_mode == 'human':
             if path is None:
@@ -277,11 +272,10 @@ class FactorySimEnv(gym.Env):
 
     def tryEvaluate(self):
         try:
-            self.currentMappedReward, self.currentReward, self.info, self.terminated = self.factory.evaluate(self.reward_function)
+            self.currentReward, self.info, self.terminated = self.factory.evaluate(self.reward_function)
         except Exception as e:
             print(e)
             print("Error in evaluate")
-            self.currentMappedReward = -10
             self.currentReward = -10
             self.info = {}
             self.terminated = True
@@ -325,8 +319,7 @@ def main():
     f_config['env_config']['evaluation'] = True
     f_config['env_config']['randomSeed'] = 42
     f_config['env_config']['logLevel'] = 0
-    f_config['env_config']['width'] = 8
-    f_config['env_config']['height'] = 4
+
  
 
     run = wandb.init(

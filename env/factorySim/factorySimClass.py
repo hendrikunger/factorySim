@@ -108,7 +108,6 @@ class FactorySim:
 
         self.lastRating = 0
         self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
-        self.currentMappedRating    = 0 # Holds the normalized Rating of the current state of the Layout 
 
         self.lastUpdatedMachine = None #Hold uid of last updated machine for collision checking
         self.collisionAfterLastUpdate = False # True if latest update leads to new collisions
@@ -254,7 +253,7 @@ class FactorySim:
             match rewardMode:
                 case 1:
                     # Rating is 0 if no collision, -1 if collision
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated"])
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated"])
                     weights = np.ones_like(partialRatings)
 
                     if(self.RatingDict.get("ratingCollision", -1) >= 0.5):
@@ -264,7 +263,7 @@ class FactorySim:
 
                 case 2:
                     # Rating the difference to the last rating
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "EvaluationResult"])
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated" and k != "EvaluationResult"])
                     weights = np.ones_like(partialRatings)
 
                     self.currentRating = np.average(partialRatings, weights=weights).item() 
@@ -278,7 +277,7 @@ class FactorySim:
 
                 case 3:
                     # Weighted average of all ratings
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated"])
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated"])
                     weights = np.ones_like(partialRatings)
                     self.currentRating = np.average(partialRatings, weights=weights).item() 
 
@@ -301,12 +300,12 @@ class FactorySim:
         else:
             if(self.verboseOutput >= 1):
                 print("Bewertung fehlgeschlagen")
-            self.RatingDict["TotalRating"] = -10.0
+            self.RatingDict["Reward"] = -10.0
             self.RatingDict["terminated"] = True
-            return self.currentRating, self.currentRating, self.RatingDict, self.RatingDict["terminated"]
+            return self.currentRating, self.RatingDict, self.RatingDict["terminated"]
 
 
-        self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating
+        self.RatingDict["Reward"]= self.currentRating
 
 
         if(self.episodeCounter >= 3 * len(self.machine_dict)):
@@ -322,14 +321,14 @@ class FactorySim:
         if(self.verboseOutput >= 1):
             print(self.generateRatingText(multiline=True))
 
-        return self.currentMappedRating, self.currentRating, self.RatingDict, self.RatingDict["terminated"]
+        return self.currentRating, self.RatingDict, self.RatingDict["terminated"]
 
     def generateRatingText(self, multiline=False):
         if(multiline):
             con = "\n"
         else:
             con = " | "
-        return (f"REWARD              : {self.RatingDict.get('TotalRating', -100): 1.2f}{con}"
+        return (f"REWARD              : {self.RatingDict.get('Reward', -100): 1.2f}{con}"
                 f"Evaluation Result   : {self.RatingDict.get('EvaluationResult', 0): 1.2f}{con}"
                 f"Material Flow       : {self.RatingDict.get('ratingMF', -100): 1.2f}{con}"
                 f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', -100): 1.2f}{con}"
