@@ -216,10 +216,8 @@ def draw_route_lines(ctx, route_lines):
     return ctx
 
 #------------------------------------------------------------------------------------------------------------
-def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNames = True, darkmode = True, drawWalls = True, drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
-    
-    #Walls
-    if factory.wall_dict and drawWalls:
+def drawFactoryWalls(ctx, factory, drawColors = True, darkmode = True):
+    if factory.wall_dict:
         ctx.set_fill_rule(cairo.FillRule.EVEN_ODD)
         for wall in factory.wall_dict.values():
             #draw all walls
@@ -241,6 +239,14 @@ def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNam
                         ctx.line_to(point[0], point[1])
                     ctx.close_path()
                     ctx.fill()
+
+
+#------------------------------------------------------------------------------------------------------------
+def drawFactory(ctx, factory, materialflow_file=None, drawColors = True, drawNames = True, darkmode = True, drawWalls = True, drawMachineCenter = False, drawOrigin = False, highlight = None, isObs = False):   
+    
+    #Walls
+    if drawWalls:
+        drawFactoryWalls(ctx, factory, drawColors, darkmode)
                         
     #draw machine positions
     if factory.machine_dict:
@@ -370,7 +376,7 @@ def drawRoutedMaterialFlow(ctx, machine_dict, fullPathGraph, reducedPathGraph, m
 def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderList=None, drawColors = True):
     #Drawing collisions between machines
     if(drawColors):
-        ctx.set_source_rgb(1.0, 0.3, 0.0)
+        ctx.set_source_rgb(0.3, 0.9, 0.0)
     else:
         ctx.set_source_rgb(0.7, 0.7, 0.7)
     #Drawing collisions between machines and machines
@@ -385,7 +391,7 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
     #Drawing collisions between machines and walls
     if(wallCollisionList):
         if(drawColors):
-            ctx.set_source_rgb(1.0, 0.3, 0.0)
+            ctx.set_source_rgb(0.3, 0.9, 0.0)
         else:
             ctx.set_source_rgb(0.7, 0.7, 0.7)
         for collision in wallCollisionList:
@@ -398,7 +404,7 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
         #Drawing outsider
     if(outsiderList): 
         if(drawColors):
-            ctx.set_source_rgb(1.0, 0.3, 0.0)
+            ctx.set_source_rgb(0.3, 0.9, 0.0)
         else:
             ctx.set_source_rgb(0.7, 0.7, 0.7)
         for outsider in outsiderList:
@@ -441,7 +447,7 @@ def draw_text(ctx, text, color, pos, center=False, rightEdge=False, factoryCoord
 def draw_obs_layer_A(ctx, factory,  highlight=None):
     draw_BG(ctx, factory.DRAWINGORIGIN, *factory.FACTORYDIMENSIONS, darkmode=False)
     drawFactory(ctx, factory, None, drawColors = False, drawNames=False, highlight=highlight, isObs=True, darkmode=False,)
-    drawCollisions(ctx, factory.machineCollisionList, factory.wallCollisionList, outsiderList=factory.outsiderList)
+
 
     return ctx
 #------------------------------------------------------------------------------------------------------------
@@ -451,3 +457,7 @@ def draw_obs_layer_B(ctx, factory,  highlight=None):
     drawFactory(ctx, factory, factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=highlight, isObs=True)
     
     return ctx
+
+def draw_obs_layer_C(ctx, factory,  highlight=None):
+    drawFactoryWalls(ctx, factory, drawColors=False, darkmode=False)
+    drawCollisions(ctx, factory.machineCollisionList, factory.wallCollisionList, outsiderList=factory.outsiderList)

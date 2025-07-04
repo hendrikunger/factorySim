@@ -49,8 +49,8 @@ env_config:
   inputfile: '' #Gets populated on runtime
   obs_type: image
   Loglevel: 0
-  width: 84 #84
-  height: 84 #84
+  width: 128 #84
+  height: 128 #84
   maxMF_Elements: 0
   outputScale: 2 #10
   render_mode: null
@@ -69,10 +69,10 @@ evaluation_config:
     inputfile: '' #Gets populated on runtime
     obs_type: image
     Loglevel: 0
-    width: 84 #84
-    height: 84 #84
+    width: 256 #84
+    height: 256 #84
     maxMF_Elements: null
-    outputScale: 10 #10
+    outputScale: 3 #10
     render_mode: rgb_array
     factoryconfig: SMALLSQUARE
     prefix: null #Gets populated on runtime

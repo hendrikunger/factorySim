@@ -15,7 +15,7 @@ from ray.rllib.env.multi_agent_env import make_multi_agent
 
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
-from factorySim.rendering import draw_obs_layer_A, draw_obs_layer_B
+from factorySim.rendering import draw_obs_layer_A, draw_obs_layer_B, draw_obs_layer_C
 
 
 
@@ -91,7 +91,7 @@ class FactorySimEnv(gym.Env):
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
-            dimensions =  4 if env_config.get("coordinateChannels", False) else 2
+            dimensions =  5 if env_config.get("coordinateChannels", False) else 3
             self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, dimensions), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
@@ -236,27 +236,41 @@ class FactorySimEnv(gym.Env):
         machineToHighlight = highlight if not highlight is None else str(self.currentMachine)
 
         draw_obs_layer_A(self.ctx, self.factory, highlight=machineToHighlight)
-
-        buf = self.surface.get_data()
-
-        machines_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        machines_greyscale = self._surface_to_grayscale(self.surface)
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
         draw_obs_layer_B(self.ctx, self.factory, highlight=machineToHighlight)
+        materialflow_greyscale = self._surface_to_grayscale(self.surface)
 
-        buf = self.surface.get_data()
+        #separate Image for Collisions
+        draw_obs_layer_C(self.ctx, self.factory, highlight=machineToHighlight)
+        collisions_greyscale = self._surface_to_grayscale(self.surface)
 
-        materialflow_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
+        
         
         #Format (width, height, 2)
         if self.useCoordinateChannels:
-            output = np.concatenate((machines_greyscale, materialflow_greyscale, self.x_coordChannel, self.y_coordChannel), axis=2, dtype=np.uint8)
+            output = np.concatenate((machines_greyscale, materialflow_greyscale, collisions_greyscale, self.x_coordChannel, self.y_coordChannel), axis=2, dtype=np.uint8)
         else:
-            output = np.concatenate((machines_greyscale, materialflow_greyscale), axis=2, dtype=np.uint8)
+            output = np.concatenate((machines_greyscale, materialflow_greyscale, collisions_greyscale), axis=2, dtype=np.uint8)
         
         return output
+    
+    def _surface_to_grayscale(self, surface):
+        buf = surface.get_data()
+        image = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        del(buf)
+
+    # Check if image has 3 channels (RGB)
+        if image.ndim == 3 and image.shape[2] == 3:
+            # Apply the standard formula: 0.299*R + 0.587*G + 0.114*B
+            grayscale = np.dot(image[...,:3], [0.299, 0.587, 0.114])
+            # Convert back to uint8 but add axis to keep the shape consistent  (H, W , 1)
+            return grayscale[..., np.newaxis].astype(np.uint8)
+        else:
+            raise ValueError("Input image must be an RGB image with shape (H, W, 3)")
     
       
 

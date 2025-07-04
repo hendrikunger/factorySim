@@ -245,9 +245,9 @@ class factorySimLive(mglw.WindowConfig):
                 self.agentInference()   
             # Debug Mode Rendering
             if key == 65451: # Num Plus
-                self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 2 else 0
+                self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 3 else 0
             if key == 65453: # Num Minus
-                self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 2
+                self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 3
             # Zoom
             if key == 43: # +
                 self.currentScale += 0.005
@@ -435,6 +435,8 @@ class factorySimLive(mglw.WindowConfig):
                 case 1:
                     draw_obs_layer_B(self.cctx, self.env.factory, highlight=self.selected)
                 case 2:
+                    draw_obs_layer_C(self.cctx, self.env.factory, highlight=self.selected)
+                case 3:
                     draw_text(self.cctx,(f"Easteregg"), (0.7, 0.0, 0.0, 1.0), (self.window_size[0]/2,self.window_size[1]/2), factoryCoordinates=False)
         else:
             drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=True)
