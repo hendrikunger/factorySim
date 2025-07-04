@@ -3,13 +3,13 @@
 #SBATCH --partition=clara
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
-# --gpus-per-node=v100:1
+#SBATCH --gpus-per-node=V100:1
 #SBATCH --gpus-per-node=1
 #SBATCH --mem-per-cpu=2GB
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=BEGIN,END
 
-#module load CUDA/12.1.1
+#module load CUDA/12.8.1
 
 
 #wandb could not write to this directory
@@ -22,6 +22,6 @@
 
 apptainer run --nv "$HOME/factorySim/factorySim.sif"
 
-#clara cluster
+#Paula cluster
 # run with sbatch slurm-job.sh
 

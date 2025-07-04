@@ -248,9 +248,18 @@ def run():
     runtime_env = {
     "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning"},
     "working_dir": os.path.join(os.path.dirname(os.path.realpath(__file__))),
-    "excludes": ["/.git", "/.vscode", "/wandb", "/artifacts", "*.skp"],
+    "excludes": ["/.git",
+                "/.vscode",
+                "/wandb",
+                "/artifacts",
+                "*.skp",
+                "/home/sc.uni-leipzig.de/nd67ekek/factorySim/factorySim/.git/",
+                "/home/sc.uni-leipzig.de/nd67ekek/factorySim/factorySim/.vscode/",
+                "/home/sc.uni-leipzig.de/nd67ekek/factorySim/factorySim/wandb/",
+                "/home/sc.uni-leipzig.de/nd67ekek/factorySim/factorySim/artifacts/"],
     }
-    NUMGPUS = int(os.getenv("$SLURM_GPUS", 0 if sys.platform == "darwin" else 1))
+    NUMGPUS = int(os.getenv("$SLURM_GPUS",
+                0 if sys.platform == "darwin" else 1))
   
     ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
 
@@ -290,12 +299,12 @@ def run():
                                                                 # [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
                                                                 # [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
                                                                 
-                                                                [32, 5, 2],   # 84x84 → 40x40
-                                                                [64, 3, 2],   # 40x40 → 19x19
-                                                                [128, 3, 2],  # 19x19 → 9x9
-                                                                [128, 3, 1],  # 9x9   → 7x7
-                                                                [256, 3, 2],  # 7x7   → 3x3
-                                                                [256, 3, 1],  # 3x3   → 1x1
+                                                                [32, 5, 2],   # 128x128 → 62x62
+                                                                [64, 4, 2],   # 62x62 → 30x30
+                                                                [128, 4, 2],  # 30x30 → 14x14
+                                                                [128, 3, 2],  # 14x14 → 6x6
+                                                                [256, 3, 2],  # 6x6   → 2x2
+                                                                [256, 2, 2],  # 2x2   → 1x1   
 
                                                             ],
                                                 conv_activation="relu",

@@ -1,4 +1,4 @@
-num_workers: 32  # parallelism  #12
+num_workers: 20  # parallelism  #12
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
@@ -57,7 +57,7 @@ env_config:
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
   evaluation: false #Gets populated on runtime
-  reward_function: 3
+  reward_function: 2
   randomSeed: null
   createMachines: true
   logLevel: 0
@@ -69,8 +69,8 @@ evaluation_config:
     inputfile: '' #Gets populated on runtime
     obs_type: image
     Loglevel: 0
-    width: 256 #84
-    height: 256 #84
+    width: 128 #84
+    height: 128 #84
     maxMF_Elements: null
     outputScale: 3 #10
     render_mode: rgb_array
@@ -78,7 +78,7 @@ evaluation_config:
     prefix: null #Gets populated on runtime
     evaluation: true
     randomSeed: 42
-    reward_function: 3
+    reward_function: 2
     createMachines: false
     logLevel: 0
     coordinateChannels: true
