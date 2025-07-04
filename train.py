@@ -294,11 +294,6 @@ def run():
                                                 #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
                                                 
                                                 conv_filters= [# [ num_filters, kernel, stride]
-                                                                # [32, 8, 4],  # Reduces spatial size from 84x84 -> 20x20
-                                                                # [64, 4, 2],  # Reduces spatial size from 20x20 -> 9x9
-                                                                # [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
-                                                                # [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
-                                                                
                                                                 [32, 5, 2],   # 128x128 → 62x62
                                                                 [64, 4, 2],   # 62x62 → 30x30
                                                                 [128, 4, 2],  # 30x30 → 14x14
@@ -306,6 +301,10 @@ def run():
                                                                 [256, 3, 2],  # 6x6   → 2x2
                                                                 [256, 2, 2],  # 2x2   → 1x1   
 
+                                                                # [32, 8, 4],  # Reduces spatial size from 84x84 -> 20x20
+                                                                # [64, 4, 2],  # Reduces spatial size from 20x20 -> 9x9
+                                                                # [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
+                                                                # [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
                                                             ],
                                                 conv_activation="relu",
                                                 head_fcnet_hiddens=[256],
