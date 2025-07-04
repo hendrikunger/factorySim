@@ -255,7 +255,7 @@ class FactorySimEnv(gym.Env):
         else:
             output = np.concatenate((machines_greyscale, materialflow_greyscale, collisions_greyscale), axis=2, dtype=np.uint8)
         
-        return output
+        return output.astype(np.uint8)
     
     def _surface_to_grayscale(self, surface):
         buf = surface.get_data()
@@ -303,6 +303,8 @@ def main():
     
     import wandb
     import datetime
+    from gymnasium.utils.env_checker import check_env
+
 
 
     #filename = "Long"
@@ -338,6 +340,13 @@ def main():
     )
 
     env = FactorySimEnv( env_config = f_config['env_config'])
+
+    print(f"Obsersvation Space: {env.observation_space}")
+    print(f"Obsersvation Space Type: {env.observation_space.dtype}")
+
+    check_env(env)  # Check if the environment follows the Gymnasium API
+
+    
     env.prefix="test"
     
     
