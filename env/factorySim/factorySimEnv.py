@@ -14,7 +14,7 @@ from ray.rllib.env.env_context import EnvContext
 from ray.rllib.env.multi_agent_env import make_multi_agent
 
 import factorySim.baseConfigs as baseConfigs
-from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
+from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, drawMaterialFlow
 from factorySim.rendering import draw_obs_layer_A, draw_obs_layer_B, draw_obs_layer_C
 
 
@@ -249,7 +249,6 @@ class FactorySimEnv(gym.Env):
 
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         
-        
         #Format (width, height, 2)
         if self.useCoordinateChannels:
             output = np.concatenate((machines_greyscale, materialflow_greyscale, collisions_greyscale, self.x_coordChannel, self.y_coordChannel), axis=2, dtype=np.uint8)
@@ -260,17 +259,11 @@ class FactorySimEnv(gym.Env):
     
     def _surface_to_grayscale(self, surface):
         buf = surface.get_data()
-        image = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2,1,0]]
+        image = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         del(buf)
+        return image
 
-    # Check if image has 3 channels (RGB)
-        if image.ndim == 3 and image.shape[2] == 3:
-            # Apply the standard formula: 0.299*R + 0.587*G + 0.114*B
-            grayscale = np.dot(image[...,:3], [0.299, 0.587, 0.114])
-            # Convert back to uint8 but add axis to keep the shape consistent  (H, W , 1)
-            return grayscale[..., np.newaxis].astype(np.uint8)
-        else:
-            raise ValueError("Input image must be an RGB image with shape (H, W, 3)")
+
     
       
 

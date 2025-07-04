@@ -376,7 +376,7 @@ def drawRoutedMaterialFlow(ctx, machine_dict, fullPathGraph, reducedPathGraph, m
 def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderList=None, drawColors = True):
     #Drawing collisions between machines
     if(drawColors):
-        ctx.set_source_rgb(0.3, 0.9, 0.0)
+        ctx.set_source_rgb(0.7, 0.2, 0.0)
     else:
         ctx.set_source_rgb(0.7, 0.7, 0.7)
     #Drawing collisions between machines and machines
@@ -391,7 +391,7 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
     #Drawing collisions between machines and walls
     if(wallCollisionList):
         if(drawColors):
-            ctx.set_source_rgb(0.3, 0.9, 0.0)
+            ctx.set_source_rgb(0.7, 0.2, 0.0)
         else:
             ctx.set_source_rgb(0.7, 0.7, 0.7)
         for collision in wallCollisionList:
@@ -404,7 +404,7 @@ def drawCollisions(ctx, machineCollisionList, wallCollisionList=None, outsiderLi
         #Drawing outsider
     if(outsiderList): 
         if(drawColors):
-            ctx.set_source_rgb(0.3, 0.9, 0.0)
+            ctx.set_source_rgb(0.7, 0.2, 0.0)
         else:
             ctx.set_source_rgb(0.7, 0.7, 0.7)
         for outsider in outsiderList:
@@ -447,17 +447,18 @@ def draw_text(ctx, text, color, pos, center=False, rightEdge=False, factoryCoord
 def draw_obs_layer_A(ctx, factory,  highlight=None):
     draw_BG(ctx, factory.DRAWINGORIGIN, *factory.FACTORYDIMENSIONS, darkmode=False)
     drawFactory(ctx, factory, None, drawColors = False, drawNames=False, highlight=highlight, isObs=True, darkmode=False,)
-
-
+    drawMaterialFlow(ctx, factory.machine_dict, factory.dfMF, drawColors=False, isObs=True)
     return ctx
 #------------------------------------------------------------------------------------------------------------
 def draw_obs_layer_B(ctx, factory,  highlight=None):
     draw_BG(ctx, factory.DRAWINGORIGIN, *factory.FACTORYDIMENSIONS, darkmode=False)
+    drawFactory(ctx, factory, None, drawColors = False, drawNames=False, highlight=highlight, isObs=True, darkmode=False,)
     draw_detail_paths(ctx, factory.fullPathGraph, factory.reducedPathGraph)
-    drawFactory(ctx, factory, factory.dfMF, drawWalls=False, drawColors = False, drawNames=False, highlight=highlight, isObs=True)
-    
     return ctx
 
 def draw_obs_layer_C(ctx, factory,  highlight=None):
+    draw_BG(ctx, factory.DRAWINGORIGIN, *factory.FACTORYDIMENSIONS, darkmode=False)
     drawFactoryWalls(ctx, factory, drawColors=False, darkmode=False)
-    drawCollisions(ctx, factory.machineCollisionList, factory.wallCollisionList, outsiderList=factory.outsiderList)
+    drawCollisions(ctx, factory.machineCollisionList, factory.wallCollisionList, outsiderList=factory.outsiderList, drawColors=False)
+    return ctx
+
