@@ -97,6 +97,7 @@ class factorySimLive(mglw.WindowConfig):
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
     currenDebugMode = 0
+    reward_function = 1
     #dpiScaler = 2 if sys.platform == "darwin" else 1
     dpiScaler = 1
     is_online = check_internet_conn()
@@ -129,11 +130,7 @@ class factorySimLive(mglw.WindowConfig):
         self.f_config['env_config']['inputfile'] = self.ifcPath
         print(str(self.factoryConfig.NAME))
         self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
-        self.f_config["env_config"]["reward_function"] = 1
-
-
         self.f_config['evaluation_config']["env_config"]["inputfile"] = self.ifcPath
-        self.f_config['evaluation_config']["env_config"]["reward_function"] = 1
         
 
         #self.ifcPath=None
@@ -231,6 +228,11 @@ class factorySimLive(mglw.WindowConfig):
         # 65451  Num Plus
         # Key presses
         if action == keys.ACTION_PRESS:
+            #Change reward mode from 1-3
+            if key == keys.ENTER:
+                self.reward_function = self.reward_function + 1 if self.reward_function < 3 else 1
+                self.is_dirty = True
+                print(f"New Reward Function: {self.reward_function}")
             # Toggle Fullscreen
             if key == keys.F:
                 print("Toggling Fullscreen")
@@ -420,9 +422,9 @@ class factorySimLive(mglw.WindowConfig):
                         self.update_during_calculation = False
                         self.is_dirty = True
                         self.is_calculating = True
-                        self.future = self.executor.submit(self.env.factory.evaluate)
+                        self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
             else:
-                self.future = self.executor.submit(self.env.factory.evaluate)
+                self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
                 self.is_calculating = True
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
         
@@ -627,7 +629,7 @@ class factorySimLive(mglw.WindowConfig):
         self.env.reset()
 
 
-        self.future = self.executor.submit(self.env.factory.evaluate)
+        self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
         _, _ , self.rating, _ = self.future.result()
 
     def set_factoryScale(self):

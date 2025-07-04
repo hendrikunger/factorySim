@@ -16,8 +16,8 @@ train_batch_size_per_learner:  4096 #4096
 mini_batch_size_per_learner: 512 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 1 #100
-training_iteration: 3 #10000 # Number of training iterations to run.
+evaluation_interval: 100
+training_iteration: 10000 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -28,7 +28,7 @@ lambda: 0.95  # Generalized Advantage Estimation (GAE) lambda 0.0 makes the GAE 
 #(and vf predictions from there on, reducing variance, but increasing bias), while a lambda_ of 1.0 only 
 #incorporates vf predictions at the truncation points of the given episodes or episode chunks (reducing bias but increasing variance)
 
-vf_loss_coeff: 0.25
+vf_loss_coeff: 0.5
 # | Scenario                                                      | Recommended `vf_loss_coeff`                             |
 # | ------------------------------------------------------------- | ------------------------------------------------------- |
 # | **Default / general PPO use**                                 | `0.5` (standard)                                        |
