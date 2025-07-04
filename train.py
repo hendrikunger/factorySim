@@ -14,6 +14,7 @@ from ray.rllib.callbacks.callbacks import RLlibCallback
 from ray.air.config import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
+from ray.rllib.algorithms.appo import APPOConfig
 from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
 from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
 from ray.rllib.env.single_agent_episode import SingleAgentEpisode
@@ -56,12 +57,14 @@ from ray.rllib.models import ModelCatalog
 
 
 def env_creator(env_config):
-    return FactorySimEnv(env_config=env_config)  # return an env instance
+    env = FactorySimEnv(env_config=env_config)
+
+    return  env # return an env instance
 
 register_env("FactorySimEnv", env_creator)
 
 NO_TUNE = False
-ALGO = "PPO"  # "Dreamer" or "PPO"
+ALGO = "APPO"  # "Dreamer" or "PPO" or "APPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
 
@@ -283,10 +286,9 @@ def run():
     
             algo_config = PPOConfig()
             algo_config.training(
+                            vf_loss_coeff= f_config['vf_loss_coeff'],
                             train_batch_size=f_config['train_batch_size_per_learner'],
                             minibatch_size=f_config['mini_batch_size_per_learner'],
-                            vf_loss_coeff= f_config['vf_loss_coeff']
-
 
             ) 
 
@@ -314,6 +316,56 @@ def run():
                                 #rl_module_spec=myRLModule,
                                 )
         #PPO END ------------------------------------------------------------------------------------------------------
+        case "APPO":
+            algo_config = APPOConfig()
+
+
+            algo_config.training(
+                train_batch_size=f_config['train_batch_size_per_learner'],  # Note: [1] uses 32768.
+                circular_buffer_num_batches=16,  # matches [1]
+                circular_buffer_iterations_per_batch=20,  # Note: [1] uses 32 for HalfCheetah.
+                target_network_update_freq=2,
+                target_worker_clipping=2.0,  # matches [1]
+                clip_param=0.4,  # matches [1]
+                num_gpu_loader_threads=1,
+                # Note: The paper does NOT specify, whether the 0.5 is by-value or
+                # by-global-norm.
+                grad_clip=0.5,
+                grad_clip_by="value",
+                lr=0.0005,  # Note: [1] uses 3e-4.
+                vf_loss_coeff=0.5,  # matches [1]
+                gamma=0.995,  # matches [1]
+                lambda_=0.995,  # matches [1]
+                entropy_coeff=0.0,  # matches [1]
+                use_kl_loss=True,  # matches [1]
+                kl_coeff=1.0,  # matches [1]
+                kl_target=0.04,  # matches [1]
+            )
+
+
+            algo_config.rl_module(model_config=DefaultModelConfig(
+                                                #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
+                                                
+                                                conv_filters= [# [ num_filters, kernel, stride]
+                                                                [32, 5, 2],   # 128x128 → 62x62
+                                                                [64, 4, 2],   # 62x62 → 30x30
+                                                                [128, 4, 2],  # 30x30 → 14x14
+                                                                [128, 3, 2],  # 14x14 → 6x6
+                                                                [256, 3, 2],  # 6x6   → 2x2
+                                                                [256, 2, 2],  # 2x2   → 1x1   
+
+                                                                # [32, 8, 4],  # Reduces spatial size from 84x84 -> 20x20
+                                                                # [64, 4, 2],  # Reduces spatial size from 20x20 -> 9x9
+                                                                # [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
+                                                                # [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
+                                                            ],
+                                                conv_activation="relu",
+                                                head_fcnet_hiddens=[256],
+                                                vf_share_layers=True,   #Need to tune  vf_loss_coeff on Training config if you set this to True
+
+                                            ),
+                                        )
+        #Dreamer END ------------------------------------------------------------------------------------------------------
         case "Dreamer":
             algo_config = DreamerV3Config()
 
@@ -335,6 +387,7 @@ def run():
                 actor_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
             )
         #Dreamer END ------------------------------------------------------------------------------------------------------
+
 
     algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False)
 
