@@ -201,7 +201,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
-    def evaluate(self, rewardMode = 1):
+    def evaluate(self, rewardMode = 2):
 
         self.RatingDict = {}
         #In case caluclation fails set default rating
@@ -268,7 +268,7 @@ class FactorySim:
                     weights = np.ones_like(partialRatings)
 
                     self.currentRating = np.average(partialRatings, weights=weights).item() 
-                    self.RatingDict["EvaluationResult"] = self.currentRating.item()  
+                    self.RatingDict["EvaluationResult"] = self.currentRating 
                     
 
                     if self.currentRating > self.lastRating: 
@@ -356,12 +356,11 @@ class FactorySim:
         self.wallCollisionList = self.factoryRating.wallCollisionList
         self.outsiderList = self.factoryRating.outsiderList
 
-        #print(len(list(combinations(self.machine_list.values(), 2))))
+
         nMachineCollisions = len(self.factoryRating.machineCollisionList)
         nWallCollosions = len(self.factoryRating.wallCollisionList)
         nOutsiders = len(self.factoryRating.outsiderList)
-
-
+        
         #If latest update leads to collision give worst rating.
         #if(self.collisionAfterLastUpdate):
         #    output = -3

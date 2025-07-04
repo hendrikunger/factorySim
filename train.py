@@ -163,7 +163,6 @@ class MyAlgoCallback(RLlibCallback):
 
         print(f"--------------------------------------------EVAL END--------------------------------------------")
 
-        #Remove the shortened myData key from the evaluation metrics, calculate correctly
         evaluation_metrics["env_runners"].pop("myData", None)
 
         #pprint.pp(metrics_logger.stats)
@@ -203,6 +202,9 @@ class MyAlgoCallback(RLlibCallback):
                         row.append(value)
                     tbl.add_data(*row)
             evaluation_metrics["table"] = tbl
+
+        del(myData)
+        del(data)
             
 #Preprocessor----------------------------------------------------------------------------------------------------------------------------------------------------------
 
