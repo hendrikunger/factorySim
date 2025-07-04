@@ -7,11 +7,11 @@
 #SBATCH --time=1:00:00
 
 
-rm -R -f factorySim 
+# rm -R -f factorySim 
 
-git clone https://github.com/hendrikunger/factorySim.git
+# git clone https://github.com/hendrikunger/factorySim.git
 
-cd ~/factorySim
+# cd ~/factorySim
 
 apptainer build --force "$HOME/factorySim/factorySim.sif" "$HOME/factorySim/Singularity.def"
 #clara cluster
