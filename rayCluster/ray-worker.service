@@ -6,8 +6,10 @@ After=network.target
 Type=simple
 ExecStart=/home/unhe/factorySim/rayCluster/ray-worker.sh
 Restart=always
-User=root
+User=rayuser
 WorkingDirectory=/home/unhe/factorySim/
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
