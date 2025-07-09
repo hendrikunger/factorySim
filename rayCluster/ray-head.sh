@@ -2,7 +2,7 @@
 set -e
 
 # Path to your Apptainer image
-IMAGE_PATH="/home/unhe/factorySim.sif"
+IMAGE_PATH="/home/unhe/factorysim/factorySim.sif"
 
 # Ray startup parameters
 PORT=6379
