@@ -14,8 +14,8 @@ from ray.rllib.env.env_context import EnvContext
 from ray.rllib.env.multi_agent_env import make_multi_agent
 
 import factorySim.baseConfigs as baseConfigs
-from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, draw_text, drawMaterialFlow
-from factorySim.rendering import draw_obs_layer_A, draw_obs_layer_B
+from factorySim.rendering import  draw_BG, drawFactory, drawCollisions, draw_detail_paths, drawMaterialFlow
+from factorySim.rendering import draw_obs_layer_A, draw_obs_layer_B, draw_obs_layer_C
 
 
 
@@ -31,7 +31,7 @@ class FactorySimEnv(gym.Env):
         self.factory = None
         self.stepCount = 0
         self._obs_type = env_config["obs_type"]
-        self.Loglevel = env_config["Loglevel"]
+        self.logLevel = env_config["logLevel"]
         self.uid = -1
         self.width = env_config["width"]
         self.height = env_config["height"]
@@ -42,6 +42,7 @@ class FactorySimEnv(gym.Env):
         self.evalFiles = [None]
         self.currentEvalEnv = None
         self.seed = env_config["randomSeed"]
+        self.useCoordinateChannels = env_config.get("coordinateChannels", False)
         if env_config.get("inputfile", None) is not None:
             file_name, _ = os.path.splitext(env_config["inputfile"])
         else:
@@ -75,6 +76,8 @@ class FactorySimEnv(gym.Env):
         
         self.surface = None
         self.rsurface = None
+        self.ctx = None
+        self.rctx = None
         self.prefix = env_config.get("prefix", "0") 
 
         self.info = {}
@@ -84,13 +87,26 @@ class FactorySimEnv(gym.Env):
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(3,), dtype=np.float32)
+        self.action_space = spaces.Box(low=0.0, high=1.0, shape=(3,), dtype=np.float32)
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
-            self.observation_space = spaces.Box(low=0.0, high=255.0, shape=(self.width, self.height, 3), dtype=np.float32)
+            dimensions =  5 if env_config.get("coordinateChannels", False) else 3
+            self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, dimensions), dtype=np.uint8)
         else:
             raise error.Error('Unrecognized observation type: {}'.format(self._obs_type))
+        
+        if self.useCoordinateChannels:
+            # Precalculate the coordinates of the factory as channels
+            x = np.linspace(0, 255, self.width, dtype=np.uint8)
+            y = np.linspace(0, 255, self.height, dtype=np.uint8)
+            self.y_coordChannel, self.x_coordChannel = np.meshgrid(y, x, indexing='ij')
+
+            #Add third axis for the coordinate channels
+            self.x_coordChannel = np.expand_dims(self.x_coordChannel, axis=2)
+            self.y_coordChannel = np.expand_dims(self.y_coordChannel, axis=2)
+
+
 
 
 
@@ -113,7 +129,7 @@ class FactorySimEnv(gym.Env):
             self.info["Step"] = self.stepCount
             self.info["evalEnvID"] = self.currentEvalEnv
      
-        return (self._get_obs(), self.currentMappedReward, self.terminated, False, self.info)
+        return (self._get_obs(), self.currentReward, self.terminated, False, self.info)
 
     def reset(self, seed=None, options={}):
         if seed is not None:
@@ -138,15 +154,19 @@ class FactorySimEnv(gym.Env):
         randomPos=False,
         createMachines=self.createMachines,
         randSeed = self.seed,
-        verboseOutput=self.Loglevel,
+        logLevel=self.logLevel,
         maxMF_Elements = self.maxMF_Elements)
         self.info = {}
         if self.surface:
             self.surface.finish()
             del(self.surface)
+        if self.ctx:
+            del(self.ctx)
         if self.rsurface:
             self.rsurface.finish()
             del(self.rsurface)
+        if self.rctx:
+            del(self.rctx)
         self.surface, self.ctx = self.factory.provideCairoDrawingData(self.width, self.height)
         self.rsurface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.width * self.scale, self.height*self.scale)
         self.rctx = cairo.Context(self.rsurface)
@@ -158,7 +178,6 @@ class FactorySimEnv(gym.Env):
         self.stepCount = 0
         self.currentMachine = 0
         self.currentReward = 0
-        self.currentMappedReward = 0
         self.materialflowpath = None
         
 
@@ -190,11 +209,7 @@ class FactorySimEnv(gym.Env):
         draw_detail_paths(self.rctx, self.factory.fullPathGraph, self.factory.reducedPathGraph, asStreets=True)
         drawCollisions(self.rctx, self.factory.machineCollisionList, wallCollisionList=self.factory.wallCollisionList, outsiderList=self.factory.outsiderList)
         drawMaterialFlow(self.rctx, self.factory.machine_dict, self.factory.dfMF, drawColors=True)
-        # draw_text(self.rctx, 
-        #           f"{self.uid:02d}.{self.stepCount:02d}       Mapped Reward: {self.currentMappedReward:1.2f} | Reward: {self.currentReward:1.2f}",
-        #           (1,0,0),
-        #           (20, 20),
-        #           factoryCoordinates=False)
+
         
         if self.render_mode == 'human':
             if path is None:
@@ -221,24 +236,34 @@ class FactorySimEnv(gym.Env):
         machineToHighlight = highlight if not highlight is None else str(self.currentMachine)
 
         draw_obs_layer_A(self.ctx, self.factory, highlight=machineToHighlight)
-
-        buf = self.surface.get_data()
-
-        machines_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        machines_greyscale = self._surface_to_grayscale(self.surface)
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_1_collision.png"))
 
         #separate Image for Materialflow
         draw_obs_layer_B(self.ctx, self.factory, highlight=machineToHighlight)
+        materialflow_greyscale = self._surface_to_grayscale(self.surface)
 
-        buf = self.surface.get_data()
+        #separate Image for Collisions
+        draw_obs_layer_C(self.ctx, self.factory, highlight=machineToHighlight)
+        collisions_greyscale = self._surface_to_grayscale(self.surface)
 
-        materialflow_greyscale = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
         #self.surface.write_to_png(os.path.join(self.output_path, f"{self.prefix}_{self.uid}_{self.stepCount:04d}_agent_2_materialflow.png"))
         
         #Format (width, height, 2)
-        output = np.concatenate((machines_greyscale, materialflow_greyscale, materialflow_greyscale), axis=2, dtype=np.float32)
+        if self.useCoordinateChannels:
+            output = np.concatenate((machines_greyscale, materialflow_greyscale, collisions_greyscale, self.x_coordChannel, self.y_coordChannel), axis=2, dtype=np.uint8)
+        else:
+            output = np.concatenate((machines_greyscale, materialflow_greyscale, collisions_greyscale), axis=2, dtype=np.uint8)
         
         return output
+    
+    def _surface_to_grayscale(self, surface):
+        buf = surface.get_data()
+        image = np.ndarray(shape=(self.width, self.height, 4), dtype=np.uint8, buffer=buf)[...,[2]]
+        del(buf)
+        return image
+
+
     
       
 
@@ -254,11 +279,10 @@ class FactorySimEnv(gym.Env):
 
     def tryEvaluate(self):
         try:
-            self.currentMappedReward, self.currentReward, self.info, self.terminated = self.factory.evaluate(self.reward_function)
+            self.currentReward, self.info, self.terminated = self.factory.evaluate(self.reward_function)
         except Exception as e:
             print(e)
             print("Error in evaluate")
-            self.currentMappedReward = -10
             self.currentReward = -10
             self.info = {}
             self.terminated = True
@@ -301,13 +325,16 @@ def main():
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
     f_config['env_config']['randomSeed'] = 42
+    f_config['env_config']['logLevel'] = 0
+
+ 
 
     run = wandb.init(
         project="factorySim_ENVTEST",
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=f_config,
         save_code=True,
-        mode="offline",
+        mode="online",
     )
 
     env = FactorySimEnv( env_config = f_config['env_config'])
@@ -325,7 +352,7 @@ def main():
     image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
-    for index in tqdm(range(0,60)):
+    for index in tqdm(range(0,10)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         if env.render_mode == "rgb_array":   

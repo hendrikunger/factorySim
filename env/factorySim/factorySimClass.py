@@ -21,7 +21,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Loading
  #------------------------------------------------------------------------------------------------------------
-    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randSeed = int(time()), randomPos = False, createMachines = False, verboseOutput = 0, maxMF_Elements = None):
+    def __init__(self, path_to_ifc_file=None, path_to_materialflow_file = None, factoryConfig=baseConfigs.SMALLSQUARE, randSeed = int(time()), randomPos = False, createMachines = False, logLevel = 0, maxMF_Elements = None):
         self.FACTORYDIMENSIONS = (factoryConfig.WIDTH, factoryConfig.HEIGHT) # if something is read from file this is overwritten
         self.DRAWINGORIGIN = (0,0)
         self.MAXMF_ELEMENTS = maxMF_Elements
@@ -33,7 +33,7 @@ class FactorySim:
             factoryConfig.MAXCORNERS,
             randSeed=randSeed
             )
-        self.verboseOutput = verboseOutput
+        self.verboseOutput = logLevel
         self.pathPolygon = None
         self.MFIntersectionPoints = None
         self.rng = np.random.default_rng(randSeed)
@@ -108,7 +108,6 @@ class FactorySim:
 
         self.lastRating = 0
         self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
-        self.currentMappedRating    = 0 # Holds the normalized Rating of the current state of the Layout 
 
         self.lastUpdatedMachine = None #Hold uid of last updated machine for collision checking
         self.collisionAfterLastUpdate = False # True if latest update leads to new collisions
@@ -152,7 +151,16 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Update Machines
  #------------------------------------------------------------------------------------------------------------
-    def update(self, machineIndex, xPosition : float  = 0.0, yPosition: float = 0.0, rotation: float = None, skip = 0):
+    def update(self, machineIndex, xPosition : float  = 0.5, yPosition: float = 0.5, rotation: float = None, skip = 0):
+        """_summary_
+
+        Args:
+            machineIndex (_type_): Index or Name of the machine to update. If an integer is given, it is interpreted as index in the machine_dict.
+            xPosition (float, optional): x - Coordinate of the machine in range 0.0 to 1.0. Defaults to 0.5, which is the center of the factory. x-Axis is horizontal.
+            yPosition (float, optional): y - Coordinate of the machine in range 0.0 to 1.0. Defaults to 0.5, which is the center of the factory. y-Axis is vertical.
+            rotation (float, optional): Rotation of the machine in range 0.0 to 1.0, where 0.0 is -180° and 1.0 is 180°. Defaults to None, which means no rotation.
+            skip (int, optional): Optional parameter to skip the update. If skip is greater than 0.8, the update is skipped. Defaults to 0.
+        """
         if type(machineIndex) == int:
             if machineIndex< len(self.machine_dict):
                 machineIndex = list(self.machine_dict)[machineIndex]
@@ -168,15 +176,15 @@ class FactorySim:
                 print(f"Update: {self.machine_dict[machineIndex].name} - X: {xPosition:1.1f} Y: {yPosition:1.1f} R: {rotation:1.2f} ")
 
             if (rotation is not None):
-                mappedRot = np.interp(rotation, (-1.0, 1.0), (0, 2*np.pi))
+                mappedRot = np.interp(rotation, (0.0, 1.0), (0, 2*np.pi))
                 self.machine_dict[machineIndex].rotate_Item(mappedRot)
 
             bbox = self.creator.bb.bounds #bbox is a tuple of (xmin, ymin, xmax, ymax)
             #Max Value should move machine to the rightmost or topmost position without moving out of the image
             #np.interp also Clips Position to Output Range
                     
-            mappedXPos = np.interp(xPosition, (-1.0, 1.0), (0, bbox[2] - self.machine_dict[machineIndex].width))  
-            mappedYPos = np.interp(yPosition, (-1.0, 1.0), (0, bbox[3] - self.machine_dict[machineIndex].height)) 
+            mappedXPos = np.interp(xPosition, (0.0, 1.0), (0, bbox[2] - self.machine_dict[machineIndex].width))  
+            mappedYPos = np.interp(yPosition, (0.0, 1.0), (0, bbox[3] - self.machine_dict[machineIndex].height)) 
 
 
             self.machine_dict[machineIndex].translate_Item(mappedXPos, mappedYPos)
@@ -192,11 +200,11 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
-    def evaluate(self, rewardMode = 1):
+    def evaluate(self, rewardMode = 2):
 
         self.RatingDict = {}
         #In case caluclation fails set default rating
-        self.currentRating = -5
+        self.currentRating = -5.0
 
         
         self.fullPathGraph, self.reducedPathGraph, self.walkableArea = self.factoryPath.calculateAll(self.machine_dict, self.wall_dict, self.creator.bb)
@@ -209,32 +217,32 @@ class FactorySim:
 
             self.factoryRating = FactoryRating(machine_dict=self.machine_dict, wall_dict=self.wall_dict, fullPathGraph=self.fullPathGraph, reducedPathGraph=self.reducedPathGraph, prepped_bb=self.creator.prep_bb, dfMF=self.dfMF)
 
-            self.RatingDict["ratingCollision"] = self.evaluateCollision()    
+            self.RatingDict["ratingCollision"] = self.evaluateCollision()      
             if(self.verboseOutput >= 3):
                 self.printTime("Kollisionsbewertung abgeschlossen")
 
-            self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.creator.bb) 
+            self.RatingDict["ratingMF"] = self.factoryRating.evaluateMF(self.creator.bb)   
             self.RatingDict["ratingTrueMF"] = self.factoryRating.evaluateTrueMF(self.creator.bb)
             #sort MF Dict for Rendering
             self.dfMF.sort_values(by=['intensity_sum_norm'], inplace=True, ascending=False) 
-            self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()        
+            self.RatingDict["MFIntersection"], self.MFIntersectionPoints = self.factoryRating.evaluateMFIntersection()         
             if(self.verboseOutput >= 3):
                 self.printTime("Bewertung des Materialfluss abgeschlossen")
 
             self.pathPolygon, self.extendedPathPolygon = self.factoryRating.PathPolygon()
             self.MachinesFarFromPath = self.factoryRating.getMachinesFarFromPath(self.extendedPathPolygon)
-            self.RatingDict["routeAccess"] = self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath)
+            self.RatingDict["routeAccess"] = self.factoryRating.evaluateRouteAccess(self.MachinesFarFromPath) 
             self.RatingDict["pathEfficiency"] = self.factoryRating.PathEfficiency()
             #20 % of the maximum dimension of the factory as grouping threshold
             self.usedSpacePolygonDict, self.machine_dict = self.factoryRating.UsedSpacePolygon(max(self.FACTORYDIMENSIONS) * 0.2)
             self.freeSpacePolygon, self.growingSpacePolygon = self.factoryRating.FreeSpacePolygon(self.pathPolygon, self.walkableArea, self.usedSpacePolygonDict)
-            self.RatingDict["areaUtilisation"] = self.factoryRating.evaluateAreaUtilisation(self.walkableArea, self.freeSpacePolygon)
-            self.RatingDict["Scalability"] = self.factoryRating.evaluateScalability(self.growingSpacePolygon)
+            self.RatingDict["areaUtilisation"] = self.factoryRating.evaluateAreaUtilisation(self.walkableArea, self.freeSpacePolygon) 
+            self.RatingDict["Scalability"] = self.factoryRating.evaluateScalability(self.growingSpacePolygon) 
             #Currently not used, does not make relevant difference
             self.factoryRating.evaluateCompactness(self.usedSpacePolygonDict)
             self.freespaceAlongRoutesPolygon = self.factoryRating.FreeSpaceRoutesPolygon(self.pathPolygon)
-            self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity()
-            self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance()
+            self.RatingDict["routeContinuity"] = self.factoryRating.evaluateRouteContinuity() 
+            self.RatingDict["routeWidthVariance"] =self.factoryRating.PathWidthVariance() 
             self.RatingDict["Deadends"] =self.factoryRating.evaluateDeadends()
             
 
@@ -245,21 +253,21 @@ class FactorySim:
             match rewardMode:
                 case 1:
                     # Rating is 0 if no collision, -1 if collision
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated"])
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated"])
                     weights = np.ones_like(partialRatings)
 
                     if(self.RatingDict.get("ratingCollision", -1) >= 0.5):
-                        self.currentRating = np.average(partialRatings, weights=weights)
+                        self.currentRating = np.average(partialRatings, weights=weights).item()  
                     else: 
-                        self.currentRating = -1
+                        self.currentRating = -1.0
 
                 case 2:
                     # Rating the difference to the last rating
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated" and k != "EvaluationResult"])
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated" and k != "EvaluationResult"])
                     weights = np.ones_like(partialRatings)
 
-                    self.currentRating = np.average(partialRatings, weights=weights)
-                    self.RatingDict["EvaluationResult"] = self.currentRating
+                    self.currentRating = np.average(partialRatings, weights=weights).item() 
+                    self.RatingDict["EvaluationResult"] = self.currentRating 
                     
 
                     if self.currentRating > self.lastRating: 
@@ -269,13 +277,13 @@ class FactorySim:
 
                 case 3:
                     # Weighted average of all ratings
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "TotalRating" and k != "terminated"])
+                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated"])
                     weights = np.ones_like(partialRatings)
-                    self.currentRating = np.average(partialRatings, weights=weights)
+                    self.currentRating = np.average(partialRatings, weights=weights).item() 
 
 
 
-            self.RatingDict["Reward"] = self.currentRating                       
+            self.RatingDict["Reward"] = self.currentRating                 
 
             #if(output["ratingCollision"] >= 0.5):
             #    self.currentRating = 0.1
@@ -292,12 +300,12 @@ class FactorySim:
         else:
             if(self.verboseOutput >= 1):
                 print("Bewertung fehlgeschlagen")
-            self.RatingDict["TotalRating"] = -10
+            self.RatingDict["Reward"] = -10.0
             self.RatingDict["terminated"] = True
-            return self.currentRating, self.currentRating, self.RatingDict, self.RatingDict["terminated"]
+            return self.currentRating, self.RatingDict, self.RatingDict["terminated"]
 
 
-        self.currentMappedRating = self.RatingDict["TotalRating"]= self.currentRating
+        self.RatingDict["Reward"]= self.currentRating
 
 
         if(self.episodeCounter >= 3 * len(self.machine_dict)):
@@ -313,14 +321,14 @@ class FactorySim:
         if(self.verboseOutput >= 1):
             print(self.generateRatingText(multiline=True))
 
-        return self.currentMappedRating, self.currentRating, self.RatingDict, self.RatingDict["terminated"]
+        return self.currentRating, self.RatingDict, self.RatingDict["terminated"]
 
     def generateRatingText(self, multiline=False):
         if(multiline):
             con = "\n"
         else:
             con = " | "
-        return (f"REWARD              : {self.RatingDict.get('TotalRating', -100): 1.2f}{con}"
+        return (f"REWARD              : {self.RatingDict.get('Reward', -100): 1.2f}{con}"
                 f"Evaluation Result   : {self.RatingDict.get('EvaluationResult', 0): 1.2f}{con}"
                 f"Material Flow       : {self.RatingDict.get('ratingMF', -100): 1.2f}{con}"
                 f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', -100): 1.2f}{con}"
@@ -347,12 +355,11 @@ class FactorySim:
         self.wallCollisionList = self.factoryRating.wallCollisionList
         self.outsiderList = self.factoryRating.outsiderList
 
-        #print(len(list(combinations(self.machine_list.values(), 2))))
+
         nMachineCollisions = len(self.factoryRating.machineCollisionList)
         nWallCollosions = len(self.factoryRating.wallCollisionList)
         nOutsiders = len(self.factoryRating.outsiderList)
-
-
+        
         #If latest update leads to collision give worst rating.
         #if(self.collisionAfterLastUpdate):
         #    output = -3
@@ -420,14 +427,14 @@ def main():
         path_to_materialflow_file = materialflowpath,
         factoryConfig=baseConfigs.SMALL,
         randomPos=False,
-        createMachines=True,
-        verboseOutput=4,
+        createMachines=False,
+        logLevel=4,
         maxMF_Elements = 3)
     
     surface, ctx = demoFactory.provideCairoDrawingData(*img_resolution)
     #Machine Positions Output to PNG
     draw_BG(ctx, demoFactory.DRAWINGORIGIN, *img_resolution)
-    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",
         "..",
@@ -447,12 +454,16 @@ def main():
     #demoFactory.evaluate()
     #demoFactory.update(1,0.1 ,-0.8 , 1, 0.8)
     #demoFactory.evaluate()
-    demoFactory.update(1,-1 ,-1 , 0.2)
+    #demoFactory.update(1,-1 ,-1 , 0.2)
+    #demoFactory.update(1,1.0 ,1.0 , 0.2)
+    demoFactory.update(1,0.5 ,0.5 , 0.2)
+    #demoFactory.update(1,0.75 ,0.75 , 0.2)
+    #demoFactory.update(1,1.0 ,0.0 , 0.2)
     ##Rate current Layout
     demoFactory.evaluate()
 
     draw_BG(ctx, demoFactory.DRAWINGORIGIN, *img_resolution)
-    drawFactory(ctx, demoFactory.machine_dict, demoFactory.wall_dict, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
+    drawFactory(ctx, demoFactory, demoFactory.dfMF, drawNames=False, drawOrigin = True, drawMachineCenter = True, highlight=0)
     
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
         "..",

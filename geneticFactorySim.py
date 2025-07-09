@@ -28,14 +28,14 @@ ETA = 0.9
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 2)))  #multiprocessing.cpu_count()
-parser.add_argument("--num-generations", type=int, default=5) 
-parser.add_argument("--num-population", type=int, default=100)
+parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 12)))  #multiprocessing.cpu_count()
+parser.add_argument("--num-generations", type=int, default=500) 
+parser.add_argument("--num-population", type=int, default=300)
 parser.add_argument("--num-genmemory", type=int, default=0) 
 parser.add_argument(
     "--problemID",
     type=int,
-    default=1,
+    default=2,
     help="Which - in the list of evaluation environments to use. Default is 1.",
 )
 
@@ -215,7 +215,7 @@ def main():
     #                      which corresponds to integers sampled uniformly
     #                      from the range [0,1] (i.e. 0 or 1 with equal
     #                      probability)
-    toolbox.register("attr_float", rng.uniform, -1, 1)
+    toolbox.register("attr_float", rng.uniform, 0, 1)
 
     # Structure initializers
     #                         define 'individual' to be an individual
@@ -233,7 +233,7 @@ def main():
 
     # register a mutation operator with a probability to
     # flip each attribute/gene of 0.05
-    toolbox.register("mutate", tools.mutPolynomialBounded, low=-1.0, up=1.0, indpb=1/NUMMACHINES)
+    toolbox.register("mutate", tools.mutPolynomialBounded, low=0.0, up=1.0, indpb=1/NUMMACHINES)
 
     toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=args.num_genmemory)
 
@@ -244,7 +244,7 @@ def main():
     # toolbox.register("select", tournament_survial_selection, k=args.num_population * NUMMACHINES)
 
     #TODO Try roulette wheel selection
-    #toolbox.register("select", tools.selRoulette)
+    toolbox.register("select", tools.selRoulette)
 
     hall = HallOfFame(10)
 
@@ -253,7 +253,6 @@ def main():
 
 
 
-    
 
 
 

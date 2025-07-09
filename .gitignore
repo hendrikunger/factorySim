@@ -2,6 +2,8 @@
 *.sif
 #wandb files
 wandb/
+#artifact files
+artifacts/
 #Images
 *.png
 #Videos

@@ -41,3 +41,48 @@ print(f"Expected reduced value: {expected_reduced}, peek: {logger.peek(key)}")
 np.ones((10,2,3))
 
 # %%
+import numpy as np
+from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
+logger = MetricsLogger()
+
+
+
+
+logger.log_value("loss", np.float64(0.001), reduce=None, clear_on_reduce=False)
+logger.log_value("loss", np.float64(0.002), reduce=None, clear_on_reduce=False)
+logger.peek("loss")
+
+# %%
+dd= {"test": np.float64(0.001), "accuracy": np.float64(0.9)}
+dd
+#%%
+
+logger.log_dict(dd, reduce=None, clear_on_reduce=False)
+logger.log_dict({"test": np.float64(0.005), "accuracy": np.float64(0.3)}, reduce=None, clear_on_reduce=False)
+
+result = logger.reduce()
+result["test"]
+# %%
+
+import numpy as np
+
+width = 20
+height = 8
+max_value = 255
+
+
+y,x = np.mgrid[ 0:(height/2), -(width/2):(width/2)]
+
+
+
+# %%
+y = np.linspace(0, max_value, height, dtype=np.uint8)
+x = np.linspace(0, max_value, width, dtype=np.uint8)
+y_coords, x_coords = np.meshgrid(y, x, indexing='ij')
+
+x,y
+# %%
+x_coords.astype(np.uint8), y_coords.astype(np.uint8)
+# %%
+x_coords, y_coords
+# %%

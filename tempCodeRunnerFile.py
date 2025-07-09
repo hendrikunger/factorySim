@@ -1,1 +1,0 @@
-if os.path.exists(path_to_ifc):

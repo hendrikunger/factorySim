@@ -8,11 +8,16 @@ from ray.rllib.core.models.base import Encoder, ENCODER_OUT
 from ray.rllib.core.models.configs import ModelConfig
 from ray.rllib.core.models.torch.base import TorchModel
 from ray.rllib.core.models.configs import MLPHeadConfig
+from ray.rllib.core.columns import Columns
 
 torch, nn = try_import_torch()
 
 
-
+#Need to implement Rllib Value Function API
+#Examples 
+#https://github.com/ray-project/ray/blob/master/rllib/examples/rl_modules/custom_cnn_rl_module.py
+#https://github.com/ray-project/ray/blob/master/rllib/examples/rl_modules/classes/tiny_atari_cnn_rlm.py
+#https://github.com/ray-project/ray/blob/master/rllib/examples/rl_modules/classes/lstm_containing_rlm.py
 
 class MyPPOTorchRLModule(PPOTorchRLModule):
     def __init__(self, config: RLModuleConfig) -> None:
@@ -77,8 +82,11 @@ class TimmEncoder(TorchModel, Encoder):
         self.net = timm.create_model(config.model, num_classes=config.output_dims, pretrained=config.pretrained, in_chans=config.input_dims)
 
 
-    def _forward(self, input_dict, **kwargs):
-        t_in = input_dict["obs"].permute(0, 3, 1, 2).float()
+    def _forward(self, batch, **kwargs):
+
+        #t_in = batch[Columns.OBS].permute(0, 3, 1, 2).float()
+        t_in = batch[Columns.OBS]
+
         print(f"Raw----------------------------- {input_dict['obs'].shape}")
         print(f"---------------------------------- {input_dict['obs'].max()}")
         print(f"---------------------------------- {input_dict['obs'].dtype}")
@@ -86,10 +94,10 @@ class TimmEncoder(TorchModel, Encoder):
         print(f"---------------------------------- {t_in.shape}")
         print(f"---------------------------------- {t_in.max()}")
         print(f"---------------------------------- {t_in.dtype}")            
-        forward = self.net.forward(t_in)
+        action_logits = self.net.forward(t_in)
         print(f"Output------------------- ")
         print(f"---------------------------------- {forward.shape}")
         print(f"---------------------------------- {forward.dtype}")
         #print(f"---------------------------------- {forward}")
-        return {ENCODER_OUT: (forward)}
+        return {Columns.: (forward)}
     

@@ -1,5 +1,6 @@
 Bootstrap: docker
-From: nvcr.io/nvidia/pytorch:24.10-py3
+#From: nvcr.io/nvidia/pytorch:25.06-py3
+From: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
 
 %files
 requirements_factorySim.txt /workspace/factorySim/

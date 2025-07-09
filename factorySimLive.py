@@ -97,6 +97,7 @@ class factorySimLive(mglw.WindowConfig):
     mqtt_Q = None # Holds mqtt messages till they are processed
     cursorPosition = None
     currenDebugMode = 0
+    reward_function = 1
     #dpiScaler = 2 if sys.platform == "darwin" else 1
     dpiScaler = 1
     is_online = check_internet_conn()
@@ -129,11 +130,7 @@ class factorySimLive(mglw.WindowConfig):
         self.f_config['env_config']['inputfile'] = self.ifcPath
         print(str(self.factoryConfig.NAME))
         self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
-        self.f_config["env_config"]["reward_function"] = 1
-
-
         self.f_config['evaluation_config']["env_config"]["inputfile"] = self.ifcPath
-        self.f_config['evaluation_config']["env_config"]["reward_function"] = 1
         
 
         #self.ifcPath=None
@@ -213,26 +210,32 @@ class factorySimLive(mglw.WindowConfig):
         )
 
 
-    def resize(self, width: int, height: int):
+    def on_resize(self, width: int, height: int):
         self.window_size = (width, height)
         self.set_factoryScale()
 
 
-    def close(self):
+    def on_close(self):
         print("closing")
         self.executor.shutdown()
         if self.is_online:
             self.mqtt_client.loop_stop()
         
 
-    def key_event(self, key, action, modifiers):
+    def on_key_event(self, key, action, modifiers):
         keys = self.wnd.keys
         # 65453  Num Minus
         # 65451  Num Plus
         # Key presses
         if action == keys.ACTION_PRESS:
+            #Change reward mode from 1-3
+            if key == keys.ENTER:
+                self.reward_function = self.reward_function + 1 if self.reward_function < 3 else 1
+                self.is_dirty = True
+                print(f"New Reward Function: {self.reward_function}")
             # Toggle Fullscreen
             if key == keys.F:
+                print("Toggling Fullscreen")
                 self.wnd.fullscreen = not self.wnd.fullscreen   
             # Toggle Text Rendering under selection
             if key == keys.E:
@@ -242,9 +245,9 @@ class factorySimLive(mglw.WindowConfig):
                 self.agentInference()   
             # Debug Mode Rendering
             if key == 65451: # Num Plus
-                self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 2 else 0
+                self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 3 else 0
             if key == 65453: # Num Minus
-                self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 2
+                self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 3
             # Zoom
             if key == 43: # +
                 self.currentScale += 0.005
@@ -316,12 +319,12 @@ class factorySimLive(mglw.WindowConfig):
                 self.wnd.exit_key = None
 
 
-    def mouse_position_event(self, x, y, dx, dy):
+    def on_mouse_position_event(self, x, y, dx, dy):
         x *= self.dpiScaler
         y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
-    def mouse_drag_event(self, x, y, dx, dy):
+    def on_mouse_drag_event(self, x, y, dx, dy):
         x *= self.dpiScaler
         y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
@@ -333,7 +336,7 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
 
-    def mouse_press_event(self, x, y, button):
+    def on_mouse_press_event(self, x, y, button):
         #Highlight and prepare for Drag
         x *= self.dpiScaler
         y *= self.dpiScaler
@@ -387,12 +390,12 @@ class factorySimLive(mglw.WindowConfig):
                 
 
 
-    def mouse_release_event(self, x: int, y: int, button: int):
+    def on_mouse_release_event(self, x: int, y: int, button: int):
         if button == 1:
             #self.selected = None
             pass
 
-    def render(self, time, frame_time):
+    def on_render(self, time, frame_time):
         if time > self.lastTime + 0.5:
             self.fps_counter = 1/(frame_time+0.00000001)
             self.lastTime = time
@@ -411,7 +414,7 @@ class factorySimLive(mglw.WindowConfig):
         if self.is_dirty:
             if self.is_calculating:
                 if self.future.done():
-                    _, _ , self.rating, _ = self.future.result()
+                    self.future.result()
                     self.is_dirty = False
                     self.is_calculating = False
                     #if we had changes during last calulation, recalulate
@@ -419,9 +422,9 @@ class factorySimLive(mglw.WindowConfig):
                         self.update_during_calculation = False
                         self.is_dirty = True
                         self.is_calculating = True
-                        self.future = self.executor.submit(self.env.factory.evaluate)
+                        self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
             else:
-                self.future = self.executor.submit(self.env.factory.evaluate)
+                self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
                 self.is_calculating = True
         color = (0.0, 0.0, 0.0) if self.is_darkmode else (1.0, 1.0, 1.0)
         
@@ -432,6 +435,8 @@ class factorySimLive(mglw.WindowConfig):
                 case 1:
                     draw_obs_layer_B(self.cctx, self.env.factory, highlight=self.selected)
                 case 2:
+                    draw_obs_layer_C(self.cctx, self.env.factory, highlight=self.selected)
+                case 3:
                     draw_text(self.cctx,(f"Easteregg"), (0.7, 0.0, 0.0, 1.0), (self.window_size[0]/2,self.window_size[1]/2), factoryCoordinates=False)
         else:
             drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=True)
@@ -513,8 +518,8 @@ class factorySimLive(mglw.WindowConfig):
                         Modes.MODE1 : True,
                         Modes.MODE2 : False,
                         Modes.MODE3 : False,
-                        Modes.MODE4 : False,
-                        Modes.MODE5 : False,
+                        Modes.MODE4 : True,
+                        Modes.MODE5 : True,
                         Modes.MODE6 : False,
                         Modes.MODE7 : False,
                         Modes.MODE8 : False,
@@ -626,8 +631,8 @@ class factorySimLive(mglw.WindowConfig):
         self.env.reset()
 
 
-        self.future = self.executor.submit(self.env.factory.evaluate)
-        _, _ , self.rating, _ = self.future.result()
+        self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
+        self.future.result()
 
     def set_factoryScale(self):
         self.currentScale = self.env.factory.creator.suggest_factory_view_scale(self.window_size[0],self.window_size[1])

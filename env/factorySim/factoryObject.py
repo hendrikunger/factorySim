@@ -44,7 +44,7 @@ class FactoryObject:
 
 
     def translate_Item(self, x: float, y: float) -> None:
-        """_summary_ Translate the item by x and y
+        """_summary_ Translate the item to x and y
 
         Args:
             x (float): x Coordinate in factory space

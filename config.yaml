@@ -1,58 +1,8 @@
-env_config:
-  inputfile: '' #Gets populated on runtime
-  obs_type: image
-  Loglevel: 0
-  width: 84 #84
-  height: 84 #84
-  maxMF_Elements: 0
-  outputScale: 2 #10
-  render_mode: null
-  factoryconfig: SMALLSQUARE
-  prefix: null #Gets populated on runtime
-  evaluation: false #Gets populated on runtime
-  reward_function: 3
-  randomSeed: null
-  createMachines: true
-
-
-# Evaluate once per training iteration.
-evaluation_interval: 100
-
-# Special evaluation config. Keys specified here will override
-# the same keys in the main config, but only for evaluation.
-evaluation_config:
-# Store videos in this relative directory here inside
-# the default output dir (~/ray_results/...).
-# Alternatively, you can specify an absolute path.
-# Set to True for using the default output dir (~/ray_results/...).
-# Set to False for not recording anything.
-#"record_env": os.path.join(os.path.dirname(os.path.realpath(__file__)), "Output"),
-# Render the env while evaluating.
-# Note that this will always only render the 1st RolloutWorker's
-# env and only the 1st sub-env in a vectorized env.
-  render_env: false
-  env_config:
-    inputfile: '' #Gets populated on runtime
-    obs_type: image
-    Loglevel: 0
-    width: 84 #84
-    height: 84 #84
-    maxMF_Elements: null
-    outputScale: 10 #10
-    render_mode: rgb_array
-    factoryconfig: SMALLSQUARE
-    prefix: null #Gets populated on runtime
-    evaluation: true
-    randomSeed: 42
-    reward_function: 3
-    createMachines: false
-
-render_env: false
 num_workers: 32  # parallelism  #12
 num_envs_per_env_runner: 1
+evaluation_parallel_to_training: false
+evaluation_num_env_runners: 0
 
-# Should be one of DEBUG, INFO, WARN, or ERROR
-log_level: ERROR
 # Whether - upon a worker failure - RLlib will try to recreate the lost worker as
 # an identical copy of the failed one. The new worker will only differ from the
 # failed one in its `self.recreated_worker=True` property value. It will have
@@ -61,16 +11,74 @@ log_level: ERROR
 recreate_failed_workers: true
 restart_failed_sub_environments: true
 
-rollout_fragment_length: 4096 
-train_batch_size_per_learner:  4096 #3200
-mini_batch_size_per_learner: 1024 #100
-num_sgd_iter: 4
-gamma: 0.99
+#Gneral Algorithm Config
+train_batch_size_per_learner:  4096 #4096
+mini_batch_size_per_learner: 512 #100
+
+# Evaluate once per training iteration.
+evaluation_interval: 100
+training_iteration: 10000 # Number of training iterations to run.
+
+##PPO Config
+
+gamma: 0.9 # Discount factor for rewards.  1 means future rewards and immediate rewards are equally important. We need to discount future rewards to avoid infinite returns. Lower is more short-sighted, higher is more far-sighted.
 # The default learning rate.
-lr: 0.00025  #0.00002,
-lambda: 0.95
+lr: 0.0002  #0.00002,
+lambda: 0.95  # Generalized Advantage Estimation (GAE) lambda 0.0 makes the GAE rely only on immediate rewards 
+#(and vf predictions from there on, reducing variance, but increasing bias), while a lambda_ of 1.0 only 
+#incorporates vf predictions at the truncation points of the given episodes or episode chunks (reducing bias but increasing variance)
+
 vf_loss_coeff: 0.5
-entropy_coeff: 0.01
-clip_param: 0.2
-vf_clip_param: 10.0
-kl_target: 0.01
+# | Scenario                                                      | Recommended `vf_loss_coeff`                             |
+# | ------------------------------------------------------------- | ------------------------------------------------------- |
+# | **Default / general PPO use**                                 | `0.5` (standard)                                        |
+# | **Shared encoder layers**                                     | `0.25 – 0.5` (less weight on VF to reduce interference) |
+# | **Separate encoders**                                         | `0.5 – 1.0` (more freedom for VF to learn)              |
+# | **Value function underperforming**                            | ↑ increase to `1.0` or more                             |
+# | **Policy learning unstable (especially with shared encoder)** | ↓ decrease to `0.1 – 0.3`                               |
+
+#entropy_coeff: 0.01
+#clip_param: 0.2
+vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensitive to the scale of the rewards. If your expected V is large, increase this.
+#kl_target: 0.01
+
+
+
+
+env_config:
+  inputfile: '' #Gets populated on runtime
+  obs_type: image
+  Loglevel: 0
+  width: 128 #84
+  height: 128 #84
+  maxMF_Elements: 0
+  outputScale: 2 #10
+  render_mode: null
+  factoryconfig: SMALLSQUARE
+  prefix: null #Gets populated on runtime
+  evaluation: false #Gets populated on runtime
+  reward_function: 2
+  randomSeed: null
+  createMachines: true
+  logLevel: 0
+  coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
+# Special evaluation config. Keys specified here will override
+# the same keys in the main config, but only for evaluation.
+evaluation_config:
+  env_config:
+    inputfile: '' #Gets populated on runtime
+    obs_type: image
+    Loglevel: 0
+    width: 128 #84
+    height: 128 #84
+    maxMF_Elements: null
+    outputScale: 3 #10
+    render_mode: rgb_array
+    factoryconfig: SMALLSQUARE
+    prefix: null #Gets populated on runtime
+    evaluation: true
+    randomSeed: 42
+    reward_function: 2
+    createMachines: false
+    logLevel: 0
+    coordinateChannels: true

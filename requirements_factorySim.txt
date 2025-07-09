@@ -1,6 +1,6 @@
 numpy
 grpcio
-ray[data,train,tune,rllib]
+ray[data,train,tune,rllib,default]
 pandas
 pandas-datareader
 networkx
