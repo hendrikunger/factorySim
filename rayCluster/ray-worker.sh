@@ -2,7 +2,7 @@
 set -e
 
 # Path to Apptainer image
-IMAGE_PATH="/home/unhe/factorysim/factorySim.sif"
+IMAGE_PATH="/home/unhe/factorySim/factorySim.sif"
 
 # Head node IP (override via env or systemd)
 HEAD_NODE_IP=${RAY_HEAD_IP:-"10.54.129.113"}

@@ -2,7 +2,7 @@
 set -e
 
 # Path to your Apptainer image
-IMAGE_PATH="/home/unhe/factorysim/factorySim.sif"
+IMAGE_PATH="/home/unhe/factorySim/factorySim.sif"
 LOG_FILE="/var/log/ray/ray-head.log"
 
 # Ray startup parameters
