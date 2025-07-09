@@ -1,0 +1,13 @@
+[Unit]
+Description=Ray Worker Node (Apptainer)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/home/unhe/factorySim/rayCluster/ray-worker.sh
+Restart=always
+User=root
+WorkingDirectory=/home/unhe/factorySim/
+
+[Install]
+WantedBy=multi-user.target
