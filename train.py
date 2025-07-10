@@ -246,7 +246,7 @@ def run():
 
 
     runtime_env = {
-    "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning", "WANDB_API_KEY":"c0dc5fafbae1b2e39683c29050ba363753259461"},
+    "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning"},
     "working_dir": os.path.join(os.path.dirname(os.path.realpath(__file__))),
     "excludes": ["/.git",
                 "/.vscode",
