@@ -7,7 +7,6 @@ Type=simple
 TimeoutStopSec=30
 KillSignal=SIGTERM
 ExecStart=/home/unhe/factorySim/rayCluster/ray-worker.sh
-ExecStop=-
 Restart=on-failure
 User=unhe
 Environment=RAY_HEAD_IP=10.54.129.113
