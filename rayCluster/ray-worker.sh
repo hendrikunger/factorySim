@@ -1,35 +1,23 @@
 #!/bin/bash
 set -e
 
-# Path to Apptainer image
 IMAGE_PATH="/home/unhe/factorySim/factorySim.sif"
-INSTANCE_NAME="ray-worker01"
+INSTANCE_NAME="ray-worker"
+HEAD_NODE_IP="${RAY_HEAD_IP}"
 
-# Head node IP (override via env or systemd) start 
-HEAD_NODE_IP=${RAY_HEAD_IP:-"10.54.129.113"}
-
-
-# Retry settings
-MAX_RETRIES=10
-RETRY_DELAY=5  # seconds
-
-
-# Start the instance (does nothing until script inside is called)
+# Start the Apptainer instance
 apptainer instance start --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
 
-echo "[$(date)] Starting Ray worker. Head: ${HEAD_NODE_IP}"
+# Graceful shutdown trap
+cleanup() {
+    echo "Received SIGTERM. Shutting down Ray worker gracefully..."
+    apptainer exec instance://$INSTANCE_NAME ray stop || true
+    apptainer instance stop "$INSTANCE_NAME" || true
+    exit 0
+}
+trap cleanup SIGTERM SIGINT
 
-for i in $(seq 1 $MAX_RETRIES); do
-    echo "[$(date)] Attempt $i to start worker..." 
-
-    if apptainer exec instance://$INSTANCE_NAME ray start --address="${HEAD_NODE_IP}:6379" --block; then
-        echo "[$(date)] Worker started successfully."
-        exit 0
-    else
-        echo "[$(date)] Worker start failed. Retrying in $RETRY_DELAY seconds..."
-        sleep $RETRY_DELAY
-    fi
-done
-
-echo "[$(date)] Failed to start worker after $MAX_RETRIES attempts."
-exit 1
+# Start Ray in the foreground (blocking)
+apptainer exec instance://$INSTANCE_NAME ray start \
+    --address="${HEAD_NODE_IP}:6379" \
+    --block

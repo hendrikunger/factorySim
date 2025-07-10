@@ -4,8 +4,10 @@ After=network.target
 
 [Service]
 Type=simple
+TimeoutStopSec=30
+KillSignal=SIGTERM
 ExecStart=/home/unhe/factorySim/rayCluster/ray-head.sh
-ExecStop=/home/unhe/factorySim/rayCluster/ray-stop.sh
+ExecStop=-
 Restart=on-failure
 User=unhe
 WorkingDirectory=/home/unhe/factorySim/
