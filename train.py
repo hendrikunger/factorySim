@@ -266,6 +266,8 @@ def run():
         ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
     else:
         ray.init()
+        NUMGPUS = 2
+        
 
 
 
