@@ -31,5 +31,5 @@ cd $HOME/factorySim
 python3 -u train.py "$SLURM_CPUS_PER_TASK"
 
 %startscript
-
+echo "Ray instance started. Awaiting exec commands."
 

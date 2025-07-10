@@ -22,7 +22,7 @@ echo "[$(date)] Starting Ray worker. Head: ${HEAD_NODE_IP}"
 for i in $(seq 1 $MAX_RETRIES); do
     echo "[$(date)] Attempt $i to start worker..." 
 
-    if apptainer exec instance://$INSTANCE_NAME "$IMAGE_PATH" ray start --address="${HEAD_NODE_IP}:6379"; then
+    if apptainer exec instance://$INSTANCE_NAME ray start --address="${HEAD_NODE_IP}:6379"; then
         echo "[$(date)] Worker started successfully."
         exit 0
     else

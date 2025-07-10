@@ -14,7 +14,7 @@ apptainer instance start --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
 
 
 # Start Ray head
-apptainer exec instance://$INSTANCE_NAME "$IMAGE_PATH" ray start \
+apptainer exec instance://$INSTANCE_NAME  ray start \
     --head \
     --port=6379 \
     --dashboard-host=0.0.0.0
