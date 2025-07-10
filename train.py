@@ -260,8 +260,12 @@ def run():
     }
     NUMGPUS = int(os.getenv("$SLURM_GPUS",
                 0 if sys.platform == "darwin" else 1))
+    
   
-    ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
+    if "SLURM_JOB_ID" in os.environ or sys.platform == "darwin":
+        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
+    else:
+        ray.init()
 
 
 
