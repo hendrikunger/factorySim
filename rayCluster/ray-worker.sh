@@ -6,7 +6,7 @@ INSTANCE_NAME="ray-worker"
 HEAD_NODE_IP="${RAY_HEAD_IP}"
 
 # Start the Apptainer instance
-apptainer instance start --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
+apptainer instance start --nv --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
 
 
 # Start Ray in the foreground (blocking)
