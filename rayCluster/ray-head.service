@@ -5,7 +5,8 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=/home/unhe/factorySim/rayCluster/ray-head.sh
-Restart=always
+ExecStop=/home/unhe/factorySim/rayCluster/ray-stop.sh
+Restart=on-failure
 User=unhe
 WorkingDirectory=/home/unhe/factorySim/
 StandardOutput=journal
