@@ -215,8 +215,8 @@ class MyAlgoCallback(RLlibCallback):
 
 class NormalizeObservations(ObservationPreprocessor):
     def preprocess(self, observation: Dict[AgentID, Dict[str, np.ndarray]]) -> Dict[AgentID, Dict[str, np.ndarray]]:
-
-        return observation / 255.0
+        output= observation / 255.0
+        return output.astype(np.float32)
 
 
        

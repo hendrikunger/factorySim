@@ -304,6 +304,7 @@ def main():
     import wandb
     import datetime
     from gymnasium.utils.env_checker import check_env
+    from gymnasium import Space, error, logger, spaces
 
 
 
@@ -358,6 +359,9 @@ def main():
     for key in ratingkeys:
         wandb.define_metric(key, summary="mean")
     obs, info = env.reset()
+
+    print(f"Observation: {obs.shape}, {obs.dtype}")
+    print(f"Check if observation space is correct: {env.observation_space.contains(obs)}")
     image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
