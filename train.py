@@ -11,7 +11,7 @@ import ray
 
 from ray.tune import Tuner
 from ray.rllib.callbacks.callbacks import RLlibCallback
-from ray.air.config import RunConfig, CheckpointConfig
+from ray.tune import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
