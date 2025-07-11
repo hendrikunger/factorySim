@@ -1,0 +1,18 @@
+[Unit]
+Description=Ray Worker Node (Apptainer)
+After=network.target
+
+[Service]
+Type=simple
+TimeoutStopSec=30
+KillSignal=SIGTERM
+ExecStart=/home/unhe/factorySim/rayCluster/ray-worker.sh
+Restart=on-failure
+User=unhe
+Environment=RAY_HEAD_IP=10.54.129.113
+WorkingDirectory=/home/unhe/factorySim/
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -11,7 +11,7 @@ import ray
 
 from ray.tune import Tuner
 from ray.rllib.callbacks.callbacks import RLlibCallback
-from ray.air.config import RunConfig, CheckpointConfig
+from ray.tune import RunConfig, CheckpointConfig
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.appo import APPOConfig
@@ -263,8 +263,14 @@ def run():
     }
     NUMGPUS = int(os.getenv("$SLURM_GPUS",
                 0 if sys.platform == "darwin" else 1))
+    
   
-    ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
+    if "SLURM_JOB_ID" in os.environ or sys.platform == "darwin":
+        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
+    else:
+        ray.init()
+        NUMGPUS = 2
+
 
 
 

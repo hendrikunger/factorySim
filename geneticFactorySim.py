@@ -28,14 +28,14 @@ ETA = 0.9
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 2)))  #multiprocessing.cpu_count()
-parser.add_argument("--num-generations", type=int, default=5) 
-parser.add_argument("--num-population", type=int, default=100)
+parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 12)))  #multiprocessing.cpu_count()
+parser.add_argument("--num-generations", type=int, default=500) 
+parser.add_argument("--num-population", type=int, default=300)
 parser.add_argument("--num-genmemory", type=int, default=0) 
 parser.add_argument(
     "--problemID",
     type=int,
-    default=1,
+    default=2,
     help="Which - in the list of evaluation environments to use. Default is 1.",
 )
 
@@ -253,7 +253,6 @@ def main():
 
 
 
-    
 
 
 

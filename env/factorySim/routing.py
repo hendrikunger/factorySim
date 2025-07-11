@@ -15,6 +15,7 @@ import numpy as np
 import networkx as nx
 from scipy.spatial import KDTree
 from math import dist
+from collections import defaultdict
 
 DETAILPLOT = False
 
@@ -404,7 +405,8 @@ class FactoryPath():
                             max_pathwidth=maxpath, 
                             nodelist=tempPath,
                             pathtype=pathtype,
-                            isMachineConnection=machineConnection
+                            isMachineConnection=machineConnection,
+                            sum_materialflow=0
                         )
 
                         tempPath = [] 
@@ -656,8 +658,27 @@ class FactoryPath():
         """   
         dfMF['routes'] = dfMF.apply(lambda x:nx.shortest_path(self.reducedPathGraph, source=x.source, target=x.target, weight='weight', method='dijkstra'), axis=1)
         dfMF['trueDistances'] = dfMF.apply(lambda x:nx.path_weight(self.reducedPathGraph, x.routes, weight='weight'), axis=1)
-        return dfMF
 
+
+
+        #Add the amount of material moved to the edges of the simplified graph  (negative values for next calculation to find the )
+        for index, row in dfMF.iterrows():
+            for i in range(len(row.routes)-1):
+                self.reducedPathGraph.edges[row.routes[i], row.routes[i+1]]['sum_materialflow'] += row.intensity_sum
+
+
+        #Find list of edges with highest material flow
+        max_materialflow = max([data['sum_materialflow'] for u,v,data in self.reducedPathGraph.edges(data=True)])
+
+
+        for u,v,data in self.reducedPathGraph.edges(data=True):
+            print(u,v,data['sum_materialflow'])
+
+
+        print(f"Max Materialflow: {max_materialflow}")
+
+        print(dfMF)
+        return dfMF
 
 
 
