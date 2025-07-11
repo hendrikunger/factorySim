@@ -1,4 +1,3 @@
-
 import numpy as np
 import sys
 
@@ -269,7 +268,12 @@ def run():
     if "SLURM_JOB_ID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
         ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
     else:
-        ray.init()
+        #we are running on ray cluster
+        runtime_env["py_modules"] = ["env/factorySim"]
+        runtime_env["env_vars"] = {
+            "PYTHONWARNINGS": "ignore::UserWarning",
+        }
+        ray.init(runtime_env=runtime_env)
         NUMGPUS = 2
 
 
