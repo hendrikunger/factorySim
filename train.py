@@ -5,6 +5,7 @@ import sys
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union, Optional, Sequence
 from pathlib import Path
 import os
+import platform
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
 
 import ray
@@ -265,11 +266,11 @@ def run():
                 0 if sys.platform == "darwin" else 1))
     
   
-    if "SLURM_JOB_ID" in os.environ or sys.platform == "darwin":
+    if "SLURM_JOB_ID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
         ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
     else:
         ray.init()
-        NUMGPUS = 2
+        NUMGPUS = 1
 
 
 
