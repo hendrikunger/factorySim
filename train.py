@@ -29,7 +29,7 @@ from typing import Dict
 import pprint
 
 
-from ray.rllib.connectors.env_to_module.observation_preprocessor import ObservationPreprocessor
+from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
 
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
@@ -213,8 +213,8 @@ class MyAlgoCallback(RLlibCallback):
 
 
 
-class NormalizeObservations(ObservationPreprocessor):
-    def preprocess(self, observation: Dict[AgentID, Dict[str, np.ndarray]]) -> Dict[AgentID, Dict[str, np.ndarray]]:
+class NormalizeObservations(SingleAgentObservationPreprocessor):
+    def preprocess(self, observation: Dict[AgentID, Dict[str, np.ndarray]], episode: SingleAgentEpisode) -> Dict[AgentID, Dict[str, np.ndarray]]:
         output= observation / 255.0
         return output.astype(np.float32)
 
