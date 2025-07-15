@@ -12,6 +12,8 @@ User=unhe
 WorkingDirectory=/home/unhe/factorySim/
 StandardOutput=journal
 StandardError=journal
+Environment=RAY_GRAFANA_HOST=http://10.54.129.111:3000
+Environment=RAY_PROMETHEUS_HOST=http://10.54.129.111:9090
 
 [Install]
 WantedBy=multi-user.target
