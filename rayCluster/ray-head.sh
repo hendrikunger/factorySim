@@ -13,4 +13,5 @@ apptainer exec instance://$INSTANCE_NAME ray start \
     --head \
     --port=$PORT \
     --dashboard-host=0.0.0.0 \
+    --metrics-export-port=10001\
     --block
