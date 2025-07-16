@@ -274,7 +274,7 @@ def run():
             "PYTHONWARNINGS": "ignore::UserWarning",
         }
         ray.init(runtime_env=runtime_env)
-        NUMGPUS = 2
+        NUMGPUS = 1
 
 
 
