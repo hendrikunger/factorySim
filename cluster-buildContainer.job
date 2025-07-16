@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --partition=paul
+#SBATCH --partition=paul,paula, clara
 #SBATCH --job-name=FactorySimContainerBuilder
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
