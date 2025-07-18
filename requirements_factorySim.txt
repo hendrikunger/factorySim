@@ -11,9 +11,10 @@ gputil
 wandb
 scipy
 tqdm
-gymnasium
+gymnasium[mujoco]
 pyyaml
 timm
 mathutils
 deap
 supabase
+ale_py
