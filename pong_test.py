@@ -7,7 +7,6 @@ from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
 from ray.rllib.env.wrappers.atari_wrappers import wrap_atari_for_new_api_stack
 from ray.rllib.utils.test_utils import add_rllib_example_script_args
 from ray.tune.registry import register_env
-import ray
 
 parser = add_rllib_example_script_args(
     default_reward=20.0,
@@ -84,4 +83,5 @@ config = (
 
 if __name__ == "__main__":
     from ray.rllib.utils.test_utils import run_rllib_example_script_experiment
+
     run_rllib_example_script_experiment(config, args)
