@@ -11,7 +11,8 @@ apptainer instance start  --nv --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
 
 
 # Start Ray in the foreground (blocking)
-apptainer exec --env NCCL_P2P_DISABLE=1 \    #Disable P2P Conenction between GPUs for NCCL, as it is not supported in the cluster.
+apptainer exec \
+    --env NCCL_P2P_DISABLE=1 \   #Disable P2P Conenction between GPUs for NCCL, as it is not supported in the cluster.
     --env CUDA_VISIBLE_DEVICES=0,1 \
     --env NCCL_P2P_LEVEL=LOC \
     --env NCCL_SHM_DISABLE=1 \   # Disable shared memory for NCCL, as it is not supported in the cluster. Would need P2P to be enabled.
