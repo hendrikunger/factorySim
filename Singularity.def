@@ -15,6 +15,7 @@ pkg-config \
 python3-dev \
 ffmpeg \
 bash-completion \
+nano\
 
 python3 -m pip install --upgrade pip
 python3 -m pip install --no-cache-dir -U -r requirements_factorySim.txt
