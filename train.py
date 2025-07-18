@@ -270,9 +270,9 @@ def run():
     else:
         #we are running on ray cluster
         runtime_env["py_modules"] = ["env/factorySim"]
-        # runtime_env["env_vars"] = {
-        #     "PYTHONWARNINGS": "ignore::UserWarning",
-        # }
+        runtime_env["env_vars"] = {
+            "PYTHONWARNINGS": "ignore::UserWarning",
+        }
         ray.init(runtime_env=runtime_env)
         NUMGPUS = 2
 
