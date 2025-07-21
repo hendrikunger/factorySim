@@ -30,6 +30,11 @@ ulimit -s 16384
 
 %environment
     export PYTHONPATH=$HOME/factorySim/env:$HOME/gitRepo/factorySim/env
+    export OMP_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+    export OPENBLAS_NUM_THREADS=1
+    export NUMEXPR_NUM_THREADS=1
+    export RAYON_NUM_THREADS=1
 
 %runscript
 cd $HOME/factorySim

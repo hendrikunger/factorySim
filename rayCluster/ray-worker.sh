@@ -13,7 +13,7 @@ apptainer instance start  --nv --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
 # Start Ray in the foreground (blocking)
 
 # Start Ray in the foreground (blocking)
-apptainer exec \
+ulimit -s 16384 && apptainer exec \
     --env NCCL_P2P_DISABLE=1 \
     --env CUDA_VISIBLE_DEVICES=0,1 \
     --env NCCL_SHM_DISABLE=1 \

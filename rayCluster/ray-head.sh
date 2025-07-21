@@ -9,7 +9,7 @@ PORT=6379
 apptainer instance start --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
 
 # Let ray handle shutdown via --block (it handles SIGTERM)
-apptainer exec instance://$INSTANCE_NAME ray start \
+ulimit -s 16384 && apptainer exec instance://$INSTANCE_NAME ray start \
     --head \
     --port=$PORT \
     --dashboard-host=0.0.0.0 \
