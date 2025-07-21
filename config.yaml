@@ -1,4 +1,4 @@
-num_workers: 110  # parallelism  #12
+num_workers: 64  # parallelism  #12
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
@@ -13,7 +13,7 @@ restart_failed_sub_environments: true
 
 #Gneral Algorithm Config
 train_batch_size_per_learner:  2048 #4096
-mini_batch_size_per_learner: 256 #100
+mini_batch_size_per_learner: 512 #100
 
 # Evaluate once per training iteration.
 evaluation_interval: 100
