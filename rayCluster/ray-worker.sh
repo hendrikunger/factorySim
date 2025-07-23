@@ -14,10 +14,19 @@ apptainer instance start  --nv --writable-tmpfs "$IMAGE_PATH" "$INSTANCE_NAME"
 
 # Start Ray in the foreground (blocking)
 ulimit -s 16384 && apptainer exec \
-    --env NCCL_P2P_DISABLE=1 \
     --env CUDA_VISIBLE_DEVICES=0,1 \
-    --env NCCL_SHM_DISABLE=1 \
     instance://$INSTANCE_NAME ray start \
         --address="${HEAD_NODE_IP}:6379" \
         --metrics-export-port=8266 \
         --block
+
+#for non NV Linked GPUs, use the following command instead:
+
+# ulimit -s 16384 && apptainer exec \
+#     --env NCCL_P2P_DISABLE=1 \
+#     --env CUDA_VISIBLE_DEVICES=0,1 \
+#     --env NCCL_SHM_DISABLE=1 \
+#     instance://$INSTANCE_NAME ray start \
+#         --address="${HEAD_NODE_IP}:6379" \
+#         --metrics-export-port=8266 \
+#         --block
