@@ -11,7 +11,7 @@ import ray
 
 from ray.tune import Tuner
 from ray.rllib.callbacks.callbacks import RLlibCallback
-from ray.tune import RunConfig, CheckpointConfig
+from ray.tune import RunConfig, CheckpointConfig, TuneConfig
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.appo import APPOConfig
@@ -273,8 +273,8 @@ def run():
         runtime_env["env_vars"] = {
             "PYTHONWARNINGS": "ignore::UserWarning",
         }
-        ray.init(runtime_env=runtime_env)
-        NUMGPUS = f_config['num_gpus']
+        NUMGPUS = f_config.get("num_gpus", 1)
+        ray.init(runtime_env=runtime_env, num_gpus=NUMGPUS)
 
 
 
@@ -450,11 +450,11 @@ def run():
                         )
     
 
-    tune_config = {
-        "num_samples": 1,
-        "metric": "evaluation/episode_return_mean",
-        "mode": "max",
-    }
+    tune_config = TuneConfig(
+        num_samples=2,
+        metric="evaluation/episode_return_mean",
+        mode="max",
+    )
 
 
     path = Path.joinpath(Path.home(), "ray_results/klaus")
