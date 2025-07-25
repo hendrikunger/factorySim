@@ -59,7 +59,7 @@ config = (
        
     )
     .learners(
-        num_learners=0,
+        num_learners=2,
         #num_aggregator_actors_per_learner=0,
         num_gpus_per_learner=0,
         num_cpus_per_learner=2
