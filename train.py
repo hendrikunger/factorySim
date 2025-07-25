@@ -450,8 +450,12 @@ def run():
                         )
     
 
+    tune_config = {
+        "num_samples": 1,
+        "metric": "evaluation/episode_return_mean",
+        "mode": "max",
+    }
 
-    
 
     path = Path.joinpath(Path.home(), "ray_results/klaus")
     #path = "/home/unhe/gitRepo/factorySim/artifacts/checkpoint_PPO_FactorySimEnv_038cc_00000:v5"
@@ -481,7 +485,7 @@ def run():
                     print(f" R(eval)={Reval}", end="")
                 print()
         else:
-            tuner = Tuner(algo_config.algo_class, run_config=run_config, param_space=algo_config)
+            tuner = Tuner(algo_config.algo_class, run_config=run_config, param_space=algo_config, tune_config=tune_config)
             results = tuner.fit()
 
         print("Training finished")
