@@ -409,7 +409,7 @@ def run():
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         )
-    algo_config.learners(num_learners= 0 if NUMGPUS <= 1 else NUMGPUS,  
+    algo_config.learners(num_learners= 0 if NUMGPUS <= 1 else 1,  
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
                          )
     
