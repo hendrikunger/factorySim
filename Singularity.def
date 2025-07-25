@@ -30,6 +30,8 @@ ulimit -s 16384
 
 %environment
     export PYTHONPATH=$HOME/factorySim/env:$HOME/gitRepo/factorySim/env
+    #Ray Thread Limiter
+    export RAY_num_server_call_threads=1
     # export OMP_NUM_THREADS=1
     # export MKL_NUM_THREADS=1
     # export OPENBLAS_NUM_THREADS=1

@@ -1,4 +1,4 @@
-num_workers: 32  # parallelism  #12
+num_workers: 16  # parallelism  #12
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
