@@ -451,7 +451,7 @@ def run():
     
 
     tune_config = TuneConfig(
-        num_samples=2,
+        num_samples=1,
         #metric="evaluation/episode_return_mean",
         #mode="max",
     )
