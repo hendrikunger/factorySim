@@ -274,7 +274,7 @@ def run():
             "PYTHONWARNINGS": "ignore::UserWarning",
         }
         NUMGPUS = f_config.get("num_gpus", 1)
-        ray.init(runtime_env=runtime_env, num_gpus=NUMGPUS)
+        ray.init(runtime_env=runtime_env)
 
 
 
