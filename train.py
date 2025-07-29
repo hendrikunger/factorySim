@@ -37,6 +37,7 @@ from ray.tune.registry import register_env
 
 import wandb
 import yaml
+import gymnasium as gym
 from datetime import datetime
 
 
@@ -52,19 +53,13 @@ filename = "Basic"
 ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
 
 #Import Custom Models
-from ray.rllib.models import ModelCatalog
+#from ray.rllib.models import ModelCatalog
 #ModelCatalog.register_custom_model("my_model", MyXceptionModel)
 
 
-def env_creator(env_config):
-    env = FactorySimEnv(env_config=env_config)
-
-    return  env # return an env instance
-
-register_env("FactorySimEnv", env_creator)
 
 NO_TUNE = False
-ALGO = "APPO"  # "Dreamer" or "PPO" or "APPO"
+ALGO = "Dreamer"  # "Dreamer" or "PPO" or "APPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
 
@@ -224,6 +219,32 @@ def _env_to_module(env=None, spaces=None, device=None) -> SingleAgentObservation
 # Create the env-to-module connector pipeline.
     return NormalizeObservations()
 
+#Env----------------------------------------------------------------------------------------------------------------------------------------------------------
+# This wrapper is just for Dreamer V3, which expects actions in [-1,1] and observations in [0,1] and does not have  env_to_module connectors yet
+class ZeroOneActionWrapper(gym.ActionWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        # Let RLlib think the env also lives in [-1,1]
+        self.action_space = gym.spaces.Box(-1.0, 1.0, shape=(3,), dtype=np.float32)
+        h, w, c = env.observation_space.shape
+        self.observation_space = gym.spaces.Box(low=0.0, high=1.0, shape=(h, w, c), dtype=np.float32)
+
+    def action(self, act):
+        # scale [-1,1] -> [0,1]
+        return (act + 1.0) / 2.0
+    
+    def observation(self, obs):
+        return (obs.astype(np.float32) / 255.0)
+
+def env_creator(env_config):
+    if ALGO == "Dreamer":
+        env = ZeroOneActionWrapper(FactorySimEnv(env_config=env_config))
+    else:
+        env = FactorySimEnv(env_config=env_config)
+
+    return  env # return an env instance
+
+register_env("FactorySimEnv", env_creator)
 #RL Module----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -380,10 +401,19 @@ def run():
         case "Dreamer":
             algo_config = DreamerV3Config()
 
+            # import tensorflow as tf
+            # def _safe_flatten(x):             # dynamic flatten, works for unknown batch
+            #     return tf.reshape(x, (tf.shape(x)[0], -1))
+            # tf.keras.layers.Flatten.call = _safe_flatten
+
             #Dreamer needs 64x64x3 input
             f_config['env_config']['width'] = 64
             f_config['env_config']['height'] = 64
-
+            f_config['evaluation_config']['env_config']['width'] = 64 
+            f_config['evaluation_config']['env_config']['height'] = 64  
+            #Dreamer needs 3 channels
+            f_config['env_config']['coordinateChannels'] = False
+            f_config['evaluation_config']['env_config']['coordinateChannels'] = False  
             w = algo_config.world_model_lr
             c = algo_config.critic_lr
             algo_config.training(
@@ -409,7 +439,7 @@ def run():
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         )
-    algo_config.learners(num_learners= 0 if NUMGPUS <= 1 else 1,  
+    algo_config.learners(num_learners= f_config['num_learners'],  
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
                          )
     

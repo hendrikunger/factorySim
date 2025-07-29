@@ -1,7 +1,7 @@
 Bootstrap: docker
-#From: nvcr.io/nvidia/pytorch:25.06-py3
-From: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
-#From: tensorflow/tensorflow:2.15.0.post1-gpu
+#From: nvcr.io/nvidia/pprtorch:25.06-py3
+#From: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+From: tensorflow/tensorflow:2.19.0-gpu
 
 %files
 requirements_factorySim.txt /workspace/factorySim/
@@ -18,11 +18,13 @@ ffmpeg \
 bash-completion \
 nano\
 
-python3 -m pip install --upgrade pip
-python3 -m pip install --no-cache-dir -U -r requirements_factorySim.txt
-python3 -m pip install --no-cache-dir -U lark
-python3 -m pip install --no-cache-dir -U typing_extensions
-python3 -m pip install --no-cache-dir -U gymnasium[mujoco]==1.2.0
+python -m pip install --upgrade pip
+# install old Keras API
+python -m pip install --no-cache-dir -U tf_keras tensorflow_probability==0.25.*
+python -m pip install --no-cache-dir -U -r requirements_factorySim.txt
+#python -m pip install --no-cache-dir -U lark
+#python -m pip install --no-cache-dir -U typing_extensions
+python -m pip install --no-cache-dir -U gymnasium[mujoco]==1.2.0
 
 #Increse stack size to avoid Ray errors
 ulimit -s 16384
@@ -31,6 +33,10 @@ ulimit -s 16384
 
 %environment
     export PYTHONPATH=$HOME/factorySim/env:$HOME/gitRepo/factorySim/env
+    #use old keras API
+    export TF_USE_LEGACY_KERAS=1
+    # disable oneDNN optimizations to avoid performance regressions
+    export TF_ENABLE_ONEDNN_OPTS=0
     #Ray Thread Limiter
     export RAY_num_server_call_threads=1
     # export OMP_NUM_THREADS=1
