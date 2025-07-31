@@ -7,7 +7,7 @@ networkx
 ifcopenshell
 shapely
 pycairo
-#gputil
+gputil
 wandb
 scipy
 tqdm
