@@ -63,6 +63,11 @@ ALGO = "Dreamer"  # "Dreamer" or "PPO" or "APPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
 
+
+
+from ray.rllib.utils.metrics.stats import Stats
+import inspect, os
+
 #Callbacks----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 class MyAlgoCallback(RLlibCallback):
@@ -203,7 +208,7 @@ class MyAlgoCallback(RLlibCallback):
 
         del(myData)
         del(data)
-            
+
 #Preprocessor----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -438,6 +443,7 @@ def run():
                         num_envs_per_env_runner=1,  #2
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
+                        num_gpus_per_env_runner=0,
                         )
     algo_config.learners(num_learners= f_config['num_learners'],  
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
@@ -457,7 +463,7 @@ def run():
                           evaluation_parallel_to_training=f_config["evaluation_parallel_to_training"],
                           evaluation_num_env_runners=f_config.get("evaluation_num_env_runners", 0), #Number of env runners for evaluation
                         )   
-
+    algo_config.resources(num_gpus=NUMGPUS)
 
     
 
@@ -478,7 +484,10 @@ def run():
                                 #MyCallback(),
                         ],
                         )
-    
+    import tensorflow as tf
+
+    print("CUDA_VISIBLE_DEVICES =", os.environ.get("CUDA_VISIBLE_DEVICES"))
+    print("TF sees GPUs        :", tf.config.list_physical_devices("GPU"))
 
     tune_config = TuneConfig(
         num_samples=1,

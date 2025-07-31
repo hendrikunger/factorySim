@@ -87,7 +87,14 @@ class FactorySimEnv(gym.Env):
         # Actions of the format MoveX, MoveY, Rotate, (Skip) 
         #self.action_space = spaces.Box(low=np.array([-1, -1, -1, 0]), high=np.array([1,1,1,1]), dtype=np.float32)
         #Skipping disabled
-        self.action_space = spaces.Box(low=0.0, high=1.0, shape=(3,), dtype=np.float32)
+        low  = np.zeros((3,), dtype=np.float32)   #  [0. 0. 0.]
+        high = np.ones((3,),  dtype=np.float32)   #  [1. 1. 1.]
+
+        self.action_space = spaces.Box(
+            low=low,
+            high=high,
+            dtype=np.float32,      # must match the arrays’ dtype
+)
 
         if self._obs_type == 'image':
             #self.observation_space = spaces.Box(low=0, high=255, shape=(self.width, self.height, 2), dtype=np.uint8)
