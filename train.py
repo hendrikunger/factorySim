@@ -300,7 +300,7 @@ def run():
             "PYTHONWARNINGS": "ignore::UserWarning",
         }
         NUMGPUS = f_config.get("num_gpus", 1)
-        ray.init(runtime_env=runtime_env)
+        ray.init(runtime_env=runtime_env, include_dashboard=True,)
 
 
 
@@ -423,8 +423,8 @@ def run():
             c = algo_config.critic_lr
             algo_config.training(
                 model_size="M",
-                training_ratio=512, #Should be lower for larger models e.g. 64 for XL  
-                batch_size_B=16 * (NUMGPUS or 1),
+                training_ratio=1, #512, #Should be lower for larger models e.g. 64 for XL  
+                batch_size_B= 8, #16 * (NUMGPUS or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
                 # ~ 1000 training updates with 0.4x[default rates], then over a few hundred
                 # steps, increase to 4x[default rates].
@@ -435,7 +435,7 @@ def run():
         #Dreamer END ------------------------------------------------------------------------------------------------------
 
 
-    algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False)
+    algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False, disable_env_checking=True)
 
     algo_config.callbacks(MyAlgoCallback)
     algo_config.debugging(logger_config={"type": "ray.tune.logger.NoopLogger"}) # Disable slow tbx logging
@@ -463,7 +463,13 @@ def run():
                           evaluation_parallel_to_training=f_config["evaluation_parallel_to_training"],
                           evaluation_num_env_runners=f_config.get("evaluation_num_env_runners", 0), #Number of env runners for evaluation
                         )   
-    algo_config.resources(num_gpus=NUMGPUS)
+
+    algo_config.debugging(
+        log_level="INFO",  # "DEBUG" for more debug output.
+        log_sys_usage=True,  # Log system usage (CPU, RAM, GPU) to the console
+
+    )
+    algo_config.reporting(min_time_s_per_iteration=1.0)
 
     
 
@@ -484,10 +490,8 @@ def run():
                                 #MyCallback(),
                         ],
                         )
-    import tensorflow as tf
 
-    print("CUDA_VISIBLE_DEVICES =", os.environ.get("CUDA_VISIBLE_DEVICES"))
-    print("TF sees GPUs        :", tf.config.list_physical_devices("GPU"))
+
 
     tune_config = TuneConfig(
         num_samples=1,
