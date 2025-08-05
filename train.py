@@ -58,7 +58,7 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 
 
 
-NO_TUNE = False
+NO_TUNE = True
 ALGO = "Dreamer"  # "Dreamer" or "PPO" or "APPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
@@ -300,7 +300,7 @@ def run():
             "PYTHONWARNINGS": "ignore::UserWarning",
         }
         NUMGPUS = f_config.get("num_gpus", 1)
-        ray.init(runtime_env=runtime_env, include_dashboard=True,)
+        ray.init(runtime_env=runtime_env, include_dashboard=True, dashboard_host="0.0.0.0")
 
 
 
@@ -423,7 +423,7 @@ def run():
             c = algo_config.critic_lr
             algo_config.training(
                 model_size="M",
-                training_ratio=1, #512, #Should be lower for larger models e.g. 64 for XL  
+                training_ratio=64, #512, #Should be lower for larger models e.g. 64 for XL  
                 batch_size_B= 8, #16 * (NUMGPUS or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
                 # ~ 1000 training updates with 0.4x[default rates], then over a few hundred
@@ -432,6 +432,7 @@ def run():
                 critic_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
                 actor_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
             )
+
         #Dreamer END ------------------------------------------------------------------------------------------------------
 
 
@@ -444,6 +445,9 @@ def run():
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         num_gpus_per_env_runner=0,
+                        #rollout_fragment_length=512,
+                        #batch_mode="truncate_episodes",  # "complete_episodes" or "truncate_episodes"
+                        #sample_timeout_s=30,
                         )
     algo_config.learners(num_learners= f_config['num_learners'],  
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
@@ -470,6 +474,7 @@ def run():
 
     )
     algo_config.reporting(min_time_s_per_iteration=1.0)
+    algo_config.build()
 
     
 
@@ -524,8 +529,10 @@ def run():
                     )
                     print(f"iter={i} R={mean_return}", end="")
                 if "evaluation" in results:
-                    Reval = results["evaluation"]["env_runners"]["agent_episode_returns_mean"]["default_agent"]
-                    print(f" R(eval)={Reval}", end="")
+                    eval_return = results["evaluation"].get(
+                        "episode_return_mean", np.nan
+                    )
+                    print(f" EVAL R={eval_return}", end="")
                 print()
         else:
             tuner = Tuner(algo_config.algo_class, run_config=run_config, param_space=algo_config, tune_config=tune_config)
