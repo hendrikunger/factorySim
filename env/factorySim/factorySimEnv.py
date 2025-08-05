@@ -344,15 +344,13 @@ def main():
         name=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
         config=f_config,
         save_code=True,
-        mode="online",
+        mode="offline",
     )
 
     env = FactorySimEnv( env_config = f_config['env_config'])
 
-    print(f"Obsersvation Space: {env.observation_space}")
-    print(f"Obsersvation Space Type: {env.observation_space.dtype}")
 
-    check_env(env)  # Check if the environment follows the Gymnasium API
+    #check_env(env)  # Check if the environment follows the Gymnasium API
 
     
     env.prefix="test"
@@ -375,6 +373,7 @@ def main():
     for index in tqdm(range(0,10)):
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
+        print(f"Step {env.stepCount}, Reward: {reward}, Terminated: {terminated},")
         if env.render_mode == "rgb_array":   
             image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
         else:
