@@ -22,7 +22,7 @@ python3 -m pip install --upgrade pip
 python3 -m pip install --no-cache-dir -U -r requirements_factorySim.txt
 python3 -m pip install --no-cache-dir -U lark
 python3 -m pip install --no-cache-dir -U typing_extensions
-#python3 -m pip install --no-cache-dir -U gymnasium[mujoco]==1.2.0
+python3 -m pip install --no-cache-dir -U gymnasium[mujoco]==1.2.0
 
 #Increse stack size to avoid Ray errors
 ulimit -s 16384
@@ -33,11 +33,11 @@ ulimit -s 16384
     export PYTHONPATH=$HOME/factorySim/env:$HOME/gitRepo/factorySim/env
     #Ray Thread Limiter
     export RAY_num_server_call_threads=1
-    # export OMP_NUM_THREADS=1
-    # export MKL_NUM_THREADS=1
-    # export OPENBLAS_NUM_THREADS=1
-    # export NUMEXPR_NUM_THREADS=1
-    # export RAYON_NUM_THREADS=1
+    export OMP_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+    export OPENBLAS_NUM_THREADS=1
+    export NUMEXPR_NUM_THREADS=1
+    export RAYON_NUM_THREADS=1
 
 %runscript
 cd $HOME/factorySim/rayCluster

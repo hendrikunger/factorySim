@@ -58,7 +58,7 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 
 
 
-NO_TUNE = True
+NO_TUNE = False
 ALGO = "Dreamer"  # "Dreamer" or "PPO" or "APPO"
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
@@ -424,13 +424,16 @@ def run():
             algo_config.training(
                 model_size="M",
                 training_ratio=64, #512, #Should be lower for larger models e.g. 64 for XL  
-                batch_size_B= 8, #16 * (NUMGPUS or 1),
+                batch_size_B= 32 * (NUMGPUS or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
                 # ~ 1000 training updates with 0.4x[default rates], then over a few hundred
                 # steps, increase to 4x[default rates].
                 world_model_lr=[[0, 0.4 * w], [8000, 0.4 * w], [10000, 3 * w]],
                 critic_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
                 actor_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
+            )
+            algo_config.env_runners(
+                rollout_fragment_length = 128,  # 64 steps per env runner
             )
 
         #Dreamer END ------------------------------------------------------------------------------------------------------
@@ -440,18 +443,27 @@ def run():
 
     algo_config.callbacks(MyAlgoCallback)
     algo_config.debugging(logger_config={"type": "ray.tune.logger.NoopLogger"}) # Disable slow tbx logging
-    algo_config.env_runners(num_env_runners=int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
-                        num_envs_per_env_runner=1,  #2
+    algo_config.env_runners(num_env_runners= int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
+                        num_envs_per_env_runner=f_config.get('num_envs_per_env_runner', 1),
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         num_gpus_per_env_runner=0,
+                        gym_env_vectorize_mode="ASYNC",
+                        create_local_env_runner=True,           # ← create a driver-side EnvRunner
+                        create_env_on_local_worker=True,        # ← and actually build its env
                         #rollout_fragment_length=512,
                         #batch_mode="truncate_episodes",  # "complete_episodes" or "truncate_episodes"
                         #sample_timeout_s=30,
                         )
-    algo_config.learners(num_learners= f_config['num_learners'],  
+    algo_config.resources(num_cpus_for_main_process=1)
+    algo_config.learners(num_learners=f_config['num_learners'],
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
                          )
+    algo_config.framework("torch",
+                        #   torch_compile_learner=False,
+                        #   torch_ddp_kwargs={"static_graph": True,
+                        #   "find_unused_parameters": False},
+                          )
     
 
     eval_config = f_config['evaluation_config']["env_config"]
