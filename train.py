@@ -424,7 +424,7 @@ def run():
             algo_config.training(
                 model_size="M",
                 training_ratio=64, #512, #Should be lower for larger models e.g. 64 for XL  
-                batch_size_B= 32 * (NUMGPUS or 1),
+                batch_size_B= 32 * (f_config["num_gpus"] or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
                 # ~ 1000 training updates with 0.4x[default rates], then over a few hundred
                 # steps, increase to 4x[default rates].
@@ -458,6 +458,7 @@ def run():
     algo_config.resources(num_cpus_for_main_process=1)
     algo_config.learners(num_learners=f_config['num_learners'],
                          num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
+                         num_aggregator_actors_per_learner=1,
                          )
     algo_config.framework("torch",
                         #   torch_compile_learner=False,
