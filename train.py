@@ -486,7 +486,6 @@ def run():
         log_sys_usage=True,  # Log system usage (CPU, RAM, GPU) to the console
 
     )
-    algo_config.reporting(min_time_s_per_iteration=1.0)
     algo_config.build()
 
     
