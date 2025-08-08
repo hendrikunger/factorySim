@@ -291,7 +291,7 @@ def run():
                 0 if sys.platform == "darwin" else 1))
     
     print(f"Using {NUMGPUS} GPUs")
-    if "SLURM_JOB_ID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
+    if "SLURM_JOB_UID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
         ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
     else:
         #we are running on ray cluster
