@@ -2,7 +2,7 @@
 #SBATCH --partition=paul,paula,clara
 #SBATCH --job-name=FactorySimContainerBuilder
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --mem-per-cpu=1GB
 #SBATCH --time=1:00:00
 
