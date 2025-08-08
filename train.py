@@ -422,9 +422,9 @@ def run():
             w = algo_config.world_model_lr
             c = algo_config.critic_lr
             algo_config.training(
-                model_size="M",
+                model_size="XL",
                 training_ratio=64, #512, #Should be lower for larger models e.g. 64 for XL  
-                batch_size_B= 32 * (f_config["num_gpus"] or 1),
+                batch_size_B= 16 * (f_config["num_gpus"] or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
                 # ~ 1000 training updates with 0.4x[default rates], then over a few hundred
                 # steps, increase to 4x[default rates].

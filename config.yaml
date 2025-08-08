@@ -1,9 +1,9 @@
-num_workers: 21  # parallelism  #40 on ray 
-num_envs_per_env_runner: 2
+num_workers: 29  # parallelism  #40 on ray 
+num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
-num_gpus: 2
-num_learners: 2
+num_gpus: 4
+num_learners: 4
 
 # Whether - upon a worker failure - RLlib will try to recreate the lost worker as
 # an identical copy of the failed one. The new worker will only differ from the
@@ -19,7 +19,7 @@ mini_batch_size_per_learner: 512 #100
 
 # Evaluate once per training iteration.
 evaluation_interval: 50
-training_iteration: 100 # Number of training iterations to run.
+training_iteration: 1000 # Number of training iterations to run.
 
 ##PPO Config
 
