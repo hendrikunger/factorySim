@@ -40,8 +40,8 @@ ulimit -s 16384
     export RAYON_NUM_THREADS=1
 
 %runscript
-cd $HOME/factorySim/rayCluster
-./ray-train.sh
+cd $HOME/factorySim/
+./python train.py
 
 %startscript
 echo "Ray instance started. Awaiting exec commands."
