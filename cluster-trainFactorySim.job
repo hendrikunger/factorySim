@@ -20,6 +20,8 @@ module load CUDA/12.6.0
 #export WANDB_DIR="/lscratch"
 #export WANDB_CACHE_DIR="/lscratch"
 
+printenv
+
 apptainer run --nv "$HOME/factorySim/factorySim.sif"
 
 #Paula cluster
