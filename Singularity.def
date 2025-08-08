@@ -41,7 +41,7 @@ ulimit -s 16384
 
 %runscript
 cd $HOME/factorySim/
-./python train.py
+python train.py
 
 %startscript
 echo "Ray instance started. Awaiting exec commands."
