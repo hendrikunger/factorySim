@@ -277,9 +277,13 @@ class FactorySim:
 
                 case 3:
                     # Weighted average of all ratings
-                    partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated"])
-                    weights = np.ones_like(partialRatings)
-                    self.currentRating = np.average(partialRatings, weights=weights).item() 
+                    # partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated"])
+                    # weights = np.ones_like(partialRatings)
+                    # self.currentRating = np.average(partialRatings, weights=weights).item() 
+                    keys_vals = [(k, v) for k, v in self.RatingDict.items() if k not in ("Reward", "terminated")]
+                    partialRatings = np.array([v for _, v in keys_vals])
+                    weights = np.array([3 if k == "ratingCollision" else 1 for k, _ in keys_vals])
+                    self.currentRating = np.average(partialRatings, weights=weights).item()
 
 
 
@@ -308,7 +312,7 @@ class FactorySim:
         self.RatingDict["Reward"]= self.currentRating
 
 
-        if(self.episodeCounter >= 3 * len(self.machine_dict)):
+        if(self.episodeCounter >= 1 * len(self.machine_dict)):
         #if(self.episodeCounter >= len(self.machine_dict)+1):
             self.RatingDict["terminated"] = True
         else:
