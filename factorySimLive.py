@@ -119,7 +119,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "04.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "02.ifc")
 
 
 
@@ -244,9 +244,9 @@ class factorySimLive(mglw.WindowConfig):
             if key == keys.A:
                 self.agentInference()   
             # Debug Mode Rendering
-            if key == 65451: # Num Plus
+            if key == 65451 or key == keys.PAGE_UP: # Num Plus
                 self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 3 else 0
-            if key == 65453: # Num Minus
+            if key == 65453 or key == keys. PAGE_DOWN: # Num Minus
                 self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 3
             # Zoom
             if key == 43: # +
@@ -439,7 +439,7 @@ class factorySimLive(mglw.WindowConfig):
                 case 3:
                     draw_text(self.cctx,(f"Easteregg"), (0.7, 0.0, 0.0, 1.0), (self.window_size[0]/2,self.window_size[1]/2), factoryCoordinates=False)
         else:
-            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=True)
+            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=False)
             if self.activeModes[Modes.MODE9]: 
                 draw_poly(self.cctx, self.env.factory.walkableArea, (0.9, 0.0, 0.0, 0.5), drawHoles=True)
             if self.activeModes[Modes.MODE7]: 
