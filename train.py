@@ -291,7 +291,7 @@ def run():
                 0 if sys.platform == "darwin" else 1))
     INDEX = (os.getenv("SLURM_STEP_GPUS"))
     
-    print(f"Using {NUMGPUS} GPUs, with index {INDEX}")
+    print(f"Using {NUMGPUS} GPUs, with index {INDEX}, Cuda visible {os.environ.get('CUDA_VISIBLE_DEVICES', 'None')}")
 
 
     if "SLURM_JOB_UID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
