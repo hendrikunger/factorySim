@@ -287,7 +287,7 @@ def run():
                 "/home/sc.uni-leipzig.de/nd67ekek/factorySim/factorySim/wandb/",
                 "/home/sc.uni-leipzig.de/nd67ekek/factorySim/factorySim/artifacts/"],
     }
-    NUMGPUS = int(os.getenv("$SLURM_GPUS",
+    NUMGPUS = int(os.getenv("SLURM_GPUS",
                 0 if sys.platform == "darwin" else 1))
     INDEX = (os.getenv("SLURM_STEP_GPUS"))
     
