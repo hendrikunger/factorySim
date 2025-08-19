@@ -289,8 +289,11 @@ def run():
     }
     NUMGPUS = int(os.getenv("$SLURM_GPUS",
                 0 if sys.platform == "darwin" else 1))
+    INDEX = (os.getenv("SLURM_STEP_GPUS"))
     
-    print(f"Using {NUMGPUS} GPUs")
+    print(f"Using {NUMGPUS} GPUs, with index {INDEX}")
+
+
     if "SLURM_JOB_UID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
         ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env) 
     else:
