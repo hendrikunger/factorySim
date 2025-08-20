@@ -275,7 +275,9 @@ def run():
 
 
     runtime_env = {
-    "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning"},
+    "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning",
+                 "NCCL_P2P_DISABLE":"1"      # Disable NCCL P2P communication on slurm cluster, because it is flaky
+                 },
     "working_dir": os.path.join(os.path.dirname(os.path.realpath(__file__))),
     "excludes": ["/.git",
                 "/.vscode",
