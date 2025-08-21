@@ -427,7 +427,7 @@ def run():
             w = algo_config.world_model_lr
             c = algo_config.critic_lr
             algo_config.training(
-                model_size="XL",
+                model_size="L",
                 training_ratio=64, #512, #Should be lower for larger models e.g. 64 for XL  
                 batch_size_B= 16 * (f_config["num_gpus"] or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
@@ -447,13 +447,12 @@ def run():
     algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False, disable_env_checking=True)
 
     algo_config.callbacks(MyAlgoCallback)
-    algo_config.debugging(logger_config={"type": "ray.tune.logger.NoopLogger"}) # Disable slow tbx logging
     algo_config.env_runners(num_env_runners= int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
                         num_envs_per_env_runner=f_config.get('num_envs_per_env_runner', 1),
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         num_gpus_per_env_runner=0,
-                        gym_env_vectorize_mode="ASYNC",
+                        gym_env_vectorize_mode="SYNC",
                         create_local_env_runner=True,           # ← create a driver-side EnvRunner
                         create_env_on_local_worker=True,        # ← and actually build its env
                         #rollout_fragment_length=512,
@@ -485,14 +484,6 @@ def run():
                           evaluation_parallel_to_training=f_config["evaluation_parallel_to_training"],
                           evaluation_num_env_runners=f_config.get("evaluation_num_env_runners", 0), #Number of env runners for evaluation
                         )   
-
-    algo_config.debugging(
-        log_level="INFO",  # "DEBUG" for more debug output.
-        log_sys_usage=True,  # Log system usage (CPU, RAM, GPU) to the console
-
-    )
-    algo_config.build()
-
     
 
     name = os.getenv("SLURM_JOB_ID", f"D-{datetime.now().strftime('%Y%m%d_%H-%M-%S')}")
