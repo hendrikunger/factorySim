@@ -22,15 +22,8 @@ from ray.rllib.algorithms.ppo.torch.default_ppo_torch_rl_module import DefaultPP
 from ray.rllib.core.rl_module.rl_module import RLModuleSpec, RLModule
 from ray.rllib.core.rl_module.multi_rl_module import MultiRLModuleSpec
 from ray.rllib.env.single_agent_episode import SingleAgentEpisode
-from ray.rllib.examples.learners.classes.intrinsic_curiosity_learners import (
-    ICM_MODULE_ID,
-)
-from ray.rllib.examples.rl_modules.classes.intrinsic_curiosity_model_rlm import (
-    IntrinsicCuriosityModel,
-)
-from ray.rllib.examples.learners.classes.intrinsic_curiosity_learners import (
-    PPOTorchLearnerWithCuriosity,
-)
+from experimental.intrinsic_curiosity_learners import PPOTorchLearnerWithCuriosity, ICM_MODULE_ID
+from experimental.intrinsic_curiosity_model_rlm import IntrinsicCuriosityModel
 from ray.rllib.core import DEFAULT_MODULE_ID
 #from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
@@ -417,7 +410,7 @@ def run():
                         learner_only=True,
                         # Configure the architecture of the ICM here.
                         model_config={
-                            "feature_dim": 128,
+                            "feature_dim": 512,
                             "feature_net_hiddens": (256, 256),
                             "feature_net_activation": "relu",
                             "inverse_net_hiddens": (256, 256),
