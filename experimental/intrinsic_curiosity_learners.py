@@ -2,6 +2,7 @@ from typing import Any, List, Optional
 
 import gymnasium as gym
 import torch
+import torch.nn.functional as F
 import tree  # pip install dm_tree
 from ray.rllib.algorithms.dqn.torch.dqn_torch_learner import DQNTorchLearner
 from ray.rllib.algorithms.ppo.torch.ppo_torch_learner import PPOTorchLearner
@@ -88,6 +89,25 @@ def add_intrinsic_curiosity_connectors(torch_learner: TorchLearner) -> None:
             ),
         )
 
+def _pool_to_channels_only(x: torch.Tensor) -> torch.Tensor:
+    """Return [N, C] regardless of input rank."""
+    if x.dim() == 4:           # [N, C, H, W] or [N, H, W, C] (handled earlier)
+        x = F.adaptive_avg_pool2d(x, 1).flatten(1)
+    elif x.dim() == 3:         # [N, C, L]
+        x = F.adaptive_avg_pool1d(x, 1).squeeze(-1)
+    elif x.dim() > 2:          # any higher rank: mean over non-batch dims
+        x = x.mean(dim=tuple(range(2, x.dim()))).view(x.size(0), -1)
+    else:                      # [N, F] already
+        x = x.view(x.size(0), -1)
+    return x
+
+def _maybe_nhwc_to_nchw(x: torch.Tensor) -> torch.Tensor:
+    """Heuristic NHWC→NCHW for 4D tensors."""
+    if x.dim() == 4:
+        channelish = {1, 3, 4, 8, 16, 32, 64, 128, 256, 512, 1024}
+        if (x.shape[-1] in channelish) and (x.shape[1] not in channelish):
+            x = x.permute(0, 3, 1, 2).contiguous()  # NHWC -> NCHW
+    return x
 
 class IntrinsicCuriosityModelConnector(ConnectorV2):
     """Learner ConnectorV2 piece to compute intrinsic rewards based on an ICM.
@@ -186,18 +206,44 @@ class IntrinsicCuriosityModelConnector(ConnectorV2):
         batch[ICM_MODULE_ID] = batch[DEFAULT_MODULE_ID]
 
         return batch
+    
     def extract_latent(self, enc_out):
-        x = enc_out.get(ENCODER_OUT, enc_out) if isinstance(enc_out, dict) else enc_out
-        if isinstance(x, dict):
-            # Prefer common image branches; else pick the largest tensor leaf.
-            for k in ("image", "img", "pixels", "visual", "obs"):
-                if k in x and torch.is_tensor(x[k]):
-                    x = x[k]; break
-            else:
-                leaves = [v for v in tree.flatten(x) if torch.is_tensor(v)]
-                if not leaves:
-                    raise ValueError("No tensor leaves in ENCODER_OUT.")
-                x = max(leaves, key=lambda t: t.numel())
-        if x.dim() > 2:
-            x = torch.flatten(x, start_dim=1)
-        return x  # [N, F]
+            """Make a single [N, F_total] latent from arbitrary ENCODER_OUT."""
+            x = enc_out.get(ENCODER_OUT, enc_out) if isinstance(enc_out, dict) else enc_out
+
+            def tensor_leaves(obj):
+                if torch.is_tensor(obj):
+                    return [obj]
+                elif isinstance(obj, (list, tuple)):
+                    out = []
+                    for it in obj:
+                        out.extend(tensor_leaves(it))
+                    return out
+                elif isinstance(obj, dict):
+                    out = []
+                    for v in obj.values():
+                        out.extend(tensor_leaves(v))
+                    return out
+                return []
+
+            leaves = tensor_leaves(x)
+            if not leaves:
+                raise TypeError(f"ENCODER_OUT contained no tensors; got type={type(x)}")
+
+            # Normalize each leaf to [N, F_i], then concat along feature dim.
+            feats = []
+            N0 = leaves[0].size(0)
+            for t in leaves:
+                if not torch.is_tensor(t):
+                    continue
+                # Basic batch dim sanity
+                if t.size(0) != N0:
+                    # Try to squeeze singleton front-dims, else raise
+                    t = t.view(N0, *t.shape[1:]) if t.numel() % N0 == 0 else t
+                t = _maybe_nhwc_to_nchw(t)
+                t = _pool_to_channels_only(t)  # -> [N, F_i]
+                feats.append(t)
+
+            if len(feats) == 1:
+                return feats[0]                 # [N, F]
+            return torch.cat(feats, dim=1)      # [N, ΣF_i]
