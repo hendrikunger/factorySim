@@ -1,3 +1,4 @@
+
 num_workers: 30  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
@@ -48,6 +49,7 @@ vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensi
 
 
 env_config:
+  algo: PPO  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
   Loglevel: 0

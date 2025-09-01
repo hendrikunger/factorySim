@@ -65,14 +65,20 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 
 
 NO_TUNE = False
-ALGO = "PPO"  # "Dreamer" or "PPO" or "APPO"
+
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
 
 
+def env_creator(env_config):
+    if env_config['algo'] == "Dreamer":
+        env = ZeroOneActionWrapper(FactorySimEnv(env_config=env_config))
+    else:
+        env = FactorySimEnv(env_config=env_config)
 
-from ray.rllib.utils.metrics.stats import Stats
-import inspect, os
+    return  env # return an env instance
+
+register_env("FactorySimEnv", env_creator)
 
 #Callbacks----------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -247,15 +253,8 @@ class ZeroOneActionWrapper(gym.ActionWrapper):
     def observation(self, obs):
         return (obs.astype(np.float32) / 255.0)
 
-def env_creator(env_config):
-    if ALGO == "Dreamer":
-        env = ZeroOneActionWrapper(FactorySimEnv(env_config=env_config))
-    else:
-        env = FactorySimEnv(env_config=env_config)
 
-    return  env # return an env instance
 
-register_env("FactorySimEnv", env_creator)
 #RL Module----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
@@ -278,6 +277,8 @@ def run():
 
     #f_config['env'] = FactorySimEnv
     f_config['env_config']['inputfile'] = ifcpath
+
+
 
 
     runtime_env = {
@@ -329,7 +330,7 @@ def run():
                                          num_to_keep=5 
     )
 
-    match ALGO:
+    match f_config['algo']:
         case "PPO":
     
             algo_config = PPOConfig()
