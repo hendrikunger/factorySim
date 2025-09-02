@@ -1,10 +1,17 @@
-import numpy as np
-import sys
 
+import sys
+from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union, Optional, Sequence
 from pathlib import Path
 import os
 import platform
+from typing import Dict
+
+import numpy as np
+import wandb
+import yaml
+import gymnasium as gym
+
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
 
 import ray
@@ -17,34 +24,23 @@ from ray.rllib.algorithms.algorithm_config import AlgorithmConfig
 from ray.rllib.algorithms.ppo import PPOConfig
 from ray.rllib.algorithms.appo import APPOConfig
 from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
+from ray.rllib.algorithms.sac.sac import SACConfig
 from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
 from ray.rllib.algorithms.ppo.torch.default_ppo_torch_rl_module import DefaultPPOTorchRLModule
-from ray.rllib.core.rl_module.rl_module import RLModuleSpec, RLModule
+from ray.rllib.core.rl_module.rl_module import RLModuleSpec
 from ray.rllib.core.rl_module.multi_rl_module import MultiRLModuleSpec
 from ray.rllib.env.single_agent_episode import SingleAgentEpisode
 from experimental.intrinsic_curiosity_learners import PPOTorchLearnerWithCuriosity, ICM_MODULE_ID
 from experimental.intrinsic_curiosity_model_rlm import IntrinsicCuriosityModel
 from ray.rllib.core import DEFAULT_MODULE_ID
-#from factorySim.customRLModulTorch import MyPPOTorchRLModule
-#from factorySim.customRLModulTF import MyXceptionRLModule
-#from factorySim.customModelsTorch import MyXceptionModel
-
 from ray.air.integrations.wandb import WandbLoggerCallback
-from typing import Dict
-
-import pprint
-
-
 from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
-
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
 from ray.tune.registry import register_env
-
-import wandb
-import yaml
-import gymnasium as gym
-from datetime import datetime
+#from factorySim.customRLModulTorch import MyPPOTorchRLModule
+#from factorySim.customRLModulTF import MyXceptionRLModule
+#from factorySim.customModelsTorch import MyXceptionModel
 
 
 
@@ -330,7 +326,7 @@ def run():
                                          num_to_keep=5 
     )
 
-    match f_config['algo']:
+    match f_config['env_config']['algo']:
         case "PPO":
     
             algo_config = PPOConfig()
@@ -477,14 +473,9 @@ def run():
 
                                             ),
                                         )
-        #Dreamer END ------------------------------------------------------------------------------------------------------
+        #APPO END ------------------------------------------------------------------------------------------------------
         case "Dreamer":
             algo_config = DreamerV3Config()
-
-            # import tensorflow as tf
-            # def _safe_flatten(x):             # dynamic flatten, works for unknown batch
-            #     return tf.reshape(x, (tf.shape(x)[0], -1))
-            # tf.keras.layers.Flatten.call = _safe_flatten
 
             #Dreamer needs 64x64x3 input
             f_config['env_config']['width'] = 64
@@ -512,6 +503,41 @@ def run():
             )
 
         #Dreamer END ------------------------------------------------------------------------------------------------------
+        case "SAC":
+            algo_config = SACConfig()
+
+            algo_config.training(
+                initial_alpha=1.001,
+                # lr=0.0006 is very high, w/ 4 GPUs -> 0.0012
+                # Might want to lower it for better stability, but it does learn well.
+                actor_lr=2e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                critic_lr=8e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                alpha_lr=9e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                lr=None,
+                target_entropy="auto",
+                n_step=(1, 5),  # 1?
+                tau=0.005,
+                train_batch_size_per_learner=256,
+                target_network_update_freq=1,
+                replay_buffer_config={
+                    "type": "PrioritizedEpisodeReplayBuffer",
+                    "capacity": 100000,
+                    "alpha": 0.6,
+                    "beta": 0.4,
+                },
+                num_steps_sampled_before_learning_starts=256 * (f_config["num_learners"] or 1),
+            )
+
+
+            algo_config.rl_module(model_config=DefaultModelConfig(
+                                            fcnet_hiddens=[256, 256],
+                                            fcnet_activation="relu",
+                                            head_fcnet_hiddens=[],
+                                            head_fcnet_activation=None,
+                                            ),
+                                        )
+
+        #SAC END ------------------------------------------------------------------------------------------------------
 
 
     algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False, disable_env_checking=True)
