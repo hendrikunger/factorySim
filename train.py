@@ -13,6 +13,7 @@ import yaml
 import gymnasium as gym
 
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
+from experimental.vision_sac_catalog import VisionSACCatalog
 
 import ray
 
@@ -27,6 +28,7 @@ from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
 from ray.rllib.algorithms.sac.sac import SACConfig
 from ray.rllib.core.rl_module.default_model_config import DefaultModelConfig
 from ray.rllib.algorithms.ppo.torch.default_ppo_torch_rl_module import DefaultPPOTorchRLModule
+from ray.rllib.algorithms.sac.torch.default_sac_torch_rl_module import DefaultSACTorchRLModule
 from ray.rllib.core.rl_module.rl_module import RLModuleSpec
 from ray.rllib.core.rl_module.multi_rl_module import MultiRLModuleSpec
 from ray.rllib.env.single_agent_episode import SingleAgentEpisode
@@ -349,29 +351,7 @@ def run():
 
             ) 
 
-            # algo_config.rl_module(model_config=DefaultModelConfig(
-            #                                     #Input is 84x84x2 output needs to be [B, X, 1, 1] for PyTorch), where B=batch and X=last Conv2D layer's number of filters
-                                                
-            #                                     conv_filters= [# [ num_filters, kernel, stride]
-            #                                                 [32, 5, 2],   # 128x128 → 62x62
-            #                                                 [48, 4, 2],   # 62x62   → 30x30
-            #                                                 [64, 4, 2],   # 30x30   → 14x14
-            #                                                 [64, 3, 2],   # 14x14   → 6x6
-            #                                                 [96, 3, 2],   # 6x6     → 2x2
-            #                                                 [96, 2, 2],   # 2x2     → 1x1
 
-            #                                                     # [32, 8, 4],  # Reduces spatial size from 84x84 -> 20x20
-            #                                                     # [64, 4, 2],  # Reduces spatial size from 20x20 -> 9x9
-            #                                                     # [128, 3, 1],  # Reduces spatial size from 9x9 -> 7x7
-            #                                                     # [256, 7, 1],  # Reduces spatial size from 7x7 -> 1x1
-            #                                                 ],
-            #                                     conv_activation="relu",
-            #                                     head_fcnet_hiddens=[256],
-            #                                     vf_share_layers=True,   #Need to tune  vf_loss_coeff on Training config if you set this to True
-
-            #                                 ),
-            #                     #rl_module_spec=myRLModule,
-            #                     )
             
 
             algo_config.rl_module(
@@ -506,36 +486,54 @@ def run():
         case "SAC":
             algo_config = SACConfig()
 
+
             algo_config.training(
-                initial_alpha=1.001,
-                # lr=0.0006 is very high, w/ 4 GPUs -> 0.0012
-                # Might want to lower it for better stability, but it does learn well.
-                actor_lr=2e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                critic_lr=8e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                alpha_lr=9e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                lr=None,
-                target_entropy="auto",
-                n_step=(1, 5),  # 1?
-                tau=0.005,
-                train_batch_size_per_learner=256,
-                target_network_update_freq=1,
-                replay_buffer_config={
-                    "type": "PrioritizedEpisodeReplayBuffer",
-                    "capacity": 100000,
-                    "alpha": 0.6,
-                    "beta": 0.4,
-                },
-                num_steps_sampled_before_learning_starts=256 * (f_config["num_learners"] or 1),
+                    initial_alpha=1.001,
+                    # lr=0.0006 is very high, w/ 4 GPUs -> 0.0012
+                    # Might want to lower it for better stability, but it does learn well.
+                    actor_lr=2e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                    critic_lr=8e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                    alpha_lr=9e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                    lr=None,
+                    target_entropy="auto",
+                    n_step=(1,5),  # 1?
+                    tau=0.005,
+                    train_batch_size_per_learner=256,
+                    target_network_update_freq=1,
+                    replay_buffer_config={
+                        "type": "PrioritizedEpisodeReplayBuffer",
+                        "capacity": 100000,
+                        "alpha": 0.6,
+                        "beta": 0.4,
+                        "storage_unit": "timesteps",
+                    },
+                    num_steps_sampled_before_learning_starts=256 * (f_config["num_learners"] or 1),
+                    twin_q=False,
             )
+            
 
 
-            algo_config.rl_module(model_config=DefaultModelConfig(
+            algo_config.rl_module(rl_module_spec=RLModuleSpec(
+                                        module_class=DefaultSACTorchRLModule,
+                                        catalog_class=VisionSACCatalog,
+                                        model_config=DefaultModelConfig(
+                                            conv_filters= [# [ num_filters, kernel, stride]
+                                                        [32, 5, 2],   # 128x128 → 62x62
+                                                        [64, 4, 2],   # 62x62 → 30x30
+                                                        [128, 4, 2],  # 30x30 → 14x14
+                                                        [128, 3, 2],  # 14x14 → 6x6
+                                                        [256, 3, 2],  # 6x6   → 2x2
+                                                        [256, 2, 2],  # 2x2   → 1x1   
+
+                                                    ], 
+                                            conv_activation="relu",
+                                            head_fcnet_hiddens=[256],
                                             fcnet_hiddens=[256, 256],
                                             fcnet_activation="relu",
-                                            head_fcnet_hiddens=[],
-                                            head_fcnet_activation=None,
+                                            twin_q=False,
                                             ),
                                         )
+                                    )
 
         #SAC END ------------------------------------------------------------------------------------------------------
 

@@ -49,7 +49,7 @@ vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensi
 
 
 env_config:
-  algo: PPO  #APPO, PPO, Dreamer or SAC
+  algo: SAC  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
   Loglevel: 0
