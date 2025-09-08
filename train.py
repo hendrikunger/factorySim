@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 import platform
 from typing import Dict
+from dataclasses import asdict
 
 import numpy as np
 import wandb
@@ -13,7 +14,7 @@ import yaml
 import gymnasium as gym
 
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
-from experimental.vision_sac_catalog import VisionSACCatalog
+
 
 import ray
 
@@ -34,6 +35,8 @@ from ray.rllib.core.rl_module.multi_rl_module import MultiRLModuleSpec
 from ray.rllib.env.single_agent_episode import SingleAgentEpisode
 from experimental.intrinsic_curiosity_learners import PPOTorchLearnerWithCuriosity, ICM_MODULE_ID
 from experimental.intrinsic_curiosity_model_rlm import IntrinsicCuriosityModel
+from experimental.safe_sac_module import SafeSACTorchRLModule
+from experimental.vision_sac_catalog import VisionSACCatalog
 from ray.rllib.core import DEFAULT_MODULE_ID
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
@@ -43,7 +46,7 @@ from ray.tune.registry import register_env
 #from factorySim.customRLModulTorch import MyPPOTorchRLModule
 #from factorySim.customRLModulTF import MyXceptionRLModule
 #from factorySim.customModelsTorch import MyXceptionModel
-
+from helpers.cli import get_args
 
 
 #filename = "Overlapp"
@@ -62,7 +65,7 @@ ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1"
 
 
 
-NO_TUNE = False
+NO_TUNE = False  
 
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
@@ -270,7 +273,14 @@ class ZeroOneActionWrapper(gym.ActionWrapper):
 
 def run():
 
-    with open('config.yaml', 'r') as f:
+    args = get_args()
+    if args.config:
+        config_path = args.config
+    else:
+        config_path = "config.yaml"
+    print(f"Using config file: {config_path}")
+
+    with open(config_path, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
     #f_config['env'] = FactorySimEnv
@@ -498,25 +508,19 @@ def run():
                     target_entropy="auto",
                     n_step=(1,5),  # 1?
                     tau=0.005,
-                    train_batch_size_per_learner=256,
+                    train_batch_size_per_learner=f_config['train_batch_size_per_learner'],
                     target_network_update_freq=1,
                     replay_buffer_config={
                         "type": "PrioritizedEpisodeReplayBuffer",
-                        "capacity": 100000,
+                        "capacity": 400000,
                         "alpha": 0.6,
                         "beta": 0.4,
                         "storage_unit": "timesteps",
                     },
-                    num_steps_sampled_before_learning_starts=256 * (f_config["num_learners"] or 1),
-                    twin_q=False,
+                    num_steps_sampled_before_learning_starts=10000,
             )
             
-
-
-            algo_config.rl_module(rl_module_spec=RLModuleSpec(
-                                        module_class=DefaultSACTorchRLModule,
-                                        catalog_class=VisionSACCatalog,
-                                        model_config=DefaultModelConfig(
+            model_config = DefaultModelConfig(
                                             conv_filters= [# [ num_filters, kernel, stride]
                                                         [32, 5, 2],   # 128x128 → 62x62
                                                         [64, 4, 2],   # 62x62 → 30x30
@@ -525,15 +529,24 @@ def run():
                                                         [256, 3, 2],  # 6x6   → 2x2
                                                         [256, 2, 2],  # 2x2   → 1x1   
 
-                                                    ], 
+                                                    ],
                                             conv_activation="relu",
                                             head_fcnet_hiddens=[256],
                                             fcnet_hiddens=[256, 256],
                                             fcnet_activation="relu",
-                                            twin_q=False,
-                                            ),
-                                        )
-                                    )
+                                            )
+            
+            model_config = asdict(model_config)         
+            model_config["twin_q"] = True,           
+
+            algo_config .rl_module(
+                rl_module_spec=RLModuleSpec(
+                    module_class=SafeSACTorchRLModule,   
+                    catalog_class=VisionSACCatalog,      
+                    model_config=model_config,
+                )
+            )
+                                    
 
         #SAC END ------------------------------------------------------------------------------------------------------
 
@@ -660,4 +673,4 @@ if __name__ == "__main__":
 
 
 
-# Todo: CoordConv: "An intriguing failing of CNNs and the CoordConv solution" (Liu et al., 2018).  Add coordinates to the input image, so that the model can learn to use them.
+# Todo: CoordConv: "An intriguing failing of CNNs and the CoordConv solution" (Liu et al., 2018).  Add coordinates to the input image, so that the model can learn to use them.c
