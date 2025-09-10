@@ -278,15 +278,13 @@ def run():
         config_path = args.config
     elif args.configID != 0:
         exp_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Experiments"))
-        expFiles = [path / fname
-                    for path, _, fnames in exp_dir.walk()
-                    for fname in fnames if fname.endswith(".yaml")]
+        expFiles = [p for p in exp_dir.rglob("*") if p.suffix in {".yaml", ".yml"}]
         expFiles.sort()
         config_path = expFiles[args.configID % len(expFiles)-1]
     else:
         config_path = "config.yaml"
-    print(f"Using config file: {config_path}")
 
+    print(f"---------------->Using config file: {config_path}")
     with open(config_path, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
