@@ -7,7 +7,6 @@ def get_args():
     parser.add_argument(
         "-c", "--config", 
         type=str, 
-        required=True,
         default="config.yaml", 
         help="Path to the configuration file"
     )

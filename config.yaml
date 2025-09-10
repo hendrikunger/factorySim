@@ -1,5 +1,9 @@
 
-num_workers: 60  # parallelism  #40 on ray 
+group: klaus
+notes: "Testrun rer  werwer" 
+
+
+num_workers: 2  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
