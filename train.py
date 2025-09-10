@@ -276,6 +276,13 @@ def run():
     args = get_args()
     if args.config:
         config_path = args.config
+    elif args.configID != 0:
+        exp_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Experiments"))
+        expFiles = [path / fname
+                    for path, _, fnames in exp_dir.walk()
+                    for fname in fnames if fname.endswith(".yaml")]
+        expFiles.sort()
+        config_path = expFiles[args.configID % len(expFiles)-1]
     else:
         config_path = "config.yaml"
     print(f"Using config file: {config_path}")
