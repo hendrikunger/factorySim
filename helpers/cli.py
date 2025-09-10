@@ -10,7 +10,12 @@ def get_args():
         default="config.yaml", 
         help="Path to the configuration file"
     )
-    
+    parser.add_argument(
+        "-cid", "--configID", 
+        type=int, 
+        default=0, 
+        help="ID of the configuration in /experiments/ to use"
+    )
 
 
     return parser.parse_args()

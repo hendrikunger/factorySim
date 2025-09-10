@@ -22,7 +22,8 @@ module load CUDA/12.6.0
 
 printenv
 
-apptainer run --nv "$HOME/factorySim/factorySim.sif"
+apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py --problemID "$SLURM_ARRAY_TASK_ID"
+
 
 #Paula cluster
 # run with sbatch slurm-job.sh
