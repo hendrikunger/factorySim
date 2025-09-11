@@ -283,8 +283,10 @@ def run():
         config_path = expFiles[args.configID % len(expFiles)-1]
     else:
         config_path = "config.yaml"
-
-    print(f"---------------->Using config file: {config_path}")
+    print("--------------------------------------------------------------------------------------------------------")
+    print(f"Using config file: {config_path}")
+    print("--------------------------------------------------------------------------------------------------------")
+    
     with open(config_path, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -608,12 +610,13 @@ def run():
                             checkpoint_config=checkpoint_config,
                             #log_to_file="./wandb/latest-run/files/stdoutanderr.log",
                             callbacks=[
-                                WandbLoggerCallback(project="factorySim_TRAIN",
+                                WandbLoggerCallback(project=f_config.get("project", "factorySim_TRAIN")  ,
                                                     log_config=True,
                                                     upload_checkpoints=False,
                                                     name=name,
                                                     group=f_config.get("group", "default"),
                                                     notes=f_config.get("notes", ""),
+                                                    tags=f_config.get("tags", []),
                                                     ),
                                 #MyCallback(),
                         ],

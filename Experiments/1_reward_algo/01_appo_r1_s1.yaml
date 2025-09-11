@@ -1,7 +1,7 @@
-
-group: sac
-notes: "" 
-
+project: factorySim_TRAIN
+group: appo
+notes: ""
+tags: ["exp1", "r1", "s1"]
 
 num_workers: 64  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
