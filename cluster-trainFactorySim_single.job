@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH --job-name=factorySim
+#SBATCH --partition=clara,paula
+#SBATCH --nodelist=clara[01,04-08],paula[01-12]
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32
+#SBATCH --gpus=1
+#SBATCH --mem-per-cpu=4GB
+#SBATCH --time=24:00:00
+#SBATCH --mail-type=BEGIN,END
+
+module load CUDA/12.6.0
+
+
+#wandb could not write to this directory
+#ws_allocate wandb 5
+#mkdir /lscratch/wandb
+
+#export WANDB_CONFIG_DIR="/lscratch"
+#export WANDB_DIR="/lscratch"
+#export WANDB_CACHE_DIR="/lscratch"
+
+apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py
+
+
+#Paula cluster
+# run with sbatch slurm-job.sh
+

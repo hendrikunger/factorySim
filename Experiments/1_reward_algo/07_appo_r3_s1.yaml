@@ -4,7 +4,7 @@ group:  APPO
 notes: "" 
 tags: ["exp1", "r3", "s1"]
 
-num_workers: 64  # parallelism  #40 on ray 
+num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0

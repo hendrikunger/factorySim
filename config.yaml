@@ -1,6 +1,6 @@
 project: factorySim_TRAIN
-group: klaus
-notes: "Testrun rer  werwer" 
+group: testruns
+notes: "" 
 
 
 num_workers: 2  # parallelism  #40 on ray 
