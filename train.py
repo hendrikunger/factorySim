@@ -43,9 +43,6 @@ from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAg
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
 from ray.tune.registry import register_env
-#from factorySim.customRLModulTorch import MyPPOTorchRLModule
-#from factorySim.customRLModulTF import MyXceptionRLModule
-#from factorySim.customModelsTorch import MyXceptionModel
 from helpers.cli import get_args
 
 
@@ -569,11 +566,8 @@ def run():
                         env_to_module_connector=_env_to_module,
                         num_gpus_per_env_runner=0,
                         gym_env_vectorize_mode="SYNC",
-                        create_local_env_runner=True,           # ← create a driver-side EnvRunner
-                        create_env_on_local_worker=True,        # ← and actually build its env
-                        #rollout_fragment_length=512,
-                        #batch_mode="truncate_episodes",  # "complete_episodes" or "truncate_episodes"
-                        #sample_timeout_s=30,
+                        create_local_env_runner=True,           
+                        create_env_on_local_worker=True,       
                         )
     algo_config.resources(num_cpus_for_main_process=1)
     algo_config.learners(num_learners=f_config['num_learners'],
@@ -618,7 +612,7 @@ def run():
                                                     notes=f_config.get("notes", ""),
                                                     tags=f_config.get("tags", []),
                                                     ),
-                                #MyCallback(),
+
                         ],
                         )
 
@@ -632,7 +626,6 @@ def run():
 
 
     path = Path.joinpath(Path.home(), "ray_results/klaus")
-    #path = "/home/unhe/gitRepo/factorySim/artifacts/checkpoint_PPO_FactorySimEnv_038cc_00000:v5"
 
     if Tuner.can_restore(path):
         print("--------------------------------------------------------------------------------------------------------")
@@ -672,10 +665,6 @@ def run():
     #agent = ppo.PPO(config=config, env=MultiFactorySimEnv)
     #agent.restore("/root/ray_results/PPO/PPO_MultiEnv_2fa55_00000_0_2022-11-19_10-08-59/checkpoint_000667/")
 
-
-
-
-# std log and std error need to go to wandb, they are in the main folder of the run
 
 
 if __name__ == "__main__":
