@@ -15,6 +15,10 @@ def get_args():
         default=0, 
         help="ID of the configuration in /Experiments/ to use"
     )
-
+    parser.add_argument(
+        "-t", "--test",
+        action="store_true",
+        help="Run short tests"
+    )
 
     return parser.parse_args()

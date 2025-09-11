@@ -328,10 +328,12 @@ def run():
         ray.init(runtime_env=runtime_env, include_dashboard=True, dashboard_host="0.0.0.0")
 
 
-
-
+    training_iteration = f_config.get("training_iteration", 2)
+    if args.test:
+        training_iteration = 2
+        f_config['evaluation_config']['evaluation_interval'] = 1
     stop = {
-    "training_iteration": f_config.get("training_iteration", 2), #Number of training iterations
+    "training_iteration": training_iteration, #Number of training iterations
     #"num_env_steps_sampled_lifetime": 15000000,
     #"episode_reward_mean": 5,
     }
