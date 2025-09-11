@@ -5,16 +5,13 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union, Opti
 from pathlib import Path
 import os
 import platform
-from typing import Dict
 from dataclasses import asdict
 
 import numpy as np
 import wandb
 import yaml
-import gymnasium as gym
 
 from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
-
 
 import ray
 
@@ -32,7 +29,6 @@ from ray.rllib.algorithms.ppo.torch.default_ppo_torch_rl_module import DefaultPP
 from ray.rllib.algorithms.sac.torch.default_sac_torch_rl_module import DefaultSACTorchRLModule
 from ray.rllib.core.rl_module.rl_module import RLModuleSpec
 from ray.rllib.core.rl_module.multi_rl_module import MultiRLModuleSpec
-from ray.rllib.env.single_agent_episode import SingleAgentEpisode
 from experimental.intrinsic_curiosity_learners import PPOTorchLearnerWithCuriosity, ICM_MODULE_ID
 from experimental.intrinsic_curiosity_model_rlm import IntrinsicCuriosityModel
 from experimental.safe_sac_module import SafeSACTorchRLModule
@@ -41,9 +37,9 @@ from ray.rllib.core import DEFAULT_MODULE_ID
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
-from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
 from ray.tune.registry import register_env
 from helpers.cli import get_args
+from helpers.pipeline import ZeroOneActionWrapper, NormalizeObservations
 
 
 #filename = "Overlapp"
@@ -219,48 +215,11 @@ class MyAlgoCallback(RLlibCallback):
         del(myData)
         del(data)
 
-#Preprocessor----------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-class NormalizeObservations(SingleAgentObservationPreprocessor):
-    def preprocess(self, observation: Dict[AgentID, Dict[str, np.ndarray]], episode: SingleAgentEpisode) -> Dict[AgentID, Dict[str, np.ndarray]]:
-        output= observation / 255.0
-        return output.astype(np.float32)
-
-
-       
+#Preprocessor----------------------------------------------------------------------------------------------------------------------------------------------------------       
 def _env_to_module(env=None, spaces=None, device=None) -> SingleAgentObservationPreprocessor:
 # Create the env-to-module connector pipeline.
     return NormalizeObservations()
 
-#Env----------------------------------------------------------------------------------------------------------------------------------------------------------
-# This wrapper is just for Dreamer V3, which expects actions in [-1,1] and observations in [0,1] and does not have  env_to_module connectors yet
-class ZeroOneActionWrapper(gym.ActionWrapper):
-    def __init__(self, env):
-        super().__init__(env)
-        # Let RLlib think the env also lives in [-1,1]
-        self.action_space = gym.spaces.Box(-1.0, 1.0, shape=(3,), dtype=np.float32)
-        h, w, c = env.observation_space.shape
-        self.observation_space = gym.spaces.Box(low=0.0, high=1.0, shape=(h, w, c), dtype=np.float32)
-
-    def action(self, act):
-        # scale [-1,1] -> [0,1]
-        return (act + 1.0) / 2.0
-    
-    def observation(self, obs):
-        return (obs.astype(np.float32) / 255.0)
-
-
-
-#RL Module----------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-# myRLModule = SingleAgentRLModuleSpec(
-#     module_class=MyPPOTorchRLModule,
-#     model_config_dict={"model":"resnet34", "pretrained": False},
-# )
 
 
 
