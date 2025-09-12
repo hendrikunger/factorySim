@@ -559,7 +559,7 @@ def run():
     if name is None:
         name = os.getenv("SLURM_JOB_ID", f"D-{datetime.now().strftime('%Y%m%d_%H-%M-%S')}")
     else:
-        name = f"{f_config["group"]}_{name}_{os.getenv('SLURM_ARRAY_TASK_ID', '')}"
+        name = f"{f_config['group']}_{name}_{os.getenv('SLURM_ARRAY_TASK_ID', '')}"
     
 
 
