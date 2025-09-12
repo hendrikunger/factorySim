@@ -1,6 +1,7 @@
 Bootstrap: docker
 #From: nvcr.io/nvidia/pytorch:25.06-py3
 From: pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime
+From: pytorch/pytorch:2.7.1-cuda12.6-cudnn9-runtime
 
 
 %files
