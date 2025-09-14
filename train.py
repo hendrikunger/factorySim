@@ -477,7 +477,7 @@ def run():
                     target_network_update_freq=1,
                     replay_buffer_config={
                         "type": "PrioritizedEpisodeReplayBuffer",
-                        "capacity": 400000,
+                        "capacity": 250000,
                         "alpha": 0.6,
                         "beta": 0.4,
                         "storage_unit": "timesteps",
