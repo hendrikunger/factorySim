@@ -453,9 +453,10 @@ def run():
                 critic_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
                 actor_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
             )
-            algo_config.env_runners(
-                rollout_fragment_length = 128,  # 64 steps per env runner
-            )
+            # algo_config.env_runners(
+            #     rollout_fragment_length = 128,  # 64 steps per env runner
+            # )
+            algo_config.reporting(min_sample_timesteps_per_iteration=512)
 
         #Dreamer END ------------------------------------------------------------------------------------------------------
         case "SAC":
