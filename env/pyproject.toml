@@ -1,0 +1,23 @@
+[project]
+name = "local_factorySim"
+version = "0.2.dev0"
+description = "Factory simulation environment for reinforcement learning"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Hendrik Unger", email = "unger.hendrik@gmail.com" }]
+requires-python = ">=3.9"
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+dependencies = [
+  "gymnasium",
+  "pycairo",
+  "pandas",
+  "shapely",
+  "networkx",
+  "scipy",
+  "ifcopenshell",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
