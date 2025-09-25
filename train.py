@@ -236,6 +236,8 @@ def run():
         exp_dir = Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), "Experiments"))
         expFiles = [p for p in exp_dir.rglob("*") if p.suffix in {".yaml", ".yml"}]
         expFiles.sort()
+        print(f"Found {len(expFiles)} experiment config files")
+        print(expFiles)
         config_path = expFiles[args.configID % len(expFiles)-1]
     else:
         config_path = "config.yaml"
@@ -571,7 +573,7 @@ def run():
                             callbacks=[
                                 WandbLoggerCallback(project=f_config.get("project", "factorySim_TRAIN")  ,
                                                     log_config=True,
-                                                    upload_checkpoints=False,
+                                                    upload_checkpoints=True,
                                                     name=name,
                                                     group=f_config.get("group", "default"),
                                                     notes=f_config.get("notes", ""),
