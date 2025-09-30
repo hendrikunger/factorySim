@@ -20,5 +20,10 @@ def get_args():
         action="store_true",
         help="Run short tests"
     )
+    parser.add_argument(
+        "-r", "--resume",
+        action="store_true",
+        help="Run short tests"
+    )
 
     return parser.parse_args()

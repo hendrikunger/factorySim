@@ -40,6 +40,7 @@ from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
 from ray.tune.registry import register_env
 from helpers.cli import get_args
 from helpers.pipeline import ZeroOneActionWrapper, NormalizeObservations
+from torch import Tensor
 
 
 #filename = "Overlapp"
@@ -214,6 +215,17 @@ class MyAlgoCallback(RLlibCallback):
 
         del(myData)
         del(data)
+
+class AlgorithFix(RLlibCallback):
+    def __init__(self, **kwargs):
+        super().__init__()
+
+    def on_checkpoint_loaded(self, *, algorithm: Algorithm, **kwargs, ) -> None:
+        def betas_tensor_to_float(learner):
+            param_grp = next(iter(learner._optimizer_parameters.keys())).param_groups[0]
+            if not param_grp['capturable'] and isinstance(param_grp["betas"][0], Tensor):
+                param_grp["betas"] = tuple(beta.item() for beta in param_grp["betas"])
+        algorithm.learner_group.foreach_learner(betas_tensor_to_float)
 
 #Preprocessor----------------------------------------------------------------------------------------------------------------------------------------------------------       
 def _env_to_module(env=None, spaces=None, device=None) -> SingleAgentObservationPreprocessor:
@@ -521,7 +533,7 @@ def run():
 
     algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False, disable_env_checking=True)
 
-    algo_config.callbacks(MyAlgoCallback)
+    algo_config.callbacks(callbacks_class=[MyAlgoCallback, AlgorithFix])
     algo_config.env_runners(num_env_runners= int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
                         num_envs_per_env_runner=f_config.get('num_envs_per_env_runner', 1),
                         num_cpus_per_env_runner=1,
@@ -591,19 +603,25 @@ def run():
         #mode="max",
     )
 
+    if args.resume:
+        path = Path.joinpath(Path.home(), "ray_results/bert/")
+    else:
+        path= None
+    
 
-    path = Path.joinpath(Path.home(), "ray_results/klaus")
-
-    if Tuner.can_restore(path):
+    if path and Tuner.can_restore(path):
         print("--------------------------------------------------------------------------------------------------------")
         print(f"Restoring from {path.as_posix()}")
         print("--------------------------------------------------------------------------------------------------------")
         #Continuing training
 
-        tuner = Tuner.restore(path.as_posix(), "PPO", param_space=algo_config)
+        tuner = Tuner.restore(path.as_posix(), "DreamerV3", param_space=algo_config, resume_errored=True)
         results = tuner.fit() 
 
     else:
+        print("--------------------------------------------------------------------------------------------------------")
+        print(f"New RUN")
+        print("--------------------------------------------------------------------------------------------------------")
         if NO_TUNE:
             algo = algo_config.build_algo()
             for i in range(stop.get("training_iteration",2)):
