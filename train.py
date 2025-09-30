@@ -492,10 +492,10 @@ def run():
                     target_network_update_freq=1,
                     replay_buffer_config={
                         "type": "PrioritizedEpisodeReplayBuffer",
-                        "capacity": 250000,
+                        "capacity": 64000,
                         "alpha": 0.6,
                         "beta": 0.4,
-                        "storage_unit": "timesteps",
+                        "storage_unit": "episodes",
                     },
                     num_steps_sampled_before_learning_starts=10000,
             )
@@ -615,7 +615,7 @@ def run():
         print("--------------------------------------------------------------------------------------------------------")
         #Continuing training
 
-        tuner = Tuner.restore(path.as_posix(), "DreamerV3", param_space=algo_config, resume_errored=True)
+        tuner = Tuner.restore(path.as_posix(), f_config['env_config']['algo'], param_space=algo_config, resume_errored=True)
         results = tuner.fit() 
 
     else:
