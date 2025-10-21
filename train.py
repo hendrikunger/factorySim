@@ -250,7 +250,11 @@ def run():
         expFiles.sort()
         print(f"Found {len(expFiles)} experiment config files")
         print(expFiles)
-        config_path = expFiles[args.configID % len(expFiles)-1]
+        possible_configs = [f for f in expFiles if f.name.startswith(f"{args.configID}_")]
+        if len(possible_configs) == 1:
+            config_path = possible_configs[0]
+        else:
+            raise ValueError(f"Could not find unique config file for ID {args.configID}, found: {possible_configs}")
     else:
         config_path = "config.yaml"
     print("--------------------------------------------------------------------------------------------------------")
