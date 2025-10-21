@@ -2,7 +2,7 @@
 project: factorySim_TRAIN
 group:  Dreamer
 notes: "" 
-tags: ["exp2", "v1", "r1", "s1"]
+tags: ["exp2", "v1", "r2", "s1"]
 
 num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
@@ -66,8 +66,8 @@ env_config:
   factoryconfig: SMALLSQUARE
   prefix: null #Gets populated on runtime
   evaluation: false #Gets populated on runtime
-  reward_function: 1
-  actionRounds: 1 # Number of action rounds per machine during evaluation
+  reward_function: 2
+  actionRounds: 3 # Number of action rounds per machine during evaluation
   randomSeed: null
   createMachines: true
   logLevel: 0
@@ -88,8 +88,8 @@ evaluation_config:
     prefix: null #Gets populated on runtime
     evaluation: true
     randomSeed: 42
-    reward_function: 1
-    actionRounds: 1 # Number of action rounds per machine during evaluation
+    reward_function: 2
+    actionRounds: 3 # Number of action rounds per machine during evaluation
     createMachines: false
     logLevel: 0
     coordinateChannels: true
