@@ -36,6 +36,7 @@ class FactorySimEnv(gym.Env):
         self.width = env_config["width"]
         self.height = env_config["height"]
         self.reward_function = env_config["reward_function"]
+        self.actionRounds = env_config.get("actionRounds", 1)
         self.maxMF_Elements = env_config["maxMF_Elements"]
         self.createMachines = env_config["createMachines"]
         self.scale = env_config["outputScale"]
@@ -286,7 +287,7 @@ class FactorySimEnv(gym.Env):
 
     def tryEvaluate(self):
         try:
-            self.currentReward, self.info, self.terminated = self.factory.evaluate(self.reward_function)
+            self.currentReward, self.info, self.terminated = self.factory.evaluate(self.reward_function, self.actionRounds)
         except Exception as e:
             print(e)
             print("Error in evaluate")

@@ -67,6 +67,7 @@ env_config:
   prefix: null #Gets populated on runtime
   evaluation: false #Gets populated on runtime
   reward_function: 1
+  actionRounds: 1 # Number of action rounds per machine during evaluation
   randomSeed: null
   createMachines: true
   logLevel: 0
@@ -88,6 +89,7 @@ evaluation_config:
     evaluation: true
     randomSeed: 126
     reward_function: 1
+    actionRounds: 1 # Number of action rounds per machine during evaluation
     createMachines: false
     logLevel: 0
     coordinateChannels: true

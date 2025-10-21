@@ -13,7 +13,7 @@ from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
 from factorySim.rendering import  draw_BG, drawFactory, drawCollisions
 from factorySim.kpi import FactoryRating
-from factorySim.routing import FactoryPath
+from factorySim.routing import FactoryPath 
 from shapely.ops import unary_union, snap
 from shapely.geometry import MultiPolygon, Polygon
 
@@ -200,7 +200,7 @@ class FactorySim:
  #------------------------------------------------------------------------------------------------------------
  # Evaluation
  #------------------------------------------------------------------------------------------------------------
-    def evaluate(self, rewardMode = 2):
+    def evaluate(self, rewardMode = 2, actionRounds = 1):
 
         self.RatingDict = {}
         #In case caluclation fails set default rating
@@ -314,7 +314,7 @@ class FactorySim:
         self.RatingDict["Reward"]= self.currentRating
 
 
-        if(self.episodeCounter >= 1 * len(self.machine_dict)):
+        if(self.episodeCounter >= actionRounds * len(self.machine_dict)):
         #if(self.episodeCounter >= len(self.machine_dict)+1):
             self.RatingDict["terminated"] = True
         else:
