@@ -589,7 +589,7 @@ def run():
                             callbacks=[
                                 WandbLoggerCallback(project=f_config.get("project", "factorySim_TRAIN")  ,
                                                     log_config=True,
-                                                    upload_checkpoints=True,
+                                                    upload_checkpoints=False,
                                                     name=name,
                                                     group=f_config.get("group", "default"),
                                                     notes=f_config.get("notes", ""),
