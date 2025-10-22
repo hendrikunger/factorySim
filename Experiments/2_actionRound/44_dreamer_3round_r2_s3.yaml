@@ -1,8 +1,8 @@
 
 project: factorySim_TRAIN
-group:  SAC
+group:  Dreamer
 notes: "" 
-tags: ["exp2", "v1", "r2", "s1"]
+tags: ["exp2", "v1", "r2", "s3"]
 
 num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
@@ -24,8 +24,8 @@ train_batch_size_per_learner:  1024 #4096
 mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 200
-training_iteration: 10000 # Number of training iterations to run.
+evaluation_interval: 5
+training_iteration: 300 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -54,7 +54,7 @@ vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensi
 
 
 env_config:
-  algo: SAC  #APPO, PPO, Dreamer or SAC
+  algo: Dreamer  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
   Loglevel: 0
@@ -87,7 +87,7 @@ evaluation_config:
     factoryconfig: SMALLSQUARE
     prefix: null #Gets populated on runtime
     evaluation: true
-    randomSeed: 42
+    randomSeed: 126
     reward_function: 2
     actionRounds: 3 # Number of action rounds per machine during evaluation
     createMachines: false

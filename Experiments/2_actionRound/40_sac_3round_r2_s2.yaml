@@ -2,7 +2,7 @@
 project: factorySim_TRAIN
 group:  SAC
 notes: "" 
-tags: ["exp2", "v1", "r2", "s1"]
+tags: ["exp2", "v1", "r2", "s2"]
 
 num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
@@ -87,7 +87,7 @@ evaluation_config:
     factoryconfig: SMALLSQUARE
     prefix: null #Gets populated on runtime
     evaluation: true
-    randomSeed: 42
+    randomSeed: 84
     reward_function: 2
     actionRounds: 3 # Number of action rounds per machine during evaluation
     createMachines: false
