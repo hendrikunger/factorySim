@@ -1,7 +1,7 @@
 
 project: factorySim_TRAIN
 group:  SAC
-notes: "" 
+notes: "coordinate channels" 
 tags: ["exp4", "v1", "r2", "s2"]
 
 num_workers: 32  # parallelism  #40 on ray 

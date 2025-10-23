@@ -1,7 +1,7 @@
 
 project: factorySim_TRAIN
 group:  Dreamer
-notes: "" 
+notes: "action rounds = 3" 
 tags: ["exp2", "v1", "r2", "s2"]
 
 num_workers: 32  # parallelism  #40 on ray 
