@@ -1,9 +1,5 @@
 import sys
 from datetime import datetime
-<<<<<<< HEAD
-=======
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union, Sequence
->>>>>>> 5e8b6ccad535f66c5e6d0a9d5e0ded1ef22b4e18
 from pathlib import Path
 import os
 import platform
