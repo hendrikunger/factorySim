@@ -83,7 +83,7 @@ class FactoryCreator():
             union = MultiPolygon([union,newRect])
 
         #origin is lower left corner in shapely
-        # Flip on y because Pygames origin is in the top left corner
+        # Flip on y because Window origin is in the top left corner
         multi = MultiPolygon(scale(union, yfact=-1, origin=self.bb.centroid))
         
         for i, poly in enumerate(multi.geoms):
