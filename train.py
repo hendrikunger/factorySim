@@ -31,7 +31,7 @@ from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAg
 from ray.tune.registry import register_env
 from helpers.cli import get_args
 from helpers.pipeline import NormalizeObservations, env_creator
-from helpers.callbacks import EvalCallback, AlgorithFix
+from helpers.callbacks import EvalCallback, AlgorithFix, CurriculumCallback
 
 
 
@@ -368,7 +368,10 @@ def run():
 
     algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False, disable_env_checking=True)
 
-    algo_config.callbacks(callbacks_class=[EvalCallback, AlgorithFix])
+    if f_config['env_config']['curriculum_learning']:
+        algo_config.callbacks(callbacks_class=[EvalCallback, AlgorithFix, CurriculumCallback])
+    else:
+        algo_config.callbacks(callbacks_class=[EvalCallback, AlgorithFix])
     algo_config.env_runners(num_env_runners= int(os.getenv("SLURM_CPUS_PER_TASK", f_config['num_workers']))-1,
                         num_envs_per_env_runner=f_config.get('num_envs_per_env_runner', 1),
                         num_cpus_per_env_runner=1,

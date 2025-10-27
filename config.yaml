@@ -77,7 +77,6 @@ env_config:
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
-    maxMF_Elements: null
     outputScale: 3 #10
     evaluation: true
     randomSeed: 42

@@ -4,16 +4,15 @@ import wandb
 from ray.rllib.callbacks.callbacks import RLlibCallback
 from ray.rllib.algorithms.algorithm import Algorithm
 from ray.rllib.utils.metrics.metrics_logger import MetricsLogger
+from ray.rllib.utils.metrics import (
+    ENV_RUNNER_RESULTS,
+    EPISODE_RETURN_MEAN,
+)
 from torch import Tensor
 from helpers.pipeline import env_creator
 
 
-# Remote function to change the environment on the worker for curriculum learning
-def _remote_fn(env_runner, new_maxMF_Elements: int):
-    # We recreate the entire env object by changing the env_config on the worker,
-    # then calling its `make_env()` method.
-    env_runner.config.environment(env_config={"maxMF_Elements": new_maxMF_Elements})
-    env_runner.make_env()
+
 
 
 
@@ -165,6 +164,12 @@ class AlgorithFix(RLlibCallback):
         algorithm.learner_group.foreach_learner(betas_tensor_to_float)
 
 
+# Remote function to change the environment on the worker for curriculum learning
+def _remote_fn(env_runner, new_maxMF_Elements: int):
+    # We recreate the entire env object by changing the env_config on the worker,
+    # then calling its `make_env()` method.
+    env_runner.config.environment(env_config={"maxMF_Elements": new_maxMF_Elements})
+    env_runner.make_env()
 
 
 class CurriculumCallback(RLlibCallback):
@@ -176,8 +181,8 @@ class CurriculumCallback(RLlibCallback):
         algorithm: "Algorithm",
         **kwargs,
     ) -> None:
-        # Set the initial task to 0.
-        algorithm._counters["current_maxMF_Elements"] = 0
+        # Set the initial task to 3 elements, the practical minimum.
+        algorithm._counters["current_maxMF_Elements"] = 3
 
     def on_train_result(
         self,
@@ -187,40 +192,36 @@ class CurriculumCallback(RLlibCallback):
         result: dict,
         **kwargs,
     ) -> None:
-        # Hack: Store the current task inside a counter in our Algorithm.
-        # W/o a curriculum, the task is always 2 (hardest).
-        if args.no_curriculum:
-            algorithm._counters["current_env_task"] = 2
-        current_task = algorithm._counters["current_env_task"]
+        current_task = algorithm._counters["current_maxMF_Elements"]
 
         # If episode return is consistently `args.upgrade_task_threshold`, we switch
         # to a more difficult task (if possible). If we already mastered the most
         # difficult task, we publish our victory in the result dict.
         result["task_solved"] = 0.0
         current_return = result[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]
-        if current_return > args.upgrade_task_threshold:
-            if current_task < 2:
+        if current_return > 0.0:
+            if current_task < 11:
                 new_task = current_task + 1
                 print(
-                    f"Switching task/map on all EnvRunners to #{new_task} (0=easiest, "
-                    f"2=hardest), b/c R={current_return} on current task."
+                    f"Switching maxMF_Elements on all EnvRunners to #{new_task} (0=easiest, "
+                    f"11=hardest), b/c R={current_return} on current task."
                 )
                 algorithm.env_runner_group.foreach_env_runner(
                     func=partial(_remote_fn, new_task=new_task)
                 )
-                algorithm._counters["current_env_task"] = new_task
+                algorithm._counters["current_maxMF_Elements"] = new_task
 
             # Hardest task was solved (1.0) -> report this in the results dict.
-            elif current_return == 1.0:
+            elif current_return > 0.8:
                 result["task_solved"] = 1.0
-        # Emergency brake: If return is 0.0 AND we are already at a harder task (1 or
+        # Emergency brake: If return is very small AND we are already at a harder task (1 or
         # 2), we go back to task=0.
-        elif current_return == 0.0 and current_task > 0:
+        elif current_return < -1.0 and current_task > 3:
             print(
-                "Emergency brake: Our policy seemed to have collapsed -> Setting task "
-                "back to 0."
+                "Emergency brake: Our policy seemed to have collapsed -> Setting maxMF_Elements "
+                "back to 3."
             )
             algorithm.env_runner_group.foreach_env_runner(
-                func=partial(_remote_fn, new_task=0)
+                func=partial(_remote_fn, new_task=3)
             )
-            algorithm._counters["current_env_task"] = 0
+            algorithm._counters["current_maxMF_Elements"] = 0
