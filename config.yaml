@@ -56,10 +56,9 @@ env_config:
   algo: SAC  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
-  Loglevel: 0
   width: 128 #84
   height: 128 #84
-  maxMF_Elements: 0
+  maxMF_Elements: null
   outputScale: 2 #10
   render_mode: null
   factoryconfig: SMALLSQUARE
@@ -71,24 +70,14 @@ env_config:
   createMachines: true
   logLevel: 0
   coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
+  curiculum_learning: true #if true increareses the maxMF_Elements based on performance to maxMF_Elements or base config value
+
+
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
-    inputfile: '' #Gets populated on runtime
-    obs_type: image
-    Loglevel: 0
-    width: 128 #84
-    height: 128 #84
     maxMF_Elements: null
     outputScale: 3 #10
-    render_mode: rgb_array
-    factoryconfig: SMALLSQUARE
-    prefix: null #Gets populated on runtime
     evaluation: true
     randomSeed: 42
-    reward_function: 2
-    actionRounds: 1
-    createMachines: false
-    logLevel: 0
-    coordinateChannels: true
