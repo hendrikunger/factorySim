@@ -8,7 +8,6 @@ from dataclasses import asdict
 import numpy as np
 import yaml
 
-from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
 
 import ray
 from ray.tune import Tuner
@@ -31,7 +30,7 @@ from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
 from ray.tune.registry import register_env
 from helpers.cli import get_args
-from helpers.pipeline import ZeroOneActionWrapper, NormalizeObservations
+from helpers.pipeline import NormalizeObservations, env_creator
 from helpers.callbacks import EvalCallback, AlgorithFix
 
 
@@ -58,13 +57,6 @@ os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 
 
 
-def env_creator(env_config):
-    if env_config['algo'] == "Dreamer":
-        env = ZeroOneActionWrapper(FactorySimEnv(env_config=env_config))
-    else:
-        env = FactorySimEnv(env_config=env_config)
-
-    return  env # return an env instance
 
 register_env("FactorySimEnv", env_creator)
 
@@ -74,8 +66,6 @@ register_env("FactorySimEnv", env_creator)
 def _env_to_module(env=None, spaces=None, device=None) -> SingleAgentObservationPreprocessor:
 # Create the env-to-module connector pipeline.
     return NormalizeObservations()
-
-
 
 
 

@@ -5,6 +5,16 @@ import gymnasium as gym
 from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
 from ray.rllib.utils.typing import AgentID, EnvType, EpisodeType, PolicyID
 from ray.rllib.env.single_agent_episode import SingleAgentEpisode
+from env.factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
+
+#Creator----------------------------------------------------------------------------------------------------------------------------------------------------------
+def env_creator(env_config):
+    if env_config['algo'] == "Dreamer":
+        env = ZeroOneActionWrapper(FactorySimEnv(env_config=env_config))
+    else:
+        env = FactorySimEnv(env_config=env_config)
+
+    return  env # return an env instance
 
 
 #Env----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -25,8 +35,6 @@ class ZeroOneActionWrapper(gym.ActionWrapper):
         return (obs.astype(np.float32) / 255.0)
     
 #Preprocessor----------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 
 class NormalizeObservations(SingleAgentObservationPreprocessor):
     def preprocess(self, observation: Dict[AgentID, Dict[str, np.ndarray]], episode: SingleAgentEpisode) -> Dict[AgentID, Dict[str, np.ndarray]]:
