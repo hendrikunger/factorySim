@@ -155,7 +155,7 @@ class factorySimLive(mglw.WindowConfig):
         #MQTT Connection
         self.mqtt_Q = queue.Queue(maxsize=100)
         if self.is_online:
-            self.mqtt_client = mqtt.Client(client_id="factorySimLive")
+            self.mqtt_client = mqtt.Client(client_id="factorySimLive", callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
             self.mqtt_client.on_connect = self.on_connect
             self.mqtt_client.on_disconnect = self.on_disconnect
             self.mqtt_client.on_message = self.on_message
@@ -655,12 +655,12 @@ class factorySimLive(mglw.WindowConfig):
 
 # MQTT Stuff ----------------------------------------------------------------
 
-    def on_connect(self, client, userdata, flags, rc):
-        print("Connected with result code "+str(rc))
+    def on_connect(self, client, userdata, flags, reason_code, properties):
+        print("Connected with result code "+str(reason_code))
         client.subscribe("EDF/BP/#")
 
-    def on_disconnect(self, client, userdata, rc):
-        print("Disconnected with result code "+str(rc))
+    def on_disconnect(self,client, userdata, disconnect_flags, reason_code, properties):
+        print("Disconnected with result code "+str(reason_code))
 
     def on_message(self, client, userdata, msg):
         try:

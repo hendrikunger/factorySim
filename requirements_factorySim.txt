@@ -19,3 +19,6 @@ pyyaml
 #supabase
 ale_py
 opencv-python
+moderngl
+moderngl-window
+paho-mqtt
