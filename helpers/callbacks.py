@@ -222,6 +222,6 @@ class CurriculumCallback(RLlibCallback):
                 "back to 3."
             )
             algorithm.env_runner_group.foreach_env_runner(
-                func=partial(_remote_fn, new_task=3)
+                func=partial(_remote_fn, new_maxMF_Elements=3)
             )
             algorithm._counters["current_maxMF_Elements"] = 0
