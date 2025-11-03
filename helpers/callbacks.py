@@ -207,7 +207,7 @@ class CurriculumCallback(RLlibCallback):
                     f"11=hardest), b/c R={current_return} on current task."
                 )
                 algorithm.env_runner_group.foreach_env_runner(
-                    func=partial(_remote_fn, new_task=new_task)
+                    func=partial(_remote_fn, new_maxMF_Elements=new_task)
                 )
                 algorithm._counters["current_maxMF_Elements"] = new_task
 
