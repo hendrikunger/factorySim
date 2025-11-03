@@ -199,7 +199,7 @@ class CurriculumCallback(RLlibCallback):
         # difficult task, we publish our victory in the result dict.
         result["task_solved"] = 0.0
         current_return = result[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]
-        if current_return > 0.0:
+        if current_return > 0.7:
             if current_task < 11:
                 new_task = current_task + 1
                 print(
