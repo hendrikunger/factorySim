@@ -368,7 +368,7 @@ def run():
 
     algo_config.environment("FactorySimEnv", env_config=f_config['env_config'], render_env=False, disable_env_checking=True)
 
-    if f_config['env_config']['curriculum_learning']:
+    if f_config['env_config'].get('curriculum_learning', False):
         algo_config.callbacks(callbacks_class=[EvalCallback, AlgorithFix, CurriculumCallback])
     else:
         algo_config.callbacks(callbacks_class=[EvalCallback, AlgorithFix])
