@@ -102,7 +102,7 @@ class factorySimLive(mglw.WindowConfig):
     dpiScaler = 1
     is_online = check_internet_conn()
     EVALUATION = False
-
+    GRIDSNAP = 1000.0  #in mm
       
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -159,7 +159,7 @@ class factorySimLive(mglw.WindowConfig):
             self.mqtt_client.on_connect = self.on_connect
             self.mqtt_client.on_disconnect = self.on_disconnect
             self.mqtt_client.on_message = self.on_message
-            self.mqtt_client.connect(self.mqtt_broker, 1883)
+            self.mqtt_client.connect_async(self.mqtt_broker, 1883)
             self.mqtt_client.loop_start()
         
         #Agent 
@@ -224,8 +224,7 @@ class factorySimLive(mglw.WindowConfig):
 
     def on_key_event(self, key, action, modifiers):
         keys = self.wnd.keys
-        # 65453  Num Minus
-        # 65451  Num Plus
+
         # Key presses
         if action == keys.ACTION_PRESS:
             #Change reward mode from 1-3
@@ -306,7 +305,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.activeModes[Modes.DRAWING] = DrawingModes.NONE
                 self.wnd.exit_key = keys.ESCAPE
             # Del to delete
-            if key == keys.BACKSPACE and self.selected is not None and not self.is_calculating:
+            if key == keys.DELETE and self.selected is not None and not self.is_calculating:
                 self.F_delete_item(self.selected)
                 self.selected = None
 
@@ -324,16 +323,50 @@ class factorySimLive(mglw.WindowConfig):
         y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
+#
+    def snap_to_grid(self, value: float) -> float:
+        return round(value / self.GRIDSNAP) * self.GRIDSNAP
+    
+    def snap_to_grid_triangular(self, xValue: float, yValue: float) -> float:
+        # First snap y to the regular vertical grid
+        snapped_y = round(yValue / self.GRIDSNAP) * self.GRIDSNAP
+        # Determine if this is an "even" or "odd" row
+        row_index = round(snapped_y / self.GRIDSNAP)
+        # For odd rows, shift x by half a unit
+        if row_index % 2 == 1:
+            x_offset = self.GRIDSNAP / 2
+        else:
+            x_offset = 0
+        # Apply the x offset before snapping x
+        snapped_x = round((xValue - x_offset) / self.GRIDSNAP) * self.GRIDSNAP + x_offset
+        return snapped_x, snapped_y
+
+
+
     def on_mouse_drag_event(self, x, y, dx, dy):
         x *= self.dpiScaler
         y *= self.dpiScaler
         self.cursorPosition = (x  + self.env.factory.DRAWINGORIGIN[0] * self.currentScale, y + self.env.factory.DRAWINGORIGIN[1] * self.currentScale)
 
         if self.wnd.mouse_states.left == True and self.selected is not None and self.activeModes[Modes.DRAWING] == DrawingModes.NONE: # selected can be `0` so `is not None` is required
+
+            xValue = ((x / self.currentScale) + self.env.factory.DRAWINGORIGIN[0]) + self.selected_offset_x
+            yValue = ((y / self.currentScale) + self.env.factory.DRAWINGORIGIN[1]) + self.selected_offset_y
+
+            #Grid Snap with Shift
+            if self.wnd.is_key_pressed(self.wnd.keys.LEFT_SHIFT) or self.wnd.is_key_pressed(self.wnd.keys.RIGHT_SHIFT):
+                xValue = self.snap_to_grid(xValue)
+                yValue = self.snap_to_grid(yValue)
+
+            #Triangular Grid Snap with Ctrl
+            elif self.wnd.is_key_pressed(self.wnd.keys.LEFT_CTRL) or self.wnd.is_key_pressed(65508): #right CTRL
+                xValue, yValue = self.snap_to_grid_triangular(xValue , yValue )
+
             # move object  
-            self.env.factory.machine_dict[self.selected].translate_Item(((x / self.currentScale) + self.env.factory.DRAWINGORIGIN[0]) + self.selected_offset_x,
-                ((y / self.currentScale) + self.env.factory.DRAWINGORIGIN[1]) + self.selected_offset_y)
+            self.env.factory.machine_dict[self.selected].translate_Item(xValue, yValue)
             self.update_needed()
+
+
             
 
     def on_mouse_press_event(self, x, y, button):
@@ -380,12 +413,6 @@ class factorySimLive(mglw.WindowConfig):
                         self.env.factory.addMaterialFlow(self.selected, key, np.random.randint(1,100))
                         self.update_needed()
                         break
-
-        #Shift Click to delete Objects
-        if button == 1 and self.wnd.modifiers.shift and self.selected is not None :
-            self.F_delete_item(self.selected)
-            self.selected = None
-
 
                 
 
@@ -439,7 +466,7 @@ class factorySimLive(mglw.WindowConfig):
                 case 3:
                     draw_text(self.cctx,(f"Easteregg"), (0.7, 0.0, 0.0, 1.0), (self.window_size[0]/2,self.window_size[1]/2), factoryCoordinates=False)
         else:
-            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=False)
+            drawFactory(self.cctx, self.env.factory, drawColors=True, highlight=self.selected, drawNames=True, darkmode=self.is_darkmode, drawWalls=True, drawOrigin=True)
             if self.activeModes[Modes.MODE9]: 
                 draw_poly(self.cctx, self.env.factory.walkableArea, (0.9, 0.0, 0.0, 0.5), drawHoles=True)
             if self.activeModes[Modes.MODE7]: 
