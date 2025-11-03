@@ -72,6 +72,7 @@ env_config:
   createMachines: true
   logLevel: 0
   coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
+  curriculum_learning: true # If true, curriculum learning is enabled.
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
