@@ -656,6 +656,10 @@ class FactoryPath():
         """
         Calculates the routes for the given dataframe of machines and returns a list of routes and distances
         """   
+        if len(dfMF) == 0:
+            dfMF['routes'] = []
+            dfMF['trueDistances'] = []
+            return dfMF
         dfMF['routes'] = dfMF.apply(lambda x:nx.shortest_path(self.reducedPathGraph, source=x.source, target=x.target, weight='weight', method='dijkstra'), axis=1)
         dfMF['trueDistances'] = dfMF.apply(lambda x:nx.path_weight(self.reducedPathGraph, x.routes, weight='weight'), axis=1)
 
