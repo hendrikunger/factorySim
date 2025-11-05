@@ -193,6 +193,7 @@ class CurriculumCallback(RLlibCallback):
         **kwargs,
     ) -> None:
         current_task = algorithm._counters["current_maxMF_Elements"]
+        new_task = None
 
         # If episode return is consistently `args.upgrade_task_threshold`, we switch
         # to a more difficult task (if possible). If we already mastered the most
@@ -200,16 +201,12 @@ class CurriculumCallback(RLlibCallback):
         result["task_solved"] = 0.0
         current_return = result[ENV_RUNNER_RESULTS][EPISODE_RETURN_MEAN]
         if current_return > 0.3:
-            if current_task < 11:
+            if current_task < 12:
                 new_task = current_task + 1
                 print(
-                    f"Switching maxMF_Elements on all EnvRunners to #{new_task} (0=easiest, "
-                    f"11=hardest), b/c R={current_return} on current task."
+                    f"Switching maxMF_Elements on all EnvRunners to #{new_task} (3=easiest, "
+                    f"12=hardest), b/c R={current_return} on current task."
                 )
-                algorithm.env_runner_group.foreach_env_runner(
-                    func=partial(_remote_fn, new_maxMF_Elements=new_task)
-                )
-                algorithm._counters["current_maxMF_Elements"] = new_task
 
             # Hardest task was solved (1.0) -> report this in the results dict.
             elif current_return > 0.8:
@@ -221,7 +218,10 @@ class CurriculumCallback(RLlibCallback):
                 "Emergency brake: Our policy seemed to have collapsed -> Setting maxMF_Elements "
                 "back to 3."
             )
+            new_task = 3
+            
+        if new_task:
             algorithm.env_runner_group.foreach_env_runner(
-                func=partial(_remote_fn, new_maxMF_Elements=3)
-            )
-            algorithm._counters["current_maxMF_Elements"] = 0
+                    func=partial(_remote_fn, new_maxMF_Elements=new_task)
+                )
+            algorithm._counters["current_maxMF_Elements"] = new_task
