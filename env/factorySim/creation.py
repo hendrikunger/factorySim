@@ -288,6 +288,8 @@ class FactoryCreator():
         #Replace Machine Names in Material flow (From Sketchup Import) with machine dict key
         machine_dict = {machine.name: key for key, machine in self.machine_dict.items()}
         self.dfMF[['source','target']] = self.dfMF[['source','target']].replace(machine_dict)
+        #Drop all rows that have source or target not in machine dict
+        self.dfMF = self.dfMF[self.dfMF['source'].isin(machine_dict.values()) & self.dfMF['target'].isin(machine_dict.values())].reset_index(drop=True)
         #set initial values for costs
         self.dfMF['costs'] = 0
         self.dfMF['trueCosts'] = 0  # using the true distances
