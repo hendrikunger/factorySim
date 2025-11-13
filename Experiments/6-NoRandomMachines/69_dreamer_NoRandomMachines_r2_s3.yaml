@@ -1,15 +1,17 @@
+
 project: factorySim_TRAIN
-group: testruns
-notes: "" 
+group:  Dreamer
+notes: "NoRandomMachines"  
+tags: ["exp6", "v1", "r2", "s3"]
 
-subdir: ["Input", "1"] # Sets the input directoy for ifc files starting from the project root
+subdir: ["Evaluation"]
 
-num_workers: 2  # parallelism  #40 on ray 
+num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
-num_gpus: 2
-num_learners: 2
+num_gpus: 1
+num_learners: 1
 
 # Whether - upon a worker failure - RLlib will try to recreate the lost worker as
 # an identical copy of the failed one. The new worker will only differ from the
@@ -24,8 +26,8 @@ train_batch_size_per_learner:  1024 #4096
 mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 100
-training_iteration: 10000 # Number of training iterations to run.
+evaluation_interval: 5
+training_iteration: 300 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -54,12 +56,13 @@ vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensi
 
 
 env_config:
-  algo: SAC  #APPO, PPO, Dreamer or SAC
+  algo: Dreamer  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
+  Loglevel: 0
   width: 128 #84
   height: 128 #84
-  maxMF_Elements: 0
+  maxMF_Elements: 3
   outputScale: 2 #10
   render_mode: null
   factoryconfig: SMALLSQUARE
@@ -71,13 +74,13 @@ env_config:
   createMachines: true
   logLevel: 0
   coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
-  curiculum_learning: true #if true increareses the maxMF_Elements based on performance to maxMF_Elements or base config value
-
-
+  curriculum_learning: true # If true, curriculum learning is enabled.
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
     outputScale: 3 #10
+    render_mode: rgb_array
     evaluation: true
     randomSeed: 42
+    createMachines: false
