@@ -23,7 +23,7 @@ def get_args():
     parser.add_argument(
         "-r", "--resume",
         action="store_true",
-        help="Run short tests"
+        help="Resume a running experiment"
     )
 
     return parser.parse_args()

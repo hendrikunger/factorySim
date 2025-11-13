@@ -2,7 +2,7 @@ project: factorySim_TRAIN
 group: testruns
 notes: "" 
 
-subdir: [Input, 2]
+subdir: ["Input", "2"]
 
 num_workers: 2  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
