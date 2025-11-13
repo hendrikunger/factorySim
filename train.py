@@ -82,7 +82,6 @@ def run():
         expFiles = [p for p in exp_dir.rglob("*") if p.suffix in {".yaml", ".yml"}]
         expFiles.sort()
         print(f"Found {len(expFiles)} experiment config files")
-        print(expFiles)
         possible_configs = [f for f in expFiles if f.name.startswith(f"{args.configID}_")]
         if len(possible_configs) == 1:
             config_path = possible_configs[0]
