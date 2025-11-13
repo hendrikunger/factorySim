@@ -4,6 +4,8 @@ group:  SAC
 notes: "" 
 tags: ["exp1", "v1", "r2", "s3"]
 
+subdir: ["Input", "1"]
+
 num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
