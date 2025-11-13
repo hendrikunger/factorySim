@@ -90,18 +90,18 @@ def run():
             raise ValueError(f"Could not find unique config file for ID {args.configID}, found: {possible_configs}")
     else:
         config_path = "config.yaml"
-    print("--------------------------------------------------------------------------------------------------------")
-    print(f"Using config file: {config_path}")
-    print("--------------------------------------------------------------------------------------------------------")
     
     with open(config_path, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
 
     ifcpath= os.path.join(basepath, *f_config.get('subdir', ["Input", "1"]))
-    print(f"Using input file path: {ifcpath}")
     f_config['env_config']['inputfile'] = ifcpath
 
+    print("--------------------------------------------------------------------------------------------------------")
+    print(f"Using config file: {config_path}")
+    print(f"Using input file path: {ifcpath}")
+    print("--------------------------------------------------------------------------------------------------------")
 
 
 

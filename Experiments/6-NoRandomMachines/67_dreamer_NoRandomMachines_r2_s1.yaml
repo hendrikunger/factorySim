@@ -4,7 +4,7 @@ group:  Dreamer
 notes: "NoRandomMachines" 
 tags: ["exp6", "v1", "r2", "s1"]
 
-subdir: ["Evaluation"]
+subdir: ["Input","3"]
 
 num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
@@ -71,7 +71,7 @@ env_config:
   reward_function: 2
   actionRounds: 1 # Number of action rounds per machine during evaluation
   randomSeed: null
-  createMachines: true
+  createMachines: false
   logLevel: 0
   coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
   curriculum_learning: true # If true, curriculum learning is enabled.
