@@ -43,7 +43,7 @@ filename = "Basic"
 #filename = "LShape"
 
 #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
-ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1")
+basepath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 
 #Import Custom Models
 #from ray.rllib.models import ModelCatalog
@@ -97,7 +97,9 @@ def run():
     with open(config_path, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
 
-    #f_config['env'] = FactorySimEnv
+
+    ifcpath= os.path.join(basepath, *f_config.get('subdir', ["Input", "1"]))
+    print(f"Using input file path: {ifcpath}")
     f_config['env_config']['inputfile'] = ifcpath
 
 
@@ -394,7 +396,7 @@ def run():
     
 
     eval_config = f_config['evaluation_config']["env_config"]
-    eval_config['inputfile'] = ifcpath
+
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation") 
 
