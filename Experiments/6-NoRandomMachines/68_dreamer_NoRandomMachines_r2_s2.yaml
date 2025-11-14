@@ -82,5 +82,5 @@ evaluation_config:
     outputScale: 3 #10
     render_mode: rgb_array
     evaluation: true
-    randomSeed: 42
+    randomSeed: 84
     createMachines: false
