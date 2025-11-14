@@ -334,6 +334,7 @@ def run():
                         "storage_unit": "episodes",
                     },
                     num_steps_sampled_before_learning_starts=10000,
+                    store_buffer_in_checkpoints=True,
             )
             
             model_config = DefaultModelConfig(
