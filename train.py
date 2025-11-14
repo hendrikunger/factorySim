@@ -331,7 +331,6 @@ def run():
                         "capacity": 65536,
                         "alpha": 0.6,
                         "beta": 0.4,
-                        "storage_unit": "episodes",
                     },
                     num_steps_sampled_before_learning_starts=10000,
                     store_buffer_in_checkpoints=True,
