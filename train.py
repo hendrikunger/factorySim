@@ -313,7 +313,7 @@ def run():
         case "SAC":
             algo_config = SACConfig()
 
-
+    
             algo_config.training(
                     initial_alpha=1.001,
                     # lr=0.0006 is very high, w/ 4 GPUs -> 0.0012
@@ -336,6 +336,16 @@ def run():
                     num_steps_sampled_before_learning_starts=10000,
                     store_buffer_in_checkpoints=True,
             )
+
+            if args.hyperopt:
+                algo_config.training(
+                    actor_lr=2e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                    critic_lr=8e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                    alpha_lr=9e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                    tau=0.005,
+                    gamma=0.99,
+                    train_batch_size_per_learner=256,
+                    )
             
             model_config = DefaultModelConfig(
                                             conv_filters= [# [ num_filters, kernel, stride]
@@ -442,7 +452,7 @@ def run():
             metric='env_runners/episode_return_mean',
             mode='max',
             max_t=20000,
-            grace_period=5000,
+            grace_period=4000,
             reduction_factor=3,
             brackets=1,
         )
