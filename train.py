@@ -29,6 +29,7 @@ from ray.rllib.core import DEFAULT_MODULE_ID
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
 from ray.tune.registry import register_env
+from ray.tune.schedulers import ASHAScheduler
 from helpers.cli import get_args
 from helpers.pipeline import NormalizeObservations, env_creator
 from helpers.callbacks import EvalCallback, AlgorithFix, CurriculumCallback
@@ -435,12 +436,22 @@ def run():
                         )
 
 
+    if args.hyperopt:
+        asha_scheduler = ASHAScheduler(
+            time_attr='step',
+            metric='env_runners/episode_return_mean',
+            mode='max',
+            max_t=20000,
+            grace_period=5000,
+            reduction_factor=3,
+            brackets=1,
+        )
+        tune_config = TuneConfig(scheduler=asha_scheduler)
+    else:
 
-    tune_config = TuneConfig(
-        num_samples=1,
-        #metric="evaluation/episode_return_mean",
-        #mode="max",
-    )
+        tune_config = TuneConfig(
+            num_samples=1,
+        )
 
     if args.resume:
         path = Path.joinpath(Path.home(), "ray_results/bert/")

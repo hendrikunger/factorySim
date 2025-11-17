@@ -25,5 +25,10 @@ def get_args():
         action="store_true",
         help="Resume a running experiment"
     )
+    parser.add_argument(
+        "--hyperopt",
+        action="store_true",
+        help="Run hyperparameter optimization"
+    )
 
     return parser.parse_args()

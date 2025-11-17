@@ -1,10 +1,12 @@
+
 project: factorySim_TRAIN
-group: testruns
-notes: "" 
+group:  Dreamer
+notes: "Hyperparameter optimization" 
+tags: ["exp7", "v1", "r2", "s1"]
 
-subdir: ["Input", "1"] # Sets the input directoy for ifc files starting from the project root
+subdir: ["Input", "1"]
 
-num_workers: 30  # parallelism  #40 on ray 
+num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
@@ -24,8 +26,8 @@ train_batch_size_per_learner:  1024 #4096
 mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 100
-training_iteration: 700 # Number of training iterations to run.
+evaluation_interval: 50
+training_iteration: 1000 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -54,12 +56,13 @@ vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensi
 
 
 env_config:
-  algo: SAC  #APPO, PPO, Dreamer or SAC
+  algo: Dreamer  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
+  Loglevel: 0
   width: 128 #84
   height: 128 #84
-  maxMF_Elements: 0
+  maxMF_Elements: 3
   outputScale: 2 #10
   render_mode: null
   factoryconfig: SMALLSQUARE
@@ -70,15 +73,21 @@ env_config:
   randomSeed: null
   createMachines: true
   logLevel: 0
-  coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
-  curiculum_learning: false #if true increareses the maxMF_Elements based on performance to maxMF_Elements or base config value
-
-
+  coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
+  curriculum_learning: true # If true, curriculum learning is enabled.
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
+    inputfile: '' #Gets populated on runtime
+    obs_type: image
+    maxMF_Elements: null
     outputScale: 3 #10
+    render_mode: rgb_array
+    factoryconfig: SMALLSQUARE
+    prefix: null #Gets populated on runtime
     evaluation: true
     randomSeed: 42
-    render_mode: rgb_array
+    createMachines: false
+
+
