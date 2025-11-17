@@ -22,4 +22,3 @@ opencv-python
 moderngl
 moderngl-window
 paho-mqtt
-ax-platform
