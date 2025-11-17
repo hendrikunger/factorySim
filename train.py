@@ -30,6 +30,7 @@ from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAgentObservationPreprocessor
 from ray.tune.registry import register_env
 from ray.tune.schedulers import ASHAScheduler
+from ray import tune
 from helpers.cli import get_args
 from helpers.pipeline import NormalizeObservations, env_creator
 from helpers.callbacks import EvalCallback, AlgorithFix, CurriculumCallback
@@ -338,13 +339,14 @@ def run():
             )
 
             if args.hyperopt:
+                critic_lr= tune.loguniform(1e-5, 3e-3)
                 algo_config.training(
-                    actor_lr=2e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                    critic_lr=8e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                    alpha_lr=9e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                    tau=0.005,
-                    gamma=0.99,
-                    train_batch_size_per_learner=256,
+                    critic_lr=critic_lr,
+                    actor_lr=0.1 * critic_lr,
+                    alpha_lr=critic_lr,
+                    tau=tune.uniform(1e-3, 0.02),
+                    gamma=tune.uniform(0.95, 0.999),
+                    train_batch_size_per_learner=tune.choice([256, 512, 1024]),
                     )
             
             model_config = DefaultModelConfig(
