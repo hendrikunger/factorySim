@@ -26,8 +26,8 @@ train_batch_size_per_learner:  1024 #4096
 mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 400
-training_iteration: 20000 # Number of training iterations to run.
+evaluation_interval: 0
+training_iteration: 5000 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -81,18 +81,11 @@ evaluation_config:
   env_config:
     inputfile: '' #Gets populated on runtime
     obs_type: image
-    Loglevel: 0
-    width: 128 #84
-    height: 128 #84
     maxMF_Elements: null
     outputScale: 3 #10
     render_mode: rgb_array
-    factoryconfig: SMALLSQUARE
     prefix: null #Gets populated on runtime
     evaluation: true
     randomSeed: 42
     reward_function: 2
-    actionRounds: 1 # Number of action rounds per machine during evaluation
-    createMachines: false
-    logLevel: 0
-    coordinateChannels: false
+

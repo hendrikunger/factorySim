@@ -56,8 +56,7 @@ basepath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 NO_TUNE = False  
 
 os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
-
-
+os.environ["TUNE_DISABLE_STRICT_METRIC_CHECKING"] = "1"
 
 
 register_env("FactorySimEnv", env_creator)
@@ -339,11 +338,10 @@ def run():
             )
 
             if args.hyperopt:
-                critic_lr= tune.loguniform(1e-5, 3e-3)
                 algo_config.training(
-                    critic_lr=critic_lr,
-                    actor_lr=0.1 * critic_lr,
-                    alpha_lr=critic_lr,
+                    critic_lr=tune.loguniform(1e-5, 3e-3),
+                    actor_lr=tune.sample_from(lambda spec: spec.config["critic_lr"] * 0.1),
+                    alpha_lr=tune.sample_from(lambda spec: spec.config["critic_lr"]),
                     tau=tune.uniform(1e-3, 0.02),
                     gamma=tune.uniform(0.95, 0.999),
                     train_batch_size_per_learner=tune.choice([256, 512, 1024]),
@@ -368,7 +366,7 @@ def run():
             model_config = asdict(model_config)         
             model_config["twin_q"] = True,           
 
-            algo_config .rl_module(
+            algo_config.rl_module(
                 rl_module_spec=RLModuleSpec(
                     module_class=SafeSACTorchRLModule,   
                     catalog_class=VisionSACCatalog,      
@@ -449,16 +447,17 @@ def run():
 
 
     if args.hyperopt:
+
         asha_scheduler = ASHAScheduler(
             time_attr='step',
             metric='env_runners/episode_return_mean',
             mode='max',
-            max_t=20000,
-            grace_period=4000,
+            max_t=f_config.get("training_iteration", 2),
+            grace_period=100,
             reduction_factor=3,
             brackets=1,
         )
-        tune_config = TuneConfig(scheduler=asha_scheduler)
+        tune_config = TuneConfig(scheduler=asha_scheduler, max_concurrent_trials=3,num_samples=21,)
     else:
 
         tune_config = TuneConfig(
