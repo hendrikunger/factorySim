@@ -395,7 +395,7 @@ def run():
                         )
     algo_config.resources(num_cpus_for_main_process=1)
     algo_config.learners(num_learners=f_config['num_learners'],
-                         num_gpus_per_learner=0 if sys.platform == "darwin" else 1,
+                         num_gpus_per_learner=0 if sys.platform == "darwin" else f_config.get('num_gpus',1),
                          #num_aggregator_actors_per_learner=0,  #Does not work with curiosity
                          )
     algo_config.framework("torch",
@@ -457,7 +457,7 @@ def run():
             reduction_factor=3,
             brackets=1,
         )
-        tune_config = TuneConfig(scheduler=asha_scheduler, max_concurrent_trials=3, num_samples=30,)
+        tune_config = TuneConfig(scheduler=asha_scheduler, num_samples=40,)
     else:
 
         tune_config = TuneConfig(
