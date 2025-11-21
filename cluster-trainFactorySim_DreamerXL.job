@@ -1,15 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=factorySim
 #SBATCH --partition=clara,paula
-#SBATCH --nodelist=paula[01-12]
+#SBATCH --nodelist=clara[01,04-08]
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=32
 #SBATCH --gpus=1
-#SBATCH --mem-per-cpu=6GB
-#SBATCH --time=24:00:00
-#SBATCH --mail-type=BEGIN,END
-#SBATCH --array=71
-# array von 1  bis 36 und  gleichzeitg
+#SBATCH --mem-per-cpu=4GB
+#SBATCH --time=48:00:00
 
 module load CUDA/12.6.0
 
@@ -22,7 +19,7 @@ module load CUDA/12.6.0
 #export WANDB_DIR="/lscratch"
 #export WANDB_CACHE_DIR="/lscratch"
 
-apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid "$SLURM_ARRAY_TASK_ID"
+apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 71 --hyperopt
 
 
 #Paula cluster

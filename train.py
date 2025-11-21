@@ -294,7 +294,7 @@ def run():
             w = algo_config.world_model_lr
             c = algo_config.critic_lr
             algo_config.training(
-                model_size="L",
+                model_size="XL",
                 training_ratio=64, #512, #Should be lower for larger models e.g. 64 for XL  
                 batch_size_B= 16 * (f_config["num_gpus"] or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
@@ -339,12 +339,12 @@ def run():
 
             if args.hyperopt:
                 algo_config.training(
-                    critic_lr=tune.loguniform(1e-5, 3e-3),
+                    critic_lr=tune.loguniform(5e-4, 3e-3),
                     actor_lr=tune.sample_from(lambda spec: spec.config["critic_lr"] * 0.1),
                     alpha_lr=tune.sample_from(lambda spec: spec.config["critic_lr"]),
                     tau=tune.uniform(1e-3, 0.02),
                     gamma=tune.uniform(0.95, 0.999),
-                    train_batch_size_per_learner=tune.choice([256, 512, 1024]),
+                    train_batch_size_per_learner=f_config['train_batch_size_per_learner'],
                     )
             
             model_config = DefaultModelConfig(
@@ -453,11 +453,11 @@ def run():
             metric='env_runners/episode_return_mean',
             mode='max',
             max_t=f_config.get("training_iteration", 2),
-            grace_period=100,
+            grace_period=500,
             reduction_factor=3,
             brackets=1,
         )
-        tune_config = TuneConfig(scheduler=asha_scheduler, max_concurrent_trials=3,num_samples=21,)
+        tune_config = TuneConfig(scheduler=asha_scheduler, max_concurrent_trials=3, num_samples=30,)
     else:
 
         tune_config = TuneConfig(
