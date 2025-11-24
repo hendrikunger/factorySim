@@ -34,7 +34,7 @@ from ray import tune
 from helpers.cli import get_args
 from helpers.pipeline import NormalizeObservations, env_creator
 from helpers.callbacks import EvalCallback, AlgorithFix, CurriculumCallback
-
+from gymnasium import VectorizeMode 
 
 
 #filename = "Overlapp"
@@ -55,8 +55,8 @@ basepath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
 
 NO_TUNE = False  
 
-os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
-os.environ["TUNE_DISABLE_STRICT_METRIC_CHECKING"] = "1"
+os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "0"
+#os.environ["TUNE_DISABLE_STRICT_METRIC_CHECKING"] = "1"
 
 
 register_env("FactorySimEnv", env_creator)
@@ -340,8 +340,8 @@ def run():
             if args.hyperopt:
                 algo_config.training(
                     critic_lr=tune.loguniform(5e-4, 3e-3),
-                    actor_lr=tune.sample_from(lambda spec: spec.config["critic_lr"] * 0.1),
-                    alpha_lr=tune.sample_from(lambda spec: spec.config["critic_lr"]),
+                    actor_lr = tune.sample_from(lambda config: config["critic_lr"] * 0.1),
+                    alpha_lr = tune.sample_from(lambda config: config["critic_lr"]),
                     tau=tune.uniform(1e-3, 0.02),
                     gamma=tune.uniform(0.95, 0.999),
                     train_batch_size_per_learner=f_config['train_batch_size_per_learner'],
@@ -389,7 +389,7 @@ def run():
                         num_cpus_per_env_runner=1,
                         env_to_module_connector=_env_to_module,
                         num_gpus_per_env_runner=0,
-                        gym_env_vectorize_mode="SYNC",
+                        gym_env_vectorize_mode=VectorizeMode.SYNC,
                         create_local_env_runner=True,           
                         create_env_on_local_worker=True,       
                         )
@@ -449,7 +449,7 @@ def run():
     if args.hyperopt:
 
         asha_scheduler = ASHAScheduler(
-            time_attr='step',
+            time_attr='training_iteration',
             metric='env_runners/episode_return_mean',
             mode='max',
             max_t=f_config.get("training_iteration", 2),
