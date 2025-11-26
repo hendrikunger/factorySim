@@ -339,11 +339,11 @@ def run():
 
             if args.hyperopt:
                 algo_config.training(
-                    critic_lr=tune.loguniform(9e-4, 1.5e-3),
+                    critic_lr=tune.loguniform(9e-4, 1.3e-3),
                     actor_lr = tune.sample_from(lambda config: config["critic_lr"] * 0.1),
                     alpha_lr = tune.sample_from(lambda config: config["critic_lr"]),
-                    tau=tune.uniform(1e-3, 0.02),
-                    gamma=tune.uniform(0.95, 0.999),
+                    tau=tune.uniform(0.002, 0.008),
+                    gamma=tune.uniform(0.97, 0.995),
                     train_batch_size_per_learner=f_config['train_batch_size_per_learner'],
                     )
             
@@ -453,11 +453,11 @@ def run():
             metric='env_runners/episode_return_mean',
             mode='max',
             max_t=f_config.get("training_iteration", 2),
-            grace_period=500,
+            grace_period=2000,
             reduction_factor=3,
             brackets=1,
         )
-        tune_config = TuneConfig(scheduler=asha_scheduler, num_samples=50,)
+        tune_config = TuneConfig(scheduler=asha_scheduler, num_samples=40,)
     else:
 
         tune_config = TuneConfig(
