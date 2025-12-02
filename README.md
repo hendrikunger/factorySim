@@ -30,7 +30,7 @@ cd factorySim
 If you are not using docker you need to install dependecies using:
 ```sh
 apt-get update
-apt-get install build-essential ibcairo2-dev pkg-config python3-dev
+apt-get install build-essential libcairo2-dev pkg-config python3-dev
 pip install -r requirements_factorySim.txt
 ```
 Navigate to the factorySim/env directory
