@@ -45,7 +45,7 @@ filename = "Basic"
 #filename = "LShape"
 
 #ifcpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Input", "1", filename + ".ifc")
-basepath = os.path.join(os.path.dirname(os.path.realpath(__file__)))
+basepath = os.path.dirname(os.path.realpath(__file__))
 
 #Import Custom Models
 #from ray.rllib.models import ModelCatalog
@@ -109,7 +109,7 @@ def run():
     "env_vars": {"PYTHONWARNINGS": "ignore::UserWarning",
                  "NCCL_P2P_DISABLE":"1"      # Disable NCCL P2P communication on slurm cluster, because it is flaky
                  },
-    "working_dir": os.path.join(os.path.dirname(os.path.realpath(__file__))),
+    "working_dir": os.path.dirname(os.path.realpath(__file__)),
     "excludes": ["/.git",
                 "/.vscode",
                 "/wandb",
@@ -128,7 +128,7 @@ def run():
 
 
     if "SLURM_JOB_UID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
-        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env, include_dashboard=True, dashboard_host="127.0.0.1") 
+        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env, include_dashboard=True, dashboard_host="0.0.0.1") 
     else:
         #we are running on ray cluster
         runtime_env["py_modules"] = ["env/factorySim"]
@@ -318,13 +318,13 @@ def run():
                     initial_alpha=1.001,
                     # lr=0.0006 is very high, w/ 4 GPUs -> 0.0012
                     # Might want to lower it for better stability, but it does learn well.
-                    actor_lr=2e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                    critic_lr=8e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                    alpha_lr=9e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                    lr=None,
+                    actor_lr=1.1e-4 * (f_config["num_gpus"] or 1) ** 0.5,
+                    critic_lr=1.24e-3 * (f_config["num_gpus"] or 1) ** 0.5,
+                    alpha_lr=1.1e-3 * (f_config["num_gpus"] or 1) ** 0.5,
+                    gamma=0.986,
                     target_entropy="auto",
                     n_step=(1,5),  # 1?
-                    tau=0.005,
+                    tau=0.00252,
                     train_batch_size_per_learner=f_config['train_batch_size_per_learner'],
                     target_network_update_freq=1,
                     replay_buffer_config={
@@ -346,6 +346,12 @@ def run():
                     gamma=tune.uniform(0.97, 0.995),
                     train_batch_size_per_learner=f_config['train_batch_size_per_learner'],
                     )
+
+                    #critic_lr=1.1e-3,
+                    #actor_lr =1.1e-4 
+                    #alpha_lr = 1.1e-3,
+                    #tau=0.005,
+                    #gamma=0.985,
             
             model_config = DefaultModelConfig(
                                             conv_filters= [# [ num_filters, kernel, stride]

@@ -6,11 +6,11 @@ tags: ["exp7", "v1", "r2", "s1"]
 
 subdir: ["Input", "1"]
 
-num_workers: 20  # parallelism  #40 on ray 
+num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
 evaluation_num_env_runners: 0
-num_gpus: 0.5
+num_gpus: 1
 num_learners: 1
 
 # Whether - upon a worker failure - RLlib will try to recreate the lost worker as
@@ -26,8 +26,8 @@ train_batch_size_per_learner:  512 #4096
 mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 0
-training_iteration: 5000 # Number of training iterations to run.
+evaluation_interval: 200
+training_iteration: 10000 # Number of training iterations to run.
 
 ##PPO Config
 
