@@ -128,7 +128,7 @@ def run():
 
 
     if "SLURM_JOB_UID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
-        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env, include_dashboard=True, dashboard_host="0.0.0.1") 
+        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env, include_dashboard=True, dashboard_host="0.0.0.0") 
     else:
         #we are running on ray cluster
         runtime_env["py_modules"] = ["env/factorySim"]
@@ -303,6 +303,7 @@ def run():
                 world_model_lr=[[0, 0.4 * w], [8000, 0.4 * w], [10000, 3 * w]],
                 critic_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
                 actor_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
+                horizon_H=12, #for XL Model
             )
             # algo_config.env_runners(
             #     rollout_fragment_length = 128,  # 64 steps per env runner
@@ -318,13 +319,13 @@ def run():
                     initial_alpha=1.001,
                     # lr=0.0006 is very high, w/ 4 GPUs -> 0.0012
                     # Might want to lower it for better stability, but it does learn well.
-                    actor_lr=1.1e-4 * (f_config["num_gpus"] or 1) ** 0.5,
-                    critic_lr=1.24e-3 * (f_config["num_gpus"] or 1) ** 0.5,
-                    alpha_lr=1.1e-3 * (f_config["num_gpus"] or 1) ** 0.5,
-                    gamma=0.986,
+                    actor_lr=0.0002 * (f_config["num_gpus"] or 1) ** 0.5,
+                    critic_lr=0.0008 * (f_config["num_gpus"] or 1) ** 0.5,
+                    alpha_lr=0.0009 * (f_config["num_gpus"] or 1) ** 0.5,
+                    gamma=0.99,
                     target_entropy="auto",
                     n_step=(1,5),  # 1?
-                    tau=0.00252,
+                    tau=0.005,
                     train_batch_size_per_learner=f_config['train_batch_size_per_learner'],
                     target_network_update_freq=1,
                     replay_buffer_config={
