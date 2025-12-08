@@ -88,4 +88,5 @@ evaluation_config:
     evaluation: true
     randomSeed: 126
     reward_function: 2
+    createMachines: false
 

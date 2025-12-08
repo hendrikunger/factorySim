@@ -31,7 +31,7 @@ from ray.rllib.connectors.env_to_module.observation_preprocessor import SingleAg
 from ray.tune.registry import register_env
 from ray.tune.schedulers import ASHAScheduler
 from ray import tune
-from helpers.cli import get_args
+from helpers.cli import get_args_train
 from helpers.pipeline import NormalizeObservations, env_creator
 from helpers.callbacks import EvalCallback, AlgorithFix, CurriculumCallback
 from gymnasium import VectorizeMode 
@@ -75,7 +75,7 @@ def _env_to_module(env=None, spaces=None, device=None) -> SingleAgentObservation
 
 def run():
 
-    args = get_args()
+    args = get_args_train()
     if args.config:
         config_path = args.config
     elif args.configID != 0:

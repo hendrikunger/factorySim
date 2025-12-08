@@ -22,7 +22,7 @@ recreate_failed_workers: true
 restart_failed_sub_environments: true
 
 #Gneral Algorithm Config
-train_batch_size_per_learner:  512 #4096
+train_batch_size_per_learner:  1024 #4096
 mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
@@ -87,4 +87,4 @@ evaluation_config:
     evaluation: true
     randomSeed: 42
     reward_function: 2
-
+    createMachines: false
