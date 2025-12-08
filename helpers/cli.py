@@ -41,16 +41,17 @@ def get_args_inference():
         type=str, 
         help="Path to the configuration file"
     )
-    parser.add_argument(
-        "-cid", "--configID", 
-        type=int, 
-        default=0, 
-        help="ID of the configuration in /Experiments/ to use"
-    )
+
     parser.add_argument(
         "-r", "--rollout",
         action="store_true",
         help="Run rollout using trained policy"
+    )
+    parser.add_argument(
+        "-p","--problemID",
+        type=int,
+        default=2,
+        help="Which - in the list of evaluation environments to use. Default is 1.",
     )
 
     return parser.parse_args()

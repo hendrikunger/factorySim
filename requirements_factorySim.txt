@@ -22,3 +22,5 @@ opencv-python
 moderngl
 moderngl-window
 paho-mqtt
+deap
+supabase

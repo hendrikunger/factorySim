@@ -349,9 +349,9 @@ class FactoryCreator():
         data = {}
         for index, (key, machine) in enumerate(self.machine_dict.items()):
             bbox = self.bb.bounds
-            mappedXPos = np.interp(machine.origin[0], (0, bbox[2] - machine.width), (-1.0, 1.0))  
-            mappedYPos = np.interp(machine.origin[1], (0, bbox[3] - machine.height), (-1.0, 1.0))
-            mappedRot = np.interp(machine.rotation, (0, 2*np.pi), (-1.0, 1.0))
+            mappedXPos = np.interp(machine.origin[0], (0, bbox[2] - machine.width), (0.0, 1.0))  
+            mappedYPos = np.interp(machine.origin[1], (0, bbox[3] - machine.height), (0.0, 1.0))
+            mappedRot = np.interp(machine.rotation, (0, 2*np.pi), (0, 1.0))
 
             data[index] = {"key": key, "position": (mappedXPos,mappedYPos), "rotation": mappedRot}
 
@@ -377,7 +377,7 @@ class FactoryCreator():
 
         Args:
             positions (dict): dictory with keys as machine ids and values as dictionaries with keys "position"  and "rotation" (in radians)
-            each mapped to the intervall of (-1 to 1)
+            each mapped to the intervall of (0 to 1)
             e.g. {"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}
 
         """
@@ -396,8 +396,8 @@ class FactoryCreator():
             machine = self.machine_dict.get(machineIndex,None)
             if machine:
                 bbox = self.bb.bounds
-                mappedRot = np.interp(value["rotation"], (-1.0, 1.0), (0, 2*np.pi))
+                mappedRot = np.interp(value["rotation"], (0.0, 1.0), (0, 2*np.pi))
                 machine.rotate_Item(mappedRot)
-                mappedXPos = np.interp(value["position"][0], (-1.0, 1.0), (0, bbox[2] - machine.width))  
-                mappedYPos = np.interp(value["position"][1], (-1.0, 1.0), (0, bbox[3] - machine.height)) 
+                mappedXPos = np.interp(value["position"][0], (0.0, 1.0), (0, bbox[2] - machine.width))  
+                mappedYPos = np.interp(value["position"][1], (0.0, 1.0), (0, bbox[3] - machine.height)) 
                 machine.translate_Item(mappedXPos, mappedYPos)

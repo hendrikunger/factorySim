@@ -1,4 +1,9 @@
-from factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
+from pathlib import Path
+import yaml
+import ray
+import os
+import datetime
+
 from ray.rllib.core import (
     COMPONENT_ENV_RUNNER,
     COMPONENT_ENV_TO_MODULE_CONNECTOR,
@@ -14,44 +19,42 @@ from ray.rllib.algorithms.dreamerv3.dreamerv3 import DreamerV3Config
 from ray.rllib.connectors.env_to_module import EnvToModulePipeline
 from ray.rllib.connectors.module_to_env import ModuleToEnvPipeline
 from ray.rllib.env.single_agent_episode import SingleAgentEpisode
-import argparse
-import yaml
-import ray
-import os
 
 from gymnasium import spaces
 import numpy as np
 from tqdm import tqdm
-
 import wandb
-import datetime
 
+
+from factorySim.factorySimEnv import FactorySimEnv#, MultiFactorySimEnv
 from helpers.cli import get_args_inference
 
 
 args = get_args_inference()
 
+
 def inference():
  
-    #filename = "Long"
-    #filename = "Basic"
-    filename = "Simple"
-    #filename = "EDF"
-    #filename = "SimpleNoCollisions"
+
+    if args.config:
+        config_path = args.config
+    else:
+        config_path = "config.yaml"
+    
+    with open(config_path, 'r') as f:
+        f_config = yaml.load(f, Loader=yaml.FullLoader)
 
     basePath = os.path.dirname(os.path.realpath(__file__))
     checkpointPath = os.path.join(basePath, "artifacts", "checkpoint_SAC")
 
-    ifcPath = os.path.join(basePath, "Input", "2", f"{filename}.ifc")
-    #ifcPath = os.path.join(basePath, "Input", "2")
+    eval_dir = Path(os.path.join(basePath, "Evaluation"))
+    evalFiles = [x for x in eval_dir.iterdir() if x.is_file() and ".ifc" in x.name]
+    evalFiles.sort()
+    ifcpath = evalFiles[args.problemID % len(evalFiles)-1]
 
-    configpath = os.path.join(basePath,"config.yaml")
 
-
-
-    with open(configpath, 'r') as f:
-        f_config = yaml.load(f, Loader=yaml.FullLoader)
-    f_config['env_config']['inputfile'] = ifcPath
+    f_config['env_config']['inputfile'] = ifcpath
+    f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
     f_config['env_config']['Loglevel'] = 0
     #f_config['env_config']['render_mode'] = "rgb_array"
     f_config['env_config']['render_mode'] = "rgb_array"

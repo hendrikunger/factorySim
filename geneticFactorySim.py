@@ -61,10 +61,10 @@ class Worker:
             if generation is None:
                 self.env._render_frame()
             else:
-                output = os.path.join(self.outputPath, f"{self.starting_time}___{self.problem_id}___{generation}___{self.env.currentMappedReward}")
+                output = os.path.join(self.outputPath, f"{self.starting_time}___{self.problem_id}___{generation}___{self.env.currentReward}")
                 self.env._render_frame(output)
             self.env.render_mode = "rgb_array"
-        return  self.env.currentMappedReward, self.env.info
+        return  self.env.currentReward, self.env.info
 
 def worker_main(task_queue, result_queue, env_name, starting_time):
     worker = Worker(env_name, starting_time)
@@ -104,9 +104,9 @@ def mycxBlend(ind1, ind2, alpha):
         gamma = random.uniform(-alpha, 1. + alpha)
         
         x = (1. - gamma) * x1 + gamma * x2
-        ind1[i] = min(max(x, -1), 1)
+        ind1[i] = min(max(x, 0.0), 1.0)
         x = gamma * x1 + (1. - gamma) * x2
-        ind2[i] = min(max(x, -1), 1)
+        ind2[i] = min(max(x, 0.0), 1.0)
     
     return ind1, ind2
 
@@ -190,6 +190,9 @@ def main():
 
     with open('config.yaml', 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
+
+    f_config["env_config"].update(f_config.get("evaluation_config", {}).get("env_config", {}))
+
     
     rng = np.random.default_rng(f_config['evaluation_config']["env_config"]["randomSeed"])
 
@@ -197,8 +200,8 @@ def main():
     evalFiles = [x for x in eval_dir.iterdir() if x.is_file() and ".ifc" in x.name]
     evalFiles.sort()
     ifcpath = evalFiles[args.problemID % len(evalFiles)-1]
-    f_config['evaluation_config']["env_config"]["inputfile"] = ifcpath
-    f_config['evaluation_config']["env_config"]["reward_function"] = 3
+    f_config["env_config"]["inputfile"] = ifcpath
+    f_config["env_config"]["reward_function"] = 3
 
     ifc_file = ifcopenshell.open(ifcpath)
     ifc_elements = ifc_file.by_type("IFCBUILDINGELEMENTPROXY")
@@ -210,22 +213,16 @@ def main():
 
     toolbox = base.Toolbox()
 
-    # Attribute generator 
-    #                      define 'attr_bool' to be an attribute ('gene')
-    #                      which corresponds to integers sampled uniformly
-    #                      from the range [0,1] (i.e. 0 or 1 with equal
-    #                      probability)
     toolbox.register("attr_float", rng.uniform, 0, 1)
 
     # Structure initializers
     #                         define 'individual' to be an individual
-    #                         consisting of 100 'attr_bool' elements ('genes')
+    #                         consisting of 3*machines 'attr_float' elements ('genes')
     toolbox.register("individual", tools.initRepeat, creator.Individual, 
         toolbox.attr_float, 3*NUMMACHINES)
 
     # define the population to be a list of individuals
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
 
     # register the crossover operator
     #toolbox.register("mate", tools.cxUniform, indpb=0.5)
@@ -253,16 +250,13 @@ def main():
 
 
 
-
-
-
     task_queue = multiprocessing.Queue()
     result_queue = multiprocessing.Queue()
 
     # Create worker processes
     workers = []
     for i in range(args.num_workers):
-        config = f_config['evaluation_config']["env_config"].copy()
+        config = f_config["env_config"].copy()
         config["prefix"] = str(i)+"_"
         start_time = datetime.now().strftime("%Y-%m-%d___%H-%M-00")
         #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i

@@ -82,3 +82,6 @@ evaluation_config:
     evaluation: true
     randomSeed: 42
     render_mode: rgb_array
+    createMachines: false
+    coordinateChannels: false
+    curiculum_learning: false
