@@ -119,9 +119,9 @@ class FactorySim:
         if randomPos:
             for key in self.machine_dict:
                 self.update(key,
-                    xPosition = self.rng.uniform(low=-1, high=1),
-                    yPosition = self.rng.uniform(low=-1, high=1),
-                    rotation = self.rng.uniform(low=-1, high=1))
+                    xPosition = self.rng.uniform(low=0, high=1),
+                    yPosition = self.rng.uniform(low=0, high=1),
+                    rotation = self.rng.uniform(low=0, high=1))
         
         #Import Materialflow from Excel
         if path_to_materialflow_file and not createMachines:
