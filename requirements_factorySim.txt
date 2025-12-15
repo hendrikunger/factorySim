@@ -23,4 +23,4 @@ moderngl
 moderngl-window
 paho-mqtt
 deap
-supabase
+gspread
