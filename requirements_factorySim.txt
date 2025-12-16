@@ -15,9 +15,6 @@ tqdm
 pyyaml
 #timm
 #mathutils
-#deap
-#supabase
-ale_py
 opencv-python
 moderngl
 moderngl-window

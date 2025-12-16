@@ -11,9 +11,9 @@ from deap import base, creator, tools
 from deap.tools.support import HallOfFame
 from tqdm import tqdm
 import random
-from supabase import create_client, Client
+import gspread
+from datetime import datetime, UTC
 from pathlib import Path
-from datetime import datetime
 import ifcopenshell
 from pprint import pp
 
@@ -29,8 +29,8 @@ ETA = 0.9
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 12)))  #multiprocessing.cpu_count()
-parser.add_argument("--num-generations", type=int, default=500) 
-parser.add_argument("--num-population", type=int, default=300)
+parser.add_argument("--num-generations", type=int, default=5) 
+parser.add_argument("--num-population", type=int, default=30)
 parser.add_argument("--num-genmemory", type=int, default=0) 
 parser.add_argument(
     "--problemID",
@@ -267,7 +267,6 @@ def main():
     initialSolutionPath = str(ifcpath).replace(".ifc", "_pos.json")
     if os.path.exists(initialSolutionPath):
         print(f"Found initial solution {initialSolutionPath}. Loading...", flush=True)
-        import json
         with open(initialSolutionPath, 'r') as f:
             initialSolution = json.load(f)
         #append initial solution to population
@@ -426,25 +425,31 @@ def main():
     result = saveJson(hall, os.path.splitext(os.path.basename(ifcpath))[0])
     #Upload
     if check_internet_conn():
-        print("Uploading results...")
-        url: str = os.environ.get("SUPABASE_URL")
-        key: str = os.environ.get("SUPABASE_KEY")
-        supabase: Client = create_client(url, key)
-        
-        records = []
+        gc = gspread.service_account(filename="factorysimleaderboard-credentials.json")
+        sh = gc.open("FactorySimLeaderboard")
+        worksheet = sh.worksheet("Scores")
+    
+        rows = []
+
         for element in result.values():
-            if element["fitness"] < 0.8:
-                continue
+            # if element["fitness"] < 0.8:
+            #     continue
 
-            copy = element.copy()
-            element["config"] = copy
-            records.append(element)
+            current_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+
+            #individual = "{-0.46084216120770133,0.3565872627555882,0.681860800927812,-0.1016739185091246,-0.8318027985174798,-0.06422719666412458,-0.6937001301831331,-0.4746699732715368,-0.831276933866309,0.46670843485339625,-0.22257866099219215,0.408166271180178,-0.7636564071679158,0.1030291710306208,0.060298744742663765}"
+            #created_at,	problem_id,	fitness,	individual,	creator,	config
+            fullcopy = json.dumps(element.copy())
+            rows.append([current_time, element["problem_id"], element["fitness"], str(element["individual"]), element["creator"], fullcopy])
+        
 
         
-        if len(records) == 0:
+        if len(rows) == 0:
             print("No results to upload", flush=True)
         else:
-            data, count = supabase.table('highscore').insert(records).execute()
+            worksheet.append_rows(rows, value_input_option="USER_ENTERED")
+            print(f"Uploaded {len(rows)} results to leaderboard", flush=True)
+
     else:
         print("No connection to internet", flush=True)
 
