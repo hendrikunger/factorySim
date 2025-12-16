@@ -10,6 +10,7 @@ from ifcopenshell.api import run
 from factorySim.factoryObject import FactoryObject
 from factorySim.utils import prepare_for_export
 from factorySim.utils import write_ifc_class
+from factorySim.utils import map_factorySpace_to_unit, map_unit_to_factorySpace
 
 
 class FactoryCreator():
@@ -349,9 +350,10 @@ class FactoryCreator():
         data = {}
         for index, (key, machine) in enumerate(self.machine_dict.items()):
             bbox = self.bb.bounds
-            mappedXPos = np.interp(machine.origin[0], (0, bbox[2] - machine.width), (0.0, 1.0))  
-            mappedYPos = np.interp(machine.origin[1], (0, bbox[3] - machine.height), (0.0, 1.0))
-            mappedRot = np.interp(machine.rotation, (0, 2*np.pi), (0, 1.0))
+            mappedXPos = map_factorySpace_to_unit(machine.origin[0], 0, bbox[2] - machine.width)
+            mappedYPos = map_factorySpace_to_unit(machine.origin[1], 0, bbox[3] - machine.height)
+            mappedRot = map_factorySpace_to_unit(machine.rotation, 0, 2*np.pi)
+
 
             data[index] = {"key": key, "position": (mappedXPos,mappedYPos), "rotation": mappedRot}
 
@@ -396,8 +398,8 @@ class FactoryCreator():
             machine = self.machine_dict.get(machineIndex,None)
             if machine:
                 bbox = self.bb.bounds
-                mappedRot = np.interp(value["rotation"], (0.0, 1.0), (0, 2*np.pi))
+                mappedRot = map_unit_to_factorySpace(value["rotation"], 0, 2*np.pi)
                 machine.rotate_Item(mappedRot)
-                mappedXPos = np.interp(value["position"][0], (0.0, 1.0), (0, bbox[2] - machine.width))  
-                mappedYPos = np.interp(value["position"][1], (0.0, 1.0), (0, bbox[3] - machine.height)) 
+                mappedXPos = map_unit_to_factorySpace(value["position"][0], 0, bbox[2] - machine.width)
+                mappedYPos = map_unit_to_factorySpace(value["position"][1], 0, bbox[3] - machine.height)
                 machine.translate_Item(mappedXPos, mappedYPos)
