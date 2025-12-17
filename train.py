@@ -510,7 +510,8 @@ def run():
             tuner = Tuner(algo_config.algo_class, run_config=run_config, param_space=algo_config, tune_config=tune_config)
             results = tuner.fit()
 
-        print("Training finished")
+
+    print("Training finished")
 
 
     #Loading for Evaluation

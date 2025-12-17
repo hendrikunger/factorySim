@@ -70,7 +70,7 @@ env_config:
   randomSeed: null
   createMachines: true
   logLevel: 0
-  coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
+  coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
   curiculum_learning: false #if true increareses the maxMF_Elements based on performance to maxMF_Elements or base config value
 
 
