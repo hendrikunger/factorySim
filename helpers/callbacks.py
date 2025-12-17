@@ -1,5 +1,8 @@
 from typing import Optional,  Sequence
 from functools import partial
+from datetime import datetime, UTC
+import json
+from pprint import pprint
 import wandb
 from ray.rllib.callbacks.callbacks import RLlibCallback
 from ray.rllib.algorithms.algorithm import Algorithm
@@ -10,9 +13,8 @@ from ray.rllib.utils.metrics import (
 )
 from torch import Tensor
 from helpers.pipeline import env_creator
-from pprint import pprint
-
-
+from env.factorySim.utils import check_internet_conn
+import gspread
 
 
 
@@ -113,10 +115,7 @@ class EvalCallback(RLlibCallback):
 
         pprint(metrics_logger.stats)
         #Workaround for the fact that the metrics_logger does not respect the reduce= None setting when having nested keys
-
-
         data = {}
-
 
         myData = metrics_logger.peek(('evaluation','env_runners', 'myData'), compile=False)
         episodes = list(myData.keys())
@@ -130,6 +129,7 @@ class EvalCallback(RLlibCallback):
         #num_iterations = int(evaluation_metrics["env_runners"]['num_episodes_lifetime']/len(episodes))
         
         if data:
+            self.upload_google_sheets(data)
             #column_names = [key for key in next(iter(data.values()))]
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
@@ -151,6 +151,30 @@ class EvalCallback(RLlibCallback):
 
         del(myData)
         del(data)
+
+    def upload_google_sheets(self, info: dict):
+        #Upload
+        if check_internet_conn():
+            gc = gspread.service_account(filename="factorysimleaderboard-credentials.json")
+            sh = gc.open("FactorySimLeaderboard")
+            worksheet = sh.worksheet("Scores")
+        
+            rows = []
+
+            for element in info.values():
+                if element["fitness"] < 0.8:
+                    continue
+                current_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+                fullcopy = json.dumps(element.copy())
+                rows.append([current_time, element["problem_id"], element["fitness"], str(element["individual"]), element["creator"], fullcopy])
+            if len(rows) == 0:
+                print("No results to upload", flush=True)
+            else:
+                worksheet.append_rows(rows, value_input_option="USER_ENTERED")
+                print(f"Uploaded {len(rows)} results to leaderboard", flush=True)
+
+        else:
+            print("No connection to internet", flush=True)
 
 class AlgorithFix(RLlibCallback):
     def __init__(self, **kwargs):

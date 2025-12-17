@@ -90,6 +90,13 @@ def write_ifc_class(model, ifc_context, ifc_class, element_dict, factoryheight):
         elements.append(ifc_element)
     return elements
 
+
+def map_factorySpace_to_unit(x_mm, min_mm, max_mm):
+    return (x_mm - min_mm) / (max_mm - min_mm)
+
+def map_unit_to_factorySpace(x_unit, min_mm, max_mm):
+    return x_unit * (max_mm - min_mm) + min_mm
+
 def check_internet_conn():
 # initializing URL
     url = "https://www.google.de"
@@ -104,9 +111,3 @@ def check_internet_conn():
     except (requests.ConnectionError,
             requests.Timeout) as exception:
         return False
-
-def map_factorySpace_to_unit(x_mm, min_mm, max_mm):
-    return (x_mm - min_mm) / (max_mm - min_mm)
-
-def map_unit_to_factorySpace(x_unit, min_mm, max_mm):
-    return x_unit * (max_mm - min_mm) + min_mm
