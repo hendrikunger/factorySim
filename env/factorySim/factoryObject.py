@@ -57,6 +57,8 @@ class FactoryObject:
         self.poly = translate(self.poly, xShift, yShift)
         self.center = self.poly.representative_point()
 
+    def coordinateDict(self):
+        return {"position": [float(self.origin[0]), float(self.origin[1])], "rotation": float(self.rotation)}
 
     def __del__(self):
         del(self.poly)

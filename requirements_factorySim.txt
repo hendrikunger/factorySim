@@ -20,4 +20,5 @@ moderngl
 moderngl-window
 paho-mqtt
 deap
+lark
 gspread

@@ -10,7 +10,7 @@ from ray.rllib.utils.metrics import (
 )
 from torch import Tensor
 from helpers.pipeline import env_creator
-
+from pprint import pprint
 
 
 
@@ -111,7 +111,7 @@ class EvalCallback(RLlibCallback):
 
         evaluation_metrics["env_runners"].pop("myData", None)
 
-        #pprint.pp(metrics_logger.stats)
+        pprint(metrics_logger.stats)
         #Workaround for the fact that the metrics_logger does not respect the reduce= None setting when having nested keys
 
 

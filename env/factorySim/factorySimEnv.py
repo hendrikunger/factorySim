@@ -132,10 +132,7 @@ class FactorySimEnv(gym.Env):
             self.currentMachine = 0
 
         if self.evaluationMode:
-            self.info["Evaluation"] = True
-            self.info["Image"] = self.render()
-            self.info["Step"] = self.stepCount
-            self.info["evalEnvID"] = self.currentEvalEnv
+            self.addInfos()
      
         return (self._get_obs(), self.currentReward, self.terminated, False, self.info)
 
@@ -192,10 +189,8 @@ class FactorySimEnv(gym.Env):
         self.tryEvaluate()
 
         if self.evaluationMode:
-            self.info["Evaluation"] = True
-            self.info["Image"] = self.render()
-            self.info["Step"] = self.stepCount
-            self.info["evalEnvID"] = self.currentEvalEnv
+            self.addInfos()
+
 
         if (self.render_mode == "human" and options.get("RenderInitFrame", True)):
             self._render_frame() 
@@ -272,9 +267,6 @@ class FactorySimEnv(gym.Env):
         return image
 
 
-    
-      
-
     def close(self):
         if self.surface:
             self.surface.finish()
@@ -294,7 +286,18 @@ class FactorySimEnv(gym.Env):
             self.currentReward = -10
             self.info = {}
             self.terminated = True
-        
+
+    def getCoordinateDict(self):
+        return {mid: machine.coordinateDict() for mid, machine in self.factory.machine_dict.items()}
+    
+    def addInfos(self):
+        self.info["Evaluation"] = True
+        self.info["Image"] = self.render()
+        self.info["Step"] = self.stepCount
+        self.info["evalEnvID"] = self.currentEvalEnv
+        self.info["config"] = self.getCoordinateDict()
+
+
     def __str__():
         return "FactorySimEnv"
 
@@ -311,8 +314,7 @@ def main():
     
     import wandb
     import datetime
-    from gymnasium.utils.env_checker import check_env
-    from gymnasium import Space, error, logger, spaces
+    from pprint import pprint
 
 
 
@@ -351,8 +353,6 @@ def main():
     env = FactorySimEnv( env_config = f_config['env_config'])
 
 
-    #check_env(env)  # Check if the environment follows the Gymnasium API
-
     
     env.prefix="test"
     
@@ -375,6 +375,7 @@ def main():
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         print(f"Step {env.stepCount}, Reward: {reward}, Terminated: {terminated},")
+        pprint(info["config"])
         if env.render_mode == "rgb_array":   
             image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
         else:
