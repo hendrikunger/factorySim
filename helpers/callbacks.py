@@ -15,6 +15,7 @@ from torch import Tensor
 from helpers.pipeline import env_creator
 from env.factorySim.utils import check_internet_conn
 import gspread
+from env.factorySim.utils import map_factorySpace_to_unit
 
 
 
@@ -77,15 +78,14 @@ class EvalCallback(RLlibCallback):
             episode_id = str(int(infos[0].get('evalEnvID', 0)+1))
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
 
+            configSteps = {}
             for info in infos:
-                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=True)
+                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=False)
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
                         metrics_logger.log_value(("means",episode_id,key), value, reduce="mean", clear_on_reduce=True)
 
-              
-            
         
     def on_evaluate_start(
         self,
@@ -111,10 +111,18 @@ class EvalCallback(RLlibCallback):
 
         print(f"--------------------------------------------EVAL END--------------------------------------------")
 
-        evaluation_metrics["env_runners"].pop("myData", None)
-
-        pprint(metrics_logger.stats)
+        #myData = evaluation_metrics["env_runners"].pop("myData", None)
+        
         #Workaround for the fact that the metrics_logger does not respect the reduce= None setting when having nested keys
+        data = {}
+        
+        myData = metrics_logger.peek(('evaluation','env_runners'), compile=False)
+        
+
+        # data structure in episode:
+        # episode_id  -> metric_name -> values of all steps
+        # these values lists do not appear when print, but can only be accessed via metrics_logger.peek
+
         data = {}
 
         myData = metrics_logger.peek(('evaluation','env_runners', 'myData'), compile=False)
@@ -123,13 +131,26 @@ class EvalCallback(RLlibCallback):
         for index in episodes:
             data[index] = {}
             for key in column_names:
-                data[index][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key), compile=False)
+                if key == "config":
+                    #special handling for config dict
+                    config_dict = {}
+                    config_data = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key), compile=False)
+                    for machine_id, machine_data in config_data.items():
+                        config_dict[machine_id] = {}
+                        for m_key in machine_data.keys():
+                            config_dict[machine_id][m_key] = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key, machine_id, m_key), compile=False)
+                    data[index][key] = config_dict
+                else:
+                    data[index][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key), compile=False)
 
-        
-        #num_iterations = int(evaluation_metrics["env_runners"]['num_episodes_lifetime']/len(episodes))
-        
+
+        #pprint(data)
+
+
+
+
         if data:
-            self.upload_google_sheets(data)
+            #self.upload_google_sheets(data)
             #column_names = [key for key in next(iter(data.values()))]
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
@@ -140,14 +161,25 @@ class EvalCallback(RLlibCallback):
                     row_id = f"{episode_id}_{infos['Step'][step]}"
                     row.append(row_id)
                     for key, values in infos.items():
+                        
+                        if key == "config":
+                            value = {}
+                            for machine_id, machine_data in values.items():
+                                value[machine_id] = {}
+                                for m_key in machine_data.keys():
+                                    value[machine_id][m_key] = machine_data[m_key][step]
+                            fulljson ={"config":value, "creator": "FactorySimLive" }
+                            value = json.dumps(fulljson)
+                        else:
+                            value = values[step]
+                            if key == "Image":
+                                value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
 
-                        value = values[step]
-                        if key == "Image":
-                            value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
-   
+
+
                         row.append(value)
                     tbl.add_data(*row)
-            evaluation_metrics["table"] = tbl
+        evaluation_metrics["table"] = tbl
 
         del(myData)
         del(data)

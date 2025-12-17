@@ -25,7 +25,7 @@ mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
 evaluation_interval: 1
-training_iteration: 1 # Number of training iterations to run.
+training_iteration: 2 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -70,7 +70,7 @@ env_config:
   randomSeed: null
   createMachines: true
   logLevel: 0
-  coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
+  coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
   curiculum_learning: false #if true increareses the maxMF_Elements based on performance to maxMF_Elements or base config value
 
 
@@ -83,5 +83,4 @@ evaluation_config:
     randomSeed: 42
     render_mode: rgb_array
     createMachines: false
-    coordinateChannels: false
     curiculum_learning: false
