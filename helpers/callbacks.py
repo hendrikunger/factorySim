@@ -2,7 +2,9 @@ from typing import Optional,  Sequence
 from functools import partial
 from datetime import datetime, UTC
 import json
+import copy
 from pprint import pprint
+import os
 import wandb
 from ray.rllib.callbacks.callbacks import RLlibCallback
 from ray.rllib.algorithms.algorithm import Algorithm
@@ -16,6 +18,8 @@ from helpers.pipeline import env_creator
 from env.factorySim.utils import check_internet_conn
 import gspread
 from env.factorySim.utils import map_factorySpace_to_unit
+
+CREATOR = "Hendrik Unger"
 
 
 
@@ -112,18 +116,13 @@ class EvalCallback(RLlibCallback):
         print(f"--------------------------------------------EVAL END--------------------------------------------")
 
         #myData = evaluation_metrics["env_runners"].pop("myData", None)
-        
-        #Workaround for the fact that the metrics_logger does not respect the reduce= None setting when having nested keys
         data = {}
         
         myData = metrics_logger.peek(('evaluation','env_runners'), compile=False)
         
-
         # data structure in episode:
         # episode_id  -> metric_name -> values of all steps
         # these values lists do not appear when print, but can only be accessed via metrics_logger.peek
-
-        data = {}
 
         myData = metrics_logger.peek(('evaluation','env_runners', 'myData'), compile=False)
         episodes = list(myData.keys())
@@ -144,11 +143,9 @@ class EvalCallback(RLlibCallback):
                     data[index][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key), compile=False)
 
 
-        #pprint(data)
-
 
         if data:
-            #self.upload_google_sheets(data)
+            self.upload_google_sheets(data, algo=algorithm.__class__.__name__)
             column_names = [key for key in next(iter(data.values()))]
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
@@ -166,14 +163,12 @@ class EvalCallback(RLlibCallback):
                                 value[machine_id] = {}
                                 for m_key in machine_data.keys():
                                     value[machine_id][m_key] = machine_data[m_key][step]
-                            fulljson ={"config":value, "creator": "FactorySimLive" }
+                            fulljson = self.createUploadConfig(values, step, infos.get("Reward", -1.0)[step], episode_id, CREATOR)
                             value = json.dumps(fulljson)
                         else:
                             value = values[step]
                             if key == "Image":
                                 value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
-
-
 
                         row.append(value)
                     tbl.add_data(*row)
@@ -181,28 +176,55 @@ class EvalCallback(RLlibCallback):
 
         del(myData)
         del(data)
+ 
 
-    def upload_google_sheets(self, info: dict):
-        #Upload
+    def createUploadConfig(self, data: dict, currentStep: int, reward: float, problem_id: int, creator: str)-> dict:
+        #target structure:
+        #{"reward": 0.5029859136876851, "individual": [0.13721125779061238, 0.6535398256936433, 0.4487295072012506, 0.39291817669707396, 0.8750841990540823, 0.9755956458283996, 0.8728589587741787, 0.19230067903513304, 0.22079792120893404, 0.6560738790950633, 0.2890835816381917, 0.7347251307805799, 0.5664206508096447, 0.5509087684904029, 0.8285469248387858, 0.7105327717426778, 0.026577764997291697, 0.049459137146015686], "problem_id": "02", "creator": "Hendrik Unger", "config": {"0": {"position": [0.13721125779061238, 0.6535398256936433], "rotation": 0.4487295072012506}, "1": {"position": [0.39291817669707396, 0.8750841990540823], "rotation": 0.9755956458283996}, "2": {"position": [0.8728589587741787, 0.19230067903513304], "rotation": 0.22079792120893404}, "3": {"position": [0.6560738790950633, 0.2890835816381917], "rotation": 0.7347251307805799}, "4": {"position": [0.5664206508096447, 0.5509087684904029], "rotation": 0.8285469248387858}, "5": {"position": [0.7105327717426778, 0.026577764997291697], "rotation": 0.049459137146015686}}}
+        config_dict = {}
+        config_dict["reward"] = reward
+        individual = []
+        output_config = {}
+        sorted_dict = dict(sorted(data.items(), key=lambda item: item[0]))
+        for mid, machine_data in sorted_dict.items():
+            posX = machine_data["posX"][currentStep]
+            posY = machine_data["posY"][currentStep]
+            rot = machine_data["rotation"][currentStep]
+            individual+= [posX, posY, rot]
+            output_config[mid] = {"posX":posX, "posY":posY, "rotation": rot}
+        config_dict["individual"] = individual
+        config_dict["problem_id"] = problem_id
+        config_dict["creator"] = creator
+        config_dict["config"] = output_config
+        return config_dict
+
+    def upload_google_sheets(self, data: dict, algo:str):
+        start= datetime.now()
         if check_internet_conn():
-            gc = gspread.service_account(filename="factorysimleaderboard-credentials.json")
+            path = os.path.dirname(os.path.abspath(__file__))
+            path = os.path.join(path, "..", "factorysimleaderboard-credentials.json")
+            gc = gspread.service_account(filename=path)
             sh = gc.open("FactorySimLeaderboard")
             worksheet = sh.worksheet("Scores")
         
             rows = []
 
-            for element in info.values():
-                if element["fitness"] < 0.8:
-                    continue
-                current_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-                fullcopy = json.dumps(element.copy())
-                rows.append([current_time, element["problem_id"], element["fitness"], str(element["individual"]), element["creator"], fullcopy])
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            for episode_id, infos in data.items():
+                for step in range(len(infos['Step'])):
+                    reward = infos.get("Reward", -1.0)[step]
+                    if reward < 0.6:
+                        continue
+                    else:
+                        config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
+                        rows.append([current_time, episode_id, reward, CREATOR, f"factorySim-{algo}", json.dumps(config_dict)])
+
             if len(rows) == 0:
                 print("No results to upload", flush=True)
             else:
                 worksheet.append_rows(rows, value_input_option="USER_ENTERED")
                 print(f"Uploaded {len(rows)} results to leaderboard", flush=True)
-
         else:
             print("No connection to internet", flush=True)
 

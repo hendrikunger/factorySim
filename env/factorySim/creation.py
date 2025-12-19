@@ -378,7 +378,7 @@ class FactoryCreator():
         import json
 
         data = self.getCoordinateDict()
-        fulljson ={"config":data, "creator": "FactorySimLive" }
+        fulljson ={"config":data, "creator": "Hendrik Unger" }
 
         with open(filename, 'w') as f:
             json.dump(fulljson, f, indent=4, sort_keys=True)

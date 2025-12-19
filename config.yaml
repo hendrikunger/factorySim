@@ -25,7 +25,7 @@ mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
 evaluation_interval: 25
-training_iteration: 50 # Number of training iterations to run.
+training_iteration: 25 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -54,7 +54,7 @@ vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensi
 
 
 env_config:
-  algo: Dreamer  #APPO, PPO, Dreamer or SAC
+  algo: SAC  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
   width: 128 #84

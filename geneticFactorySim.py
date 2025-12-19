@@ -156,13 +156,14 @@ def saveJson(hallOfFame, problemID, generation=""):
     for i ,ind in enumerate(hallOfFame):
         data = {}
         for index, (x, y, r) in enumerate(zip(ind[::3], ind[1::3], ind[2::3])):
-            data[index] = {"position": (x,y), "rotation": r}
+            data[index] = {"posX": x, "posY": y, "rotation": r}
 
-        result[i] = {"fitness": ind.fitness.values[0],
+        result[i] = {"reward": ind.fitness.values[0],
                     "individual": ind,
                     "problem_id": problemID,
-                     "creator": "Hendrik Unger",
-                     "config": data
+                    "creator": "Hendrik Unger",
+                    "algorithm": "DEAP Genetic Algorithm",
+                    "config": data
                     }
         
     print("Saving to json...")
@@ -272,8 +273,8 @@ def main():
         #append initial solution to population
         individual = []
         for gene in initialSolution["config"].values():
-            individual.append(gene["position"][0])
-            individual.append(gene["position"][1])
+            individual.append(gene["posX"])
+            individual.append(gene["posY"])
             individual.append(gene["rotation"])
         pop.append(creator.Individual(individual))        
         print(f"Added initial solution to population", flush=True)
@@ -432,11 +433,11 @@ def main():
         rows = []
 
         for element in result.values():
-            if element["fitness"] < 0.8:
+            if element["reward"] < 0.5:
                 continue
-            current_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             fullcopy = json.dumps(element.copy())
-            rows.append([current_time, element["problem_id"], element["fitness"], str(element["individual"]), element["creator"], fullcopy])
+            rows.append([current_time, element["problem_id"], element["reward"], element["creator"], element["algorithm"], fullcopy])
         if len(rows) == 0:
             print("No results to upload", flush=True)
         else:

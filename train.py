@@ -55,7 +55,7 @@ basepath = os.path.dirname(os.path.realpath(__file__))
 
 NO_TUNE = False  
 
-os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "0"
+os.environ["TUNE_DISABLE_AUTO_CALLBACK_LOGGERS"] = "1"
 #os.environ["TUNE_DISABLE_STRICT_METRIC_CHECKING"] = "1"
 
 
