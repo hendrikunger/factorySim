@@ -11,7 +11,7 @@ from ray.rllib.utils.metrics import (
     ENV_RUNNER_RESULTS,
     EPISODE_RETURN_MEAN,
 )
-from torch import Tensor
+from torch import Tensor, dist
 from helpers.pipeline import env_creator
 from env.factorySim.utils import check_internet_conn
 import gspread
@@ -80,7 +80,7 @@ class EvalCallback(RLlibCallback):
 
             configSteps = {}
             for info in infos:
-                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=False)
+                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=True)
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
@@ -147,11 +147,9 @@ class EvalCallback(RLlibCallback):
         #pprint(data)
 
 
-
-
         if data:
             #self.upload_google_sheets(data)
-            #column_names = [key for key in next(iter(data.values()))]
+            column_names = [key for key in next(iter(data.values()))]
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
             for episode_id, infos in data.items():
@@ -179,7 +177,7 @@ class EvalCallback(RLlibCallback):
 
                         row.append(value)
                     tbl.add_data(*row)
-        evaluation_metrics["table"] = tbl
+            evaluation_metrics["table"] = tbl
 
         del(myData)
         del(data)

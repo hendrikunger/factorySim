@@ -294,8 +294,8 @@ def run():
             w = algo_config.world_model_lr
             c = algo_config.critic_lr
             algo_config.training(
-                model_size="XL",
-                training_ratio=64, #512, #Should be lower for larger models e.g. 64 for XL  
+                model_size="L",
+                training_ratio=256, #512, #Should be lower for larger models e.g. 64 for XL  
                 batch_size_B= 16 * (f_config["num_gpus"] or 1),
                 # Use a well established 4-GPU lr scheduling recipe:
                 # ~ 1000 training updates with 0.4x[default rates], then over a few hundred
@@ -303,7 +303,7 @@ def run():
                 world_model_lr=[[0, 0.4 * w], [8000, 0.4 * w], [10000, 3 * w]],
                 critic_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
                 actor_lr=[[0, 0.4 * c], [8000, 0.4 * c], [10000, 3 * c]],
-                horizon_H=12, #for XL Model
+                #horizon_H=12, #for XL Model
             )
             # algo_config.env_runners(
             #     rollout_fragment_length = 128,  # 64 steps per env runner
