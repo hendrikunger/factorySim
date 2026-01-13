@@ -437,7 +437,7 @@ def main():
                 continue
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             fullcopy = json.dumps(element.copy())
-            rows.append([current_time, element["problem_id"], element["reward"], element["creator"], element["algorithm"], fullcopy])
+            rows.append([current_time, element["problem_id"], "V1.0", element["reward"], element["creator"], element["algorithm"], fullcopy])
         if len(rows) == 0:
             print("No results to upload", flush=True)
         else:
