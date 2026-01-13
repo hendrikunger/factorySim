@@ -162,11 +162,11 @@ class EvalCallback(RLlibCallback):
             rows = []
 
             for element in info.values():
-                if element["fitness"] < 0.8:
+                if element["fitness"] < 0.7:
                     continue
                 current_time = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
                 fullcopy = json.dumps(element.copy())
-                rows.append([current_time, element["problem_id"], element["fitness"], str(element["individual"]), element["creator"], fullcopy])
+                rows.append([current_time, element["problem_id"], "V1.0", element["fitness"], str(element["individual"]), element["creator"], fullcopy])
             if len(rows) == 0:
                 print("No results to upload", flush=True)
             else:
