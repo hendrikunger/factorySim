@@ -340,6 +340,35 @@ class FactoryCreator():
         model.write(ifc_file_path)
 
 
+    def mapCoordinatestoUnitSpace(self, machine) -> tuple:
+        """Maps coordinates from factory space to unit space (0 to 1)
+
+        Args:
+            x (float): x Coordinate in factory space
+            y (float): y Coordinate in factory space
+            rotation (float): rotation in radians in factory space
+
+        Returns:
+            tuple: Mapped coordinates (x, y, rotation)
+        """
+        bbox = self.bb.bounds
+        mappedXPos = map_factorySpace_to_unit(machine.origin[0], 0, bbox[2] - machine.width)
+        mappedYPos = map_factorySpace_to_unit(machine.origin[1], 0, bbox[3] - machine.height)
+        mappedRot = map_factorySpace_to_unit(machine.rotation, 0, 2*np.pi)
+
+        return (mappedXPos, mappedYPos, mappedRot)
+
+
+
+    def getCoordinateDict(self):
+        data = {}
+        for index, (key, machine) in enumerate(self.machine_dict.items()):
+            mappedXPos, mappedYPos, mappedRot = self.mapCoordinatestoUnitSpace(machine)
+            data[str(index)] = {"posX": mappedXPos, "posY": mappedYPos, "rotation": mappedRot}
+            
+        return data
+
+
     def save_position_json(self, filename: str) -> None:
         """Saves all machine positions to a json file
 
@@ -347,17 +376,9 @@ class FactoryCreator():
             filename (str): path to json file to save machine positions
         """
         import json
-        data = {}
-        for index, (key, machine) in enumerate(self.machine_dict.items()):
-            bbox = self.bb.bounds
-            mappedXPos = map_factorySpace_to_unit(machine.origin[0], 0, bbox[2] - machine.width)
-            mappedYPos = map_factorySpace_to_unit(machine.origin[1], 0, bbox[3] - machine.height)
-            mappedRot = map_factorySpace_to_unit(machine.rotation, 0, 2*np.pi)
 
-
-            data[index] = {"key": key, "position": (mappedXPos,mappedYPos), "rotation": mappedRot}
-
-        fulljson ={"config":data, "creator": "FactorySimLive" }
+        data = self.getCoordinateDict()
+        fulljson ={"config":data, "creator": "Hendrik Unger" }
 
         with open(filename, 'w') as f:
             json.dump(fulljson, f, indent=4, sort_keys=True)
@@ -367,7 +388,7 @@ class FactoryCreator():
 
         Args:
             filename (str): path to json file with machine positions
-            format: {"config":{"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}}
+            format: {"config":{"1": {"posX": 0.0, "posY": 0.0, "rotation": 0}, "2": {"posX": 1.0, "posY": 1.0, "rotation": 0.5}}}
         """
         import json
         with open(filename, 'r') as f:
@@ -378,9 +399,9 @@ class FactoryCreator():
         """Loads machine positions from a dictionary
 
         Args:
-            positions (dict): dictory with keys as machine ids and values as dictionaries with keys "position"  and "rotation" (in radians)
+            positions (dict): dictory with keys as machine ids and values as dictionaries with keys "posX", "posY" and "rotation" (in radians)
             each mapped to the intervall of (0 to 1)
-            e.g. {"1": {"position": (0,0), "rotation": 0}, "2": {"position": (100,100), "rotation": 3.1244}}
+            e.g. {"1": {"posX": 0.0, "posY": 0.0, "rotation": 0}, "2": {"posX": 1.0, "posY": 1.0, "rotation": 0.5}}
 
         """
         for key, value in positions.items():
@@ -400,6 +421,6 @@ class FactoryCreator():
                 bbox = self.bb.bounds
                 mappedRot = map_unit_to_factorySpace(value["rotation"], 0, 2*np.pi)
                 machine.rotate_Item(mappedRot)
-                mappedXPos = map_unit_to_factorySpace(value["position"][0], 0, bbox[2] - machine.width)
-                mappedYPos = map_unit_to_factorySpace(value["position"][1], 0, bbox[3] - machine.height)
+                mappedXPos = map_unit_to_factorySpace(value["posX"], 0, bbox[2] - machine.width)
+                mappedYPos = map_unit_to_factorySpace(value["posY"], 0, bbox[3] - machine.height)
                 machine.translate_Item(mappedXPos, mappedYPos)

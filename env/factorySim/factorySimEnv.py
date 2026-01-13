@@ -287,15 +287,14 @@ class FactorySimEnv(gym.Env):
             self.info = {}
             self.terminated = True
 
-    def getCoordinateDict(self):
-        return {mid: machine.coordinateDict() for mid, machine in self.factory.machine_dict.items()}
+
     
     def addInfos(self):
         self.info["Evaluation"] = True
         self.info["Image"] = self.render()
         self.info["Step"] = self.stepCount
         self.info["evalEnvID"] = self.currentEvalEnv
-        self.info["config"] = self.getCoordinateDict()
+        self.info["config"] = self.factory.creator.getCoordinateDict()
 
 
     def __str__():
