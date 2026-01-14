@@ -118,7 +118,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Diagonal.ifc")
         #self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "10.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "06.ifc")
         #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation")
 
 
@@ -307,6 +307,9 @@ class factorySimLive(mglw.WindowConfig):
             if key == keys.DELETE and self.selected is not None and not self.is_calculating:
                 self.F_delete_item(self.selected)
                 self.selected = None
+            # P to screenshot
+            if key == keys.P:
+                self.surface.write_to_png("liveScreenshot.png")
 
             if(Modes.has_value(key)):
                 self.activeModes[Modes(key)] = not self.activeModes[Modes(key)]
