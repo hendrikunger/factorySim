@@ -433,7 +433,7 @@ def main():
         rows = []
 
         for element in result.values():
-            if element["fitness"] < 0.7:
+            if element["reward"] < 0.5:
                 continue
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             fullcopy = json.dumps(element.copy())

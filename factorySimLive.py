@@ -90,7 +90,6 @@ class factorySimLive(mglw.WindowConfig):
     is_shrunk = False
     update_during_calculation = False
     clickedPoints = []
-    #
     factoryConfig = baseConfigs.SMALLSQUARE
     #factoryConfig = baseConfigs.EDF_EMPTY
     #factoryConfig = baseConfigs.EDF
@@ -101,7 +100,7 @@ class factorySimLive(mglw.WindowConfig):
     #dpiScaler = 2 if sys.platform == "darwin" else 1
     dpiScaler = 1
     is_online = check_internet_conn()
-    EVALUATION = False
+    EVALUATION = True
     GRIDSNAP = 1000.0  #in mm
       
     def __init__(self, **kwargs):
@@ -119,7 +118,7 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Simple.ifc")
         self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "10.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "10.ifc")
         #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation")
 
 
@@ -131,7 +130,7 @@ class factorySimLive(mglw.WindowConfig):
         print(str(self.factoryConfig.NAME))
         self.f_config['env_config']['factoryconfig'] = str(self.factoryConfig.NAME)
         self.f_config['evaluation_config']["env_config"]["inputfile"] = self.ifcPath
-        
+
 
         #self.ifcPath=None
 
@@ -645,15 +644,11 @@ class factorySimLive(mglw.WindowConfig):
             self.update_needed()
             
     def create_factory(self, ifcPath=None):
-        if self.EVALUATION:
-            env_config = self.f_config['evaluation_config']["env_config"].copy()
-        else:
-            env_config = self.f_config['env_config'].copy()
+        env_config = self.f_config['env_config'].copy()
+        if self.EVALUATION or ifcPath:
+            env_config.update(self.f_config.get("evaluation_config", {}).get("env_config", {}))
         if ifcPath:
             env_config['inputfile'] = ifcPath
-            env_config["createMachines"] = False
-            env_config["randomSeed"] = 42
-            env_config["maxMF_Elements"] = None
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
 
