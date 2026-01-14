@@ -39,6 +39,7 @@ class FactorySimEnv(gym.Env):
         self.actionRounds = env_config.get("actionRounds", 1)
         self.maxMF_Elements = env_config["maxMF_Elements"]
         self.createMachines = env_config["createMachines"]
+        self.randomPos = env_config.get("randomPositioning", False)
         self.scale = env_config["outputScale"]
         self.evalFiles = [None]
         self.currentEvalEnv = None
@@ -156,7 +157,7 @@ class FactorySimEnv(gym.Env):
         self.factory = FactorySim(self.inputfile,
         path_to_materialflow_file = self.materialflowpath,
         factoryConfig=self.factoryConfig,
-        randomPos=False,
+        randomPos=self.randomPos,
         createMachines=self.createMachines,
         randSeed = self.seed,
         logLevel=self.logLevel,
