@@ -292,7 +292,10 @@ class FactorySimEnv(gym.Env):
     
     def addInfos(self):
         self.info["Evaluation"] = True
-        self.info["Image"] = self.render()
+        if self.render_mode in ["rgb_array"]:
+            self.info["Image"] = self.render()
+        else:
+            self.info["Image"] = None
         self.info["Step"] = self.stepCount
         self.info["evalEnvID"] = self.currentEvalEnv
         self.info["config"] = self.factory.creator.getCoordinateDict()
@@ -316,7 +319,13 @@ def main():
     import datetime
     from pprint import pprint
 
-
+    def renderImage():
+        if env.render_mode == "rgb_array":   
+            image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+        else:
+            image = wandb.Image(np.zeros((10,10,3), dtype=np.uint8), caption="No Image")
+            env.render()
+        return image
 
     #filename = "Long"
     #filename = "Basic"
@@ -327,14 +336,15 @@ def main():
     basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..")
     
     ifcPath = os.path.join(basePath, "Input", "2", f"{filename}.ifc")
+    ifcPath = os.path.join(basePath,  "Evaluation", "06.ifc")
     #ifcPath = os.path.join(basePath, "Input", "2")
     configpath = os.path.join(basePath,"config.yaml")
+    outputPath = os.path.join(basePath, "Output")
     
 
     with open(configpath, 'r') as f:
         f_config = yaml.load(f, Loader=yaml.FullLoader)
-
-    f_config['env_config']['render_mode'] = "rgb_array"
+    f_config['env_config']['render_mode'] = "human"
     f_config['env_config']['inputfile'] = ifcPath
     f_config['env_config']['evaluation'] = True
     f_config['env_config']['randomSeed'] = 42
@@ -351,6 +361,7 @@ def main():
     )
 
     env = FactorySimEnv( env_config = f_config['env_config'])
+    env.output_path = outputPath
 
 
     
@@ -368,7 +379,7 @@ def main():
 
     print(f"Observation: {obs.shape}, {obs.dtype}")
     print(f"Check if observation space is correct: {env.observation_space.contains(obs)}")
-    image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
+    image = renderImage()
     tbl.add_data(0, f"{0}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
  
     for index in tqdm(range(0,10)):
@@ -376,18 +387,14 @@ def main():
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         print(f"Step {env.stepCount}, Reward: {reward}, Terminated: {terminated},")
         pprint(info["config"])
-        if env.render_mode == "rgb_array":   
-            image = wandb.Image(env.info["Image"], caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}")
-        else:
-            image = None
-            env.render()
+        image = renderImage()
 
 
         tbl.add_data(env.currentEvalEnv, f"{env.currentEvalEnv}.{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
         if terminated:
             wandb.log(info)
             obs, info = env.reset()
-            image = wandb.Image(env.render(), caption=f"{env.prefix}_{env.uid}_{env.stepCount:04d}") 
+            image = renderImage()
             tbl.add_data(env.currentEvalEnv, f"{env.currentEvalEnv}_{env.stepCount}", image, *[info.get(key, -1) for key in ratingkeys])
 
     env.close()
