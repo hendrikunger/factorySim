@@ -88,6 +88,7 @@ class factorySimLive(mglw.WindowConfig):
     is_dirty = False
     is_calculating = False
     is_shrunk = False
+    is_textrender = True
     update_during_calculation = False
     clickedPoints = []
     factoryConfig = baseConfigs.SMALLSQUARE
@@ -237,7 +238,10 @@ class factorySimLive(mglw.WindowConfig):
                 self.wnd.fullscreen = not self.wnd.fullscreen   
             # Toggle Text Rendering under selection
             if key == keys.E:
-                self.is_EDF = not self.is_EDF    
+                self.is_EDF = not self.is_EDF   
+            #toggle Text Rendering on the side
+            if key == keys.T:
+                self.is_textrender = not self.is_textrender
             # Agent Prediction
             if key == keys.A:
                 self.agentInference()   
@@ -307,8 +311,8 @@ class factorySimLive(mglw.WindowConfig):
             if key == keys.DELETE and self.selected is not None and not self.is_calculating:
                 self.F_delete_item(self.selected)
                 self.selected = None
-            # P to screenshot
-            if key == keys.P:
+            # C to screenshot
+            if key == keys.C:
                 self.surface.write_to_png("liveScreenshot.png")
 
             if(Modes.has_value(key)):
@@ -508,12 +512,12 @@ class factorySimLive(mglw.WindowConfig):
         mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
         draw_text(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color, (20, 200))
 
+        if self.is_textrender:
         #Draw every rating on a new line
-        textwidth = None
-        for i, text in enumerate(self.env.factory.generateRatingText(multiline=True).split("\n")):
-            pos = (self.window_size[0], (40 + i*20))
-            textwidth = draw_text(self.cctx, text, color, pos, rightEdge=True, factoryCoordinates=False, input_width=textwidth)
-
+            textwidth = None
+            for i, text in enumerate(self.env.factory.generateRatingText(multiline=True).split("\n")):
+                pos = (self.window_size[0], (40 + i*20))
+                textwidth = draw_text(self.cctx, text, color, pos, rightEdge=True, factoryCoordinates=False, input_width=textwidth)
         if self.selected != None and self.is_EDF: 
             #Calculate the position of bottom center of selected objects bounding box
             bbox = self.env.factory.machine_dict[self.selected].poly.bounds
