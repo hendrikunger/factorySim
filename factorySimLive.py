@@ -6,7 +6,7 @@ import json
 import os
 import yaml
 import sys
-
+import subprocess
 
 import cairo
 import moderngl
@@ -23,8 +23,6 @@ from factorySim.factorySimEnv import FactorySimEnv
 from factorySim.utils import check_internet_conn
 
 from ray.rllib.policy.policy import Policy
-
-
 
 
 class DrawingModes(Enum):
@@ -104,8 +102,21 @@ class factorySimLive(mglw.WindowConfig):
     EVALUATION = True
     GRIDSNAP = 1000.0  #in mm
       
+    @classmethod
+    def add_arguments(cls, parser):
+        # Always call super
+        super().add_arguments(parser)
+
+        parser.add_argument(
+            "-p","--problemID",
+            type=int,
+            default=2,
+            help="Which - in the list of evaluation environments to use. Default is 1.",
+        )
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
         self.rng = np.random.default_rng()
         self.cmap = self.rng.random(size=(200, 3))
         self.executor = ThreadPoolExecutor(max_workers=1)
@@ -119,9 +130,11 @@ class factorySimLive(mglw.WindowConfig):
         self.ifcPath = os.path.join(basePath, "2", "Diagonal.ifc")
         #self.ifcPath = os.path.join(basePath, "2")
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
-        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "06.ifc")
+        self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "01.ifc")
         #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation")
 
+        if self.argv.problemID:
+            self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", f"{self.argv.problemID:02d}.ifc")
 
         with open(configpath, 'r') as f:
             self.f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -658,6 +671,16 @@ class factorySimLive(mglw.WindowConfig):
             env_config['inputfile'] = ifcPath
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
+        #Print Factory Info 
+        print("-"*40)
+        print(f"Machines: {self.env.factory.getMachineCount()}")
+        print(f"Material Flows: {self.env.factory.getMachineCount()}")
+        print(f"Building Area: {self.env.factory.getFactoryArea()/1e6:.2f} m²")
+        print(f"Free Area: {self.env.factory.getFreeArea()/1e6:.2f} m²")
+        print(f"Machine Area: {self.env.factory.getUsedSpaceArea()/1e6:.2f} m²")
+        print("-"*40)
+        line = f"{self.env.factory.getMachineCount()}\t{self.env.factory.getMachineCount()}\t{self.env.factory.getFactoryArea()/1e6:.2f}\t{self.env.factory.getFreeArea()/1e6:.2f}\t{self.env.factory.getUsedSpaceArea()/1e6:.2f}"
+        subprocess.run("clip", input=line, text=True, shell=True)
 
 
         self.future = self.executor.submit(self.env.factory.evaluate, self.reward_function)
@@ -789,4 +812,5 @@ if __name__ == "__main__":
         mglw.run_window_config(factorySimLive, args=('--window', 'pygame2'))
     else:
         mglw.run_window_config(factorySimLive)
+    
 

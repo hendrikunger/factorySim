@@ -406,6 +406,40 @@ class FactorySim:
         number = round(number * 1000, 2)
         print(f"{number:6.2f} - {text}")
 
+        """_summary_
+           Returns the number of machines in the factory
+        """
+    def getMachineCount(self):
+        return len(self.machine_dict)
+    
+    """_summary_
+       Returns the number of material flow connections in the factory
+    """
+    def getMaterialFlowCount(self):
+        return len(self.dfMF)
+    
+    """_summary_
+       Returns the total area of occupied space by machines in square meters
+    """
+    def getUsedSpaceArea(self):
+        totalArea = 0.0
+        for key in self.machine_dict:
+            totalArea += self.machine_dict[key].poly.area
+        return totalArea
+    
+    """_summary_
+        Returns the total area of the building in square meters
+    """
+    def getFactoryArea(self):
+        walllist = [x.poly for x in self.wall_dict.values()]
+        union = unary_union(walllist)
+        return union.convex_hull.area
+
+    """_summary_
+        Returns the free area of the building in square meters
+    """
+    def getFreeArea(self):
+        return self.walkableArea.area if self.walkableArea else -1.0
 
 #------------------------------------------------------------------------------------------------------------
 def main():
