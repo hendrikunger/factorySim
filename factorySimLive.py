@@ -674,7 +674,7 @@ class factorySimLive(mglw.WindowConfig):
         #Print Factory Info 
         print("-"*40)
         print(f"Machines: {self.env.factory.getMachineCount()}")
-        print(f"Material Flows: {self.env.factory.getMachineCount()}")
+        print(f"Material Flows: {self.env.factory.getMaterialFlowCount()}")
         print(f"Building Area: {self.env.factory.getFactoryArea()/1e6:.2f} m²")
         print(f"Free Area: {self.env.factory.getFreeArea()/1e6:.2f} m²")
         print(f"Machine Area: {self.env.factory.getUsedSpaceArea()/1e6:.2f} m²")
