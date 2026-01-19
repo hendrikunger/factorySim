@@ -417,7 +417,7 @@ def run():
 
     path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation") 
 
-    eval_duration = len([x for x in os.listdir(path) if ".ifc" in x])
+    eval_duration = len([x for x in os.listdir(path) if ".ifc" in x]) * f_config.get("evaluation_rounds", 1)
     algo_config.evaluation(evaluation_duration=eval_duration,
                           evaluation_duration_unit="episodes", 
                           evaluation_interval=f_config["evaluation_interval"], 
