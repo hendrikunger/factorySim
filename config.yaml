@@ -7,7 +7,7 @@ subdir: ["Input", "1"] # Sets the input directoy for ifc files starting from the
 num_workers: 12  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
 evaluation_parallel_to_training: false
-evaluation_rounds: 10
+evaluation_rounds: 5
 evaluation_num_env_runners: 0
 num_gpus: 1
 num_learners: 1

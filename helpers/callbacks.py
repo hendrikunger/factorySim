@@ -84,7 +84,7 @@ class EvalCallback(RLlibCallback):
 
             configSteps = {}
             for info in infos:
-                metrics_logger.log_dict(info, key=("myData",episode_id), reduce="lifetime_sum")
+                metrics_logger.log_dict(info, key=("myData",episode_id), reduce="item_series", window=5000)
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
@@ -214,7 +214,7 @@ class EvalCallback(RLlibCallback):
             for episode_id, infos in data.items():
                 for step in range(len(infos['Step'])):
                     reward = infos.get("Reward", -1.0)[step]
-                    if reward < 0.6:
+                    if reward < 0.7:
                         continue
                     else:
                         config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
