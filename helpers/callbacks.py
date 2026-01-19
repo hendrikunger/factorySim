@@ -84,11 +84,11 @@ class EvalCallback(RLlibCallback):
 
             configSteps = {}
             for info in infos:
-                metrics_logger.log_dict(info, key=("myData",episode_id), reduce=None, clear_on_reduce=True)
+                metrics_logger.log_dict(info, key=("myData",episode_id), reduce="lifetime_sum")
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
-                        metrics_logger.log_value(("means",episode_id,key), value, reduce="mean", clear_on_reduce=True)
+                        metrics_logger.log_value(("means",episode_id,key), value, reduce="mean")
 
         
     def on_evaluate_start(
