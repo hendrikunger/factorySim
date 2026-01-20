@@ -44,8 +44,6 @@ class EvalCallback(RLlibCallback):
             for info in infos:
                 episode_id = int(info.get('evalEnvID', 0)+1)
                 print(f"Episode {episode_id} started")
-                #delete old data
-                metrics_logger.delete(("myData",episode_id), key_error=False)
 
   
 
@@ -84,11 +82,12 @@ class EvalCallback(RLlibCallback):
 
             configSteps = {}
             for info in infos:
-                metrics_logger.log_dict(info, key=("myData",episode_id), reduce="item_series", window=5000)
+                metrics_logger.log_dict(info, key=("myData",episode_id), reduce="item_series")
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
-                        metrics_logger.log_value(("means",episode_id,key), value, reduce="mean")
+                        metrics_logger.log_value(("means",episode_id,key), value, reduce="mean", window=50)
+
 
         
     def on_evaluate_start(
@@ -114,11 +113,9 @@ class EvalCallback(RLlibCallback):
 
 
         print(f"--------------------------------------------EVAL END--------------------------------------------")
-
-        #myData = evaluation_metrics["env_runners"].pop("myData", None)
         data = {}
         
-        myData = metrics_logger.peek(('evaluation','env_runners'), compile=False)
+        #myData = metrics_logger.peek(('evaluation','env_runners'), compile=False)
         
         # data structure in episode:
         # episode_id  -> metric_name -> values of all steps
