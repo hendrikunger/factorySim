@@ -29,8 +29,8 @@ ETA = 0.9
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--num-workers", type=int, default=int(os.getenv("SLURM_CPUS_PER_TASK", 12)))  #multiprocessing.cpu_count()
-parser.add_argument("--num-generations", type=int, default=5) 
-parser.add_argument("--num-population", type=int, default=30)
+parser.add_argument("--num-generations", type=int, default=500) 
+parser.add_argument("--num-population", type=int, default=300)
 parser.add_argument("--num-genmemory", type=int, default=0) 
 parser.add_argument(
     "--problemID",
@@ -214,7 +214,7 @@ def main():
 
     toolbox = base.Toolbox()
 
-    toolbox.register("attr_float", rng.uniform, 0, 1)
+    toolbox.register("attr_float", rng.uniform, 0.0, 1.0)
 
     # Structure initializers
     #                         define 'individual' to be an individual
@@ -230,7 +230,7 @@ def main():
     toolbox.register("mate", mycxBlend, alpha=0.25) # Alpha value is recommended to 0.25
 
     # register a mutation operator with a probability to
-    # flip each attribute/gene of 0.05
+    # flip each attribute/gene of 1/NUMMACHINES
     toolbox.register("mutate", tools.mutPolynomialBounded, low=0.0, up=1.0, indpb=1/NUMMACHINES)
 
     toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=args.num_genmemory)
@@ -239,10 +239,10 @@ def main():
     # generation: each individual of the current generation
     # is replaced by the 'fittest' (best) of three individuals
     # drawn randomly from the current generation.
-    # toolbox.register("select", tournament_survial_selection, k=args.num_population * NUMMACHINES)
+    toolbox.register("select", tools.selTournament, tournsize=3)
 
-    #TODO Try roulette wheel selection
-    toolbox.register("select", tools.selRoulette)
+
+    #toolbox.register("select", tools.selRoulette)
 
     hall = HallOfFame(10)
 
@@ -327,8 +327,13 @@ def main():
             #save 20 best individuals to images
             saveImages(pop[:20], task_queue, result_queue, prefix=g)
 
+        #Elitism - keep top 1%
+        elite_size = max(1, int(0.01 * len(pop)))
+        elite_individuals = list(map(toolbox.clone, tools.selBest(pop, elite_size)))
+        non_elites = [ind for ind in pop if ind not in elite_individuals]
+
         # Select the next generation individuals
-        offspring = toolbox.select(pop, len(pop))
+        offspring = toolbox.select(non_elites, len(pop)-elite_size)
         # Clone the selected individuals
         offspring = list(toolbox.map(toolbox.clone, offspring))
 
@@ -353,6 +358,8 @@ def main():
                 toolbox.mutate(mutant,eta=CUR_ETA)
                 del mutant.fitness.values
 
+        #Add elite individuals back to offspring
+        offspring.extend(elite_individuals)
 
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
