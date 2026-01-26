@@ -23,8 +23,9 @@ from pprint import pp
 #
 # MUTPB is the probability for mutating an individual
 
-CXPB, MUTPB = 0.4, 0.2
-ETA = 0.9
+CXPB, MUTPB = 0.4, 0.4
+ETA = 40.0  #Crowding factor for mutation
+IMMIGRANT_FRAC = 0.03  #Fraction of new random individuals per generation
 
 parser = argparse.ArgumentParser()
 
@@ -48,6 +49,7 @@ class Worker:
         self.problem_id= os.path.splitext(os.path.basename(inputPath))[0]
         self.outputPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Output", self.problem_id)
         os.makedirs(self.outputPath, exist_ok=True)
+        os.makedirs(os.path.join(self.outputPath, "hall"), exist_ok=True)
        
 
     def process_action(self, action, render=False, generation=None):
@@ -61,7 +63,11 @@ class Worker:
             if generation is None:
                 self.env._render_frame()
             else:
-                output = os.path.join(self.outputPath, f"{self.starting_time}___{self.problem_id}___{generation}___{self.env.currentReward}")
+                details = f"{self.starting_time}___{self.problem_id}___{generation}___{self.env.currentReward:.5f}"
+                if "_" in str(generation):
+                    output = os.path.join(self.outputPath, "hall", details)
+                else:   
+                    output = os.path.join(self.outputPath, details)
                 self.env._render_frame(output)
             self.env.render_mode = "rgb_array"
         return  self.env.currentReward, self.env.info
@@ -187,6 +193,8 @@ def main():
 
     last_best = None
     last_change_gen = 0
+    last_best_fitness = -np.inf
+    strikes = 0
 
 
     with open('config.yaml', 'r') as f:
@@ -231,7 +239,7 @@ def main():
 
     # register a mutation operator with a probability to
     # flip each attribute/gene of 1/NUMMACHINES
-    toolbox.register("mutate", tools.mutPolynomialBounded, low=0.0, up=1.0, indpb=1/NUMMACHINES)
+    toolbox.register("mutate", tools.mutPolynomialBounded, low=0.0, up=1.0, indpb=3/NUMMACHINES)
 
     toolbox.register("generationalMemory", generationalMemory, k=args.num_population * NUMMACHINES, n=args.num_genmemory)
 
@@ -239,7 +247,7 @@ def main():
     # generation: each individual of the current generation
     # is replaced by the 'fittest' (best) of three individuals
     # drawn randomly from the current generation.
-    toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("select", tools.selTournament, tournsize=2)
 
 
     #toolbox.register("select", tools.selRoulette)
@@ -308,7 +316,7 @@ def main():
     hall.update(pop)
     
     
-    print(f"  Best fitness is {hall[0].fitness.values}\n")
+    print(f"  Best fitness is {hall[0].fitness.values[0]}\n")
 
     # Extracting all the fitnesses of 
     fits = [ind.fitness.values[0] for ind in pop]
@@ -320,8 +328,8 @@ def main():
         #calculate average fitness
         avg = sum(fits) / len(fits)        
 
-        print(f"____ Generation {g} ___________AVG Fitness:{avg:.5f}_____________________ last change at {last_change_gen}_____________", flush=True)
-        if(g%10 == 0):
+        print(f"____ Generation {g} ___________AVG Fitness:{avg:.5f}_____________________ last change at {last_change_gen}_____________ETA {CUR_ETA}", flush=True)
+        if(g%25 == 0):
             #sort population by fitness
             pop.sort(key=lambda x: x.fitness.values[0], reverse=True)
             #save 20 best individuals to images
@@ -361,6 +369,27 @@ def main():
         #Add elite individuals back to offspring
         offspring.extend(elite_individuals)
 
+        #Immgration - replace worst individuals with new random ones
+        n_imm = max(1, int(IMMIGRANT_FRAC * len(offspring)))
+        worst = tools.selWorst(offspring, n_imm) # Remove worst individuals (by fitness)
+        for ind in worst:
+            offspring.remove(ind)
+        # Add fresh random individuals
+        immigrants = [toolbox.individual() for _ in range(n_imm)]
+        offspring.extend(immigrants)
+
+        #Mass imigration
+        if (g- last_change_gen) % 20 == 0 and g- last_change_gen > 50:
+           
+            n_imm = max(1, int(0.2 * len(pop)))
+            worst = tools.selWorst(pop, n_imm) # Remove worst individuals (by fitness
+            for ind in worst:
+                pop.remove(ind)
+            # Add fresh random individuals
+            immigrants = [toolbox.individual() for _ in range(n_imm)]
+            pop.extend(immigrants)
+            print(f"No improvement for {g - last_change_gen} generations. Mass immigration of {n_imm} individuals", flush=True)
+
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
 
@@ -377,6 +406,7 @@ def main():
         # The population is entirely replaced by the offspring
         pop[:] = offspring
         #Update hall of fame
+        last_best_fitness = hall[0].fitness.values[0]
         hall.update(pop)
         #Add the best individuals from the hall of fame to the population if they are not already in the population
         pop = toolbox.generationalMemory(population=pop, hall=hall, generation=g)
@@ -389,23 +419,36 @@ def main():
             print(f"---> Found new best individual with fitness {hall[0].fitness.values}", flush=True)
             last_best = hall[0]
             last_change_gen = g
+            
             #Render and evaluate the best individuals again
             task_queue.put((-1,hall[0],True,g))
             result = result_queue.get()
             pp(result[1][1])
 
+            if hall[0].fitness.values[0]- last_best_fitness < 1e-4:
+                strikes += 1
+                print(f"  Improvement less than 1e-4. Strike {strikes}/3", flush=True)
+                if strikes >= 3:
+                    print(f"  3 Strikes reached. Stopping...", flush=True)
+                    break
+            else:
+                strikes = 0
+                
+    
+            last_best_fitness = hall[0].fitness.values[0]
 
         else: 
-            print(f"  Best fitness is {hall[0].fitness.values}", flush=True)
+            print(f"  Best fitness is {hall[0].fitness.values[0]}", flush=True)
         print("\n\n")
         #Resetting crowding factor after new improvement
         if g - last_change_gen == 0 and g > 50 and CUR_ETA != ETA:
             print(f"Resetting Crowding Factor to local search: {ETA}", flush=True)
             CUR_ETA = ETA
         #Change crowding factor if no improvement for 50 generations
-        if g- last_change_gen > 50 and CUR_ETA > 0.1:  
-            CUR_ETA-=0.01
-            print(f"No improvement for 50 generations. Decrease crowding factor for bigger search space to {CUR_ETA}", flush=True)
+        if g- last_change_gen > 50 and CUR_ETA < 60.0:  
+            CUR_ETA+=1.0
+            print(f"No improvement for 50 generations. Increase crowding factor for better refinement to {CUR_ETA}", flush=True)
+
 
         if max(fits) > 0.9 or g - last_change_gen > 300:
             print(f"No improvement for 300 generations or fitness > 0.9. Stopping...", flush=True)
