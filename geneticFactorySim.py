@@ -4,6 +4,7 @@ import queue
 import yaml
 import json
 import argparse
+import uuid
 import numpy as np
 from env.factorySim.factorySimEnv import FactorySimEnv
 from env.factorySim.utils import check_internet_conn
@@ -72,21 +73,24 @@ class Worker:
             self.env.render_mode = "rgb_array"
         return  self.env.currentReward, self.env.info
 
-def worker_main(task_queue, result_queue, env_name, starting_time):
+def worker_main(task_queue, eval_result_queue, render_result_queue, env_name, starting_time):
     worker = Worker(env_name, starting_time)
     while True:
         try:
-            task = task_queue.get(timeout=3)  # Adjust timeout as needed
+            task = task_queue.get(timeout=3)
             if task is None:
                 break
-            #task[0] is the index of the individual
-            #task[1] is the individual
-            #task[2] is a boolean to render
-            #task[3] is the generation number
-            result = worker.process_action(task[1], task[2], task[3])
-            result_queue.put((task[0], result))
+
+            task_id, individual, render_flag, generation = task
+            result = worker.process_action(individual, render_flag, generation)
+
+            if render_flag:
+                render_result_queue.put((task_id, result))
+            else:
+                eval_result_queue.put((task_id, result))
+
         except queue.Empty:
-            continue#
+            continue
 
 
 
@@ -175,13 +179,31 @@ def saveJson(hallOfFame, problemID, generation=""):
         json.dump(result, fp, indent=4, sort_keys=True)
     return result
 
-def saveImages(listToSave, task_queue, result_queue, prefix):
-    for i ,ind in enumerate(listToSave):
-        print(f"{i+1} - {ind.fitness.values}", flush=True)
-        task_queue.put((i,ind,True,f"{prefix}_{i+1}"))
-    for _ in range(len(listToSave)):
-        output = result_queue.get()
-        #pp(output[1][1])
+def saveImages(listToSave, task_queue, render_result_queue, prefix):
+    # Ensure ranks correspond to fitness
+    listToSave = sorted(listToSave, key=lambda ind: ind.fitness.values[0], reverse=True)
+
+    pending_render = {}          # task_id -> (rank, expected_fitness)
+    for rank, ind in enumerate(listToSave, start=1):
+        print(f"{rank+1} - {ind.fitness.values}", flush=True)
+        task_id = uuid.uuid4().hex
+        pending_render[task_id] = (rank, ind.fitness.values[0])
+        task_queue.put((task_id, ind, True, f"{prefix}_{rank}"))
+
+    # Drain until all expected results arrive
+    while pending_render:
+        task_id, (reward, info) = render_result_queue.get()
+        item = pending_render.pop(task_id, None)
+        if item is None:
+            print(f"[WARN] Unexpected render result task_id={task_id}", flush=True)
+            continue
+
+        rank, expected = item
+
+        # Optional debug: detect stored fitness != recomputed reward
+        if abs(reward - expected) > 1e-9:
+            print(f"[MISMATCH] {prefix}_{rank}: stored={expected:.5f} render={reward:.5f}", flush=True)
+
     
 
 def main():
@@ -258,7 +280,8 @@ def main():
 
 
     task_queue = multiprocessing.Queue()
-    result_queue = multiprocessing.Queue()
+    eval_result_queue = multiprocessing.Queue()
+    render_result_queue = multiprocessing.Queue()
 
     # Create worker processes
     workers = []
@@ -267,7 +290,7 @@ def main():
         config["prefix"] = str(i)+"_"
         start_time = datetime.now().strftime("%Y-%m-%d___%H-%M-00")
         #config["randomSeed"] = f_config['evaluation_config']["env_config"]["randomSeed"] + i
-        p = multiprocessing.Process(target=worker_main, args=(task_queue, result_queue, config, start_time))
+        p = multiprocessing.Process(target=worker_main, args=(task_queue, eval_result_queue, render_result_queue, config, start_time))
         p.start()
         workers.append(p)
 
@@ -285,10 +308,14 @@ def main():
         pop.append(creator.Individual(individual))        
         print(f"Added initial solution to population", flush=True)
         print(individual, flush=True)
-        task_queue.put((-1,individual,True,-5))
-        result = result_queue.get()
-        pop[-1].fitness.values = (result[1][0],)
-        pp(result[1][1])
+        task_id = uuid.uuid4().hex
+        task_queue.put((task_id, individual, True, -5))
+
+        ret_task_id, (reward, info) = render_result_queue.get()
+        assert ret_task_id == task_id, "Got render result for a different task!"
+
+        individual.fitness.values = (reward,)
+        pp(info)
 
 
 
@@ -300,15 +327,18 @@ def main():
 # --- EVOLUTION ---
 
     # Evaluate the entire population
-    num_tasks = len(pop) 
-    print(f"Evaluating {num_tasks} individuals", flush=True)
-    for index, individual in enumerate(pop):
-        task_queue.put((index,individual,False, None)) 
+
+    pending = {}  # task_id -> individual
+    for ind in pop:
+        task_id = uuid.uuid4().hex
+        pending[task_id] = ind
+        task_queue.put((task_id, ind, False, None))
 
     # Collect results
-    for _ in range(num_tasks):
-        output = result_queue.get()
-        pop[output[0]].fitness.values = (output[1][0],)
+    for _ in range(len(pending)):
+        task_id, (reward, _) = eval_result_queue.get()
+        ind = pending.pop(task_id)          # lookup the exact individual
+        ind.fitness.values = (reward,)
 
 
     hall.update(pop)
@@ -331,12 +361,14 @@ def main():
             #sort population by fitness
             pop.sort(key=lambda x: x.fitness.values[0], reverse=True)
             #save 20 best individuals to images
-            saveImages(pop[:20], task_queue, result_queue, prefix=g)
+            saveImages(pop[:20], task_queue, render_result_queue, prefix=g)
 
         #Elitism - keep top 1%
         elite_size = max(1, int(0.01 * len(pop)))
-        elite_individuals = list(map(toolbox.clone, tools.selBest(pop, elite_size)))
-        non_elites = [ind for ind in pop if ind not in elite_individuals]
+        elite = tools.selBest(pop, elite_size)
+        elite_ids = set(map(id, elite))
+        elite_individuals = list(map(toolbox.clone, elite))
+        non_elites = [ind for ind in pop if id(ind) not in elite_ids]
 
         # Select the next generation individuals
         offspring = toolbox.select(non_elites, len(pop)-elite_size)
@@ -391,14 +423,18 @@ def main():
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
 
-        num_tasks = len(invalid_ind) 
-        for index, individual in enumerate(invalid_ind):
-            task_queue.put((index,individual,False, None)) 
+        pending = {}  # task_id -> individual
+
+        for ind in invalid_ind:
+            task_id = uuid.uuid4().hex
+            pending[task_id] = ind
+            task_queue.put((task_id, ind, False, None))
         
         # Collect results
-        for _ in range(num_tasks):
-            output = result_queue.get()
-            invalid_ind[output[0]].fitness.values = (output[1][0],)
+        for _ in range(len(pending)):
+            task_id, (reward, info) = eval_result_queue.get()
+            ind = pending.pop(task_id)          # lookup the exact individual
+            ind.fitness.values = (reward,)
 
 
         # The population is entirely replaced by the offspring
@@ -419,9 +455,13 @@ def main():
             last_change_gen = g
             
             #Render and evaluate the best individuals again
-            task_queue.put((-1,hall[0],True,g))
-            result = result_queue.get()
-            pp(result[1][1])
+            task_id = uuid.uuid4().hex
+            task_queue.put((task_id, hall[0], True, g))
+
+            ret_task_id, (reward, info) = render_result_queue.get()
+            assert ret_task_id == task_id, "Got render result for a different task!"
+
+            pp(info)
 
             if hall[0].fitness.values[0]- last_best_fitness < 1e-4:
                 strikes += 1
@@ -457,7 +497,7 @@ def main():
     print("\n------------------------------------------------------------------------", flush=True)
     print("Hall of fame:", flush=True)
     print("------------------------------------------------------------------------\n", flush=True)
-    saveImages(hall, task_queue, result_queue, "H")
+    saveImages(hall, task_queue, render_result_queue, "H")
     print("------------------------------------------------------------------------\n\n", flush=True)
 
 
