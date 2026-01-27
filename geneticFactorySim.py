@@ -90,8 +90,6 @@ def worker_main(task_queue, result_queue, env_name, starting_time):
 
 
 
-
-
 def mycxBlend(ind1, ind2, alpha):
     """Executes a blend crossover that modify in-place the input individuals.
     The blend crossover expects :term:`sequence` individuals of floating point
@@ -416,7 +414,7 @@ def main():
 
         print("  Evaluated %i individuals" % len(invalid_ind), flush=True)
         if last_best != hall[0]:
-            print(f"---> Found new best individual with fitness {hall[0].fitness.values}", flush=True)
+            print(f"---> Found new best individual with fitness {hall[0].fitness.values[0]}", flush=True)
             last_best = hall[0]
             last_change_gen = g
             
