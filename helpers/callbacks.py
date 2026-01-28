@@ -42,9 +42,8 @@ class EvalCallback(RLlibCallback):
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
             for info in infos:
-                episode_id = int(info.get('evalEnvID', 0)+1)
+                episode_id = info.get('evalEnvID', '0')
                 print(f"Episode {episode_id} started")
-
   
 
     # def on_episode_step(
@@ -77,7 +76,7 @@ class EvalCallback(RLlibCallback):
                 
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
-            episode_id = str(int(infos[0].get('evalEnvID', 0)+1))
+            episode_id = infos[0].get('evalEnvID', '0')
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
 
             configSteps = {}
@@ -123,7 +122,7 @@ class EvalCallback(RLlibCallback):
 
         myData = metrics_logger.peek(('evaluation','env_runners', 'myData'), compile=False)
         episodes = list(myData.keys())
-        column_names = list(myData["1"].keys())
+        column_names = list(myData[episodes[0]].keys())
         for index in episodes:
             data[index] = {}
             for key in column_names:
@@ -142,7 +141,7 @@ class EvalCallback(RLlibCallback):
 
 
         if data:
-            self.upload_google_sheets(data, algo=algorithm.__class__.__name__)
+            self.upload_google_sheets(data, algo=algorithm.__class__.__name__, current_iteration=algorithm.iteration)
             column_names = [key for key in next(iter(data.values()))]
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
@@ -175,7 +174,7 @@ class EvalCallback(RLlibCallback):
         del(data)
  
 
-    def createUploadConfig(self, data: dict, currentStep: int, reward: float, problem_id: int, creator: str)-> dict:
+    def createUploadConfig(self, data: dict, currentStep: int, reward: float, problem_id: str, creator: str)-> dict:
         #target structure:
         #{"reward": 0.5029859136876851, "individual": [0.13721125779061238, 0.6535398256936433, 0.4487295072012506, 0.39291817669707396, 0.8750841990540823, 0.9755956458283996, 0.8728589587741787, 0.19230067903513304, 0.22079792120893404, 0.6560738790950633, 0.2890835816381917, 0.7347251307805799, 0.5664206508096447, 0.5509087684904029, 0.8285469248387858, 0.7105327717426778, 0.026577764997291697, 0.049459137146015686], "problem_id": "02", "creator": "Hendrik Unger", "config": {"0": {"position": [0.13721125779061238, 0.6535398256936433], "rotation": 0.4487295072012506}, "1": {"position": [0.39291817669707396, 0.8750841990540823], "rotation": 0.9755956458283996}, "2": {"position": [0.8728589587741787, 0.19230067903513304], "rotation": 0.22079792120893404}, "3": {"position": [0.6560738790950633, 0.2890835816381917], "rotation": 0.7347251307805799}, "4": {"position": [0.5664206508096447, 0.5509087684904029], "rotation": 0.8285469248387858}, "5": {"position": [0.7105327717426778, 0.026577764997291697], "rotation": 0.049459137146015686}}}
         config_dict = {}
@@ -195,8 +194,7 @@ class EvalCallback(RLlibCallback):
         config_dict["config"] = output_config
         return config_dict
 
-    def upload_google_sheets(self, data: dict, algo:str):
-        start= datetime.now()
+    def upload_google_sheets(self, data: dict, algo:str, current_iteration: int):
         if check_internet_conn():
             path = os.path.dirname(os.path.abspath(__file__))
             path = os.path.join(path, "..", "factorysimleaderboard-credentials.json")
@@ -215,7 +213,7 @@ class EvalCallback(RLlibCallback):
                         continue
                     else:
                         config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
-                        rows.append([current_time, episode_id, "V1.0", reward, CREATOR, f"factorySim-{algo}", json.dumps(config_dict)])
+                        rows.append([current_time, episode_id, "V1.0", reward, CREATOR, f"factorySim-{algo}-{current_iteration}", json.dumps(config_dict)])
 
             if len(rows) == 0:
                 print("No results to upload", flush=True)

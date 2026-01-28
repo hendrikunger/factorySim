@@ -297,8 +297,9 @@ class FactorySimEnv(gym.Env):
         else:
             self.info["Image"] = None
         self.info["Step"] = self.stepCount
-        self.info["evalEnvID"] = self.currentEvalEnv
         self.info["config"] = self.factory.creator.getCoordinateDict()
+        self.info["evalEnvID"] = os.path.basename(self.inputfile).split('.')[0]
+
 
 
     def __str__():
