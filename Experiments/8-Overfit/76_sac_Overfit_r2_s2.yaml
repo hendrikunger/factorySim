@@ -1,10 +1,10 @@
 
 project: factorySim_TRAIN
-group:  Dreamer
-notes: "NoRandomMachines"  
-tags: ["exp6", "v1", "r2", "s3"]
+group:  SAC
+notes: "Overfit" 
+tags: ["exp8", "v1", "r2", "s2"]
 
-subdir: ["Input","3"]
+subdir: ["Evaluation","01.ifc"]
 
 num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
@@ -26,8 +26,8 @@ train_batch_size_per_learner:  1024 #4096
 mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
-evaluation_interval: 5
-training_iteration: 300 # Number of training iterations to run.
+evaluation_interval: 200
+training_iteration: 10000 # Number of training iterations to run.
 
 ##PPO Config
 
@@ -56,13 +56,13 @@ vf_clip_param: 10.0  #Clip param for the value function. Note that this is sensi
 
 
 env_config:
-  algo: Dreamer  #APPO, PPO, Dreamer or SAC
+  algo: SAC  #APPO, PPO, Dreamer or SAC
   inputfile: '' #Gets populated on runtime
   obs_type: image
   Loglevel: 0
   width: 128 #84
   height: 128 #84
-  maxMF_Elements: 3
+  maxMF_Elements: null
   outputScale: 2 #10
   render_mode: null
   factoryconfig: SMALLSQUARE
@@ -73,8 +73,9 @@ env_config:
   randomSeed: null
   createMachines: false
   logLevel: 0
-  coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
-  curriculum_learning: true # If true, curriculum learning is enabled.
+  coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
+  curriculum_learning: false # If true, curriculum learning is enabled.
+  randomPositioning: true
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
@@ -82,5 +83,6 @@ evaluation_config:
     outputScale: 3 #10
     render_mode: rgb_array
     evaluation: true
-    randomSeed: 126
+    randomSeed: 84
     createMachines: false
+    randomPositioning: false

@@ -1,10 +1,10 @@
 
 project: factorySim_TRAIN
 group:  SAC
-notes: "NoRandomMachines" 
-tags: ["exp6", "v1", "r2", "s3"]
+notes: "Overfit" 
+tags: ["exp8", "v1", "r2", "s1"]
 
-subdir: ["Input","3"]
+subdir: ["Evaluation","01.ifc"]
 
 num_workers: 32  # parallelism  #40 on ray 
 num_envs_per_env_runner: 1
@@ -74,6 +74,7 @@ env_config:
   createMachines: false
   logLevel: 0
   coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
+  randomPositioning: true
   curriculum_learning: false # If true, curriculum learning is enabled.
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
@@ -82,5 +83,7 @@ evaluation_config:
     outputScale: 3 #10
     render_mode: rgb_array
     evaluation: true
-    randomSeed: 126
+    randomSeed: 42
     createMachines: false
+    randomPositioning: false
+

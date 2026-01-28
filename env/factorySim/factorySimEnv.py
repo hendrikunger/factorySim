@@ -336,10 +336,10 @@ def main():
     basePath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..","..")
     
     ifcPath = os.path.join(basePath, "Input", "2", f"{filename}.ifc")
-    #ifcPath = os.path.join(basePath,  "Evaluation", "06.ifc")
     #ifcPath = os.path.join(basePath, "Input", "2")
     configpath = os.path.join(basePath,"config.yaml")
     outputPath = os.path.join(basePath, "Output")
+    ifcPath = os.path.join(basePath,  "Evaluation", "06.ifc")
     
 
     with open(configpath, 'r') as f:
@@ -349,6 +349,7 @@ def main():
     f_config['env_config']['evaluation'] = True
     f_config['env_config']['randomSeed'] = 42
     f_config['env_config']['logLevel'] = 0
+
 
  
 
