@@ -9,7 +9,7 @@
 
 
 
-apptainer exec "$HOME/factorySim/factorySim.sif" python3 -u geneticFactorySim.py --problemID "16" --num-workers "$SLURM_CPUS_PER_TASK" --num-generations 2000 --num-population 300 --num-genmemory 0
+apptainer exec "$HOME/factorySim/factorySim.sif" python3 -u geneticFactorySim.py --num-workers "$SLURM_CPUS_PER_TASK" --num-generations 2000 --num-population 300 --num-genmemory 0
 
 # run with sbatch slurm-job.sh
 
