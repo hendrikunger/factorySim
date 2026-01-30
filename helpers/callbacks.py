@@ -2,7 +2,7 @@ from typing import Optional,  Sequence
 from functools import partial
 from datetime import datetime, UTC
 import json
-import copy
+import warnings
 from pprint import pprint
 import os
 import wandb
@@ -27,7 +27,14 @@ class EvalCallback(RLlibCallback):
     def __init__(self, env_runner_indices: Optional[Sequence[int]] = None):
         super().__init__()
         self.ratings = ['TotalRating', 'EvaluationResult', 'ratingMF', 'ratingTrueMF', 'MFIntersection', 'ratingCollision', 'routeContinuity', 'routeWidthVariance', 'Deadends', 'routeAccess', 'pathEfficiency', 'areaUtilisation', 'Scalability']
+        self.id_counter = {}
+        
 
+        warnings.filterwarnings(
+            "ignore",
+            message="Mean of empty slice",
+            category=RuntimeWarning,
+        )
     def on_episode_start(
         self,
         *,
@@ -41,9 +48,13 @@ class EvalCallback(RLlibCallback):
     ) -> None:
         if env_runner.config["env_config"]["evaluation"]:
             infos = episode.get_infos()
-            for info in infos:
-                episode_id = info.get('evalEnvID', '0')
-                print(f"Episode {episode_id} started")
+            episode_id = infos[0].get('evalEnvID', '0')
+            if episode_id not in self.id_counter:
+                self.id_counter[episode_id] = 0
+            else:
+                self.id_counter[episode_id] += 1
+            print(f"Episode {episode_id} Iteration {self.id_counter.get(episode_id, 0)} started")
+
   
 
     # def on_episode_step(
@@ -78,15 +89,13 @@ class EvalCallback(RLlibCallback):
             infos = episode.get_infos()
             episode_id = infos[0].get('evalEnvID', '0')
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
-
-            configSteps = {}
             for info in infos:
-                metrics_logger.log_dict(info, key=("myData",episode_id), reduce="item_series")
+                metrics_logger.log_dict(info, key=("myData", episode_id, str(self.id_counter[episode_id])), reduce="item_series")
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
-                        metrics_logger.log_value(("means",episode_id,key), value, reduce="mean", window=50)
-
+                        metrics_logger.log_value(("means", episode_id, key), value, reduce="mean", window=100)
+            
 
         
     def on_evaluate_start(
@@ -97,8 +106,18 @@ class EvalCallback(RLlibCallback):
         **kwargs,
     ) -> None:
         print(f"--------------------------------------------EVAL START--------------------------------------------")
+        if algorithm.eval_env_runner_group is None:
+            return
 
+        def _reset(env_runner):
+            for cb in getattr(env_runner, "_callbacks", []):
+                if isinstance(cb, EvalCallback):
+                    cb.id_counter.clear()
 
+        algorithm.eval_env_runner_group.foreach_env_runner(
+            func=_reset,
+            local_env_runner=True,
+        )
 
 
     def on_evaluate_end(
@@ -112,62 +131,68 @@ class EvalCallback(RLlibCallback):
 
 
         print(f"--------------------------------------------EVAL END--------------------------------------------")
+        self.id_counter = {}
         data = {}
         
         #myData = metrics_logger.peek(('evaluation','env_runners'), compile=False)
         
         # data structure in episode:
-        # episode_id  -> metric_name -> values of all steps
+        # episode_id -> id_counter -> metric_name -> values of all steps
         # these values lists do not appear when print, but can only be accessed via metrics_logger.peek
 
         myData = metrics_logger.peek(('evaluation','env_runners', 'myData'), compile=False)
         episodes = list(myData.keys())
-        column_names = list(myData[episodes[0]].keys())
-        for index in episodes:
-            data[index] = {}
-            for key in column_names:
-                if key == "config":
-                    #special handling for config dict
-                    config_dict = {}
-                    config_data = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key), compile=False)
-                    for machine_id, machine_data in config_data.items():
-                        config_dict[machine_id] = {}
-                        for m_key in machine_data.keys():
-                            config_dict[machine_id][m_key] = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key, machine_id, m_key), compile=False)
-                    data[index][key] = config_dict
-                else:
-                    data[index][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', index, key), compile=False)
+        first_episode = next(iter(myData.values()))
+        iterations = list(first_episode.keys())
+        first_iteration = next(iter(first_episode.values()))
+        column_names = list(first_iteration.keys())
+        for episode in episodes:
+            data[episode] = {}
+            for iteration in iterations:
+                data[episode][iteration] = {}
+                for key in column_names:
+                    if key == "config":
+                        #special handling for config dict
+                        config_dict = {}
+                        config_data = metrics_logger.peek(('evaluation','env_runners', 'myData', episode, iteration, key), compile=False)
+                        for machine_id, machine_data in config_data.items():
+                            config_dict[machine_id] = {}
+                            for m_key in machine_data.keys():
+                                config_dict[machine_id][m_key] = metrics_logger.peek(('evaluation','env_runners', 'myData', episode, iteration, key, machine_id, m_key), compile=False)
+                        data[episode][iteration][key] = config_dict
+                    else:
+                        data[episode][iteration][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', episode, iteration, key), compile=False)
 
 
 
         if data:
             self.upload_google_sheets(data, algo=algorithm.__class__.__name__, current_iteration=algorithm.iteration)
-            column_names = [key for key in next(iter(data.values()))]
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
-            for episode_id, infos in data.items():
-                #infos is a dict of all metrics each value is a list of the values of all steps
-                for step in range(len(infos['Step'])):
-                    row = []                     
-                    row_id = f"{episode_id}_{infos['Step'][step]}"
-                    row.append(row_id)
-                    for key, values in infos.items():
-                        
-                        if key == "config":
-                            value = {}
-                            for machine_id, machine_data in values.items():
-                                value[machine_id] = {}
-                                for m_key in machine_data.keys():
-                                    value[machine_id][m_key] = machine_data[m_key][step]
-                            fulljson = self.createUploadConfig(values, step, infos.get("Reward", -1.0)[step], episode_id, CREATOR)
-                            value = json.dumps(fulljson)
-                        else:
-                            value = values[step]
-                            if key == "Image":
-                                value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
+            for episode_id, episode in data.items():
+                for iteration, infos in episode.items():
+                    #infos is a dict of all metrics each value is a list of the values of all steps
+                    for step in range(len(infos['Step'])):
+                        row = []                     
+                        row_id = f"{episode_id}___{iteration:02}_{infos['Step'][step]}"
+                        row.append(row_id)
+                        for key, values in infos.items():
+                            
+                            if key == "config":
+                                value = {}
+                                for machine_id, machine_data in values.items():
+                                    value[machine_id] = {}
+                                    for m_key in machine_data.keys():
+                                        value[machine_id][m_key] = machine_data[m_key][step]
+                                fulljson = self.createUploadConfig(values, step, infos.get("Reward", -1.0)[step], episode_id, CREATOR)
+                                value = json.dumps(fulljson)
+                            else:
+                                value = values[step]
+                                if key == "Image":
+                                    value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
 
-                        row.append(value)
-                    tbl.add_data(*row)
+                            row.append(value)
+                        tbl.add_data(*row)
             evaluation_metrics["table"] = tbl
 
         del(myData)
@@ -206,14 +231,15 @@ class EvalCallback(RLlibCallback):
 
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-            for episode_id, infos in data.items():
-                for step in range(len(infos['Step'])):
-                    reward = infos.get("Reward", -1.0)[step]
-                    if reward < 0.7:
-                        continue
-                    else:
-                        config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
-                        rows.append([current_time, episode_id, "V1.0", reward, CREATOR, f"factorySim-{algo}-{current_iteration}", json.dumps(config_dict)])
+            for episode_id, episode in data.items():
+                for _, infos in episode.items():
+                    for step in range(len(infos['Step'])):
+                        reward = infos.get("Reward", -1.0)[step]
+                        if reward < 0.7:
+                            continue
+                        else:
+                            config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
+                            rows.append([current_time, episode_id, "V1.0", reward, CREATOR, f"factorySim-{algo}-{current_iteration}", json.dumps(config_dict)])
 
             if len(rows) == 0:
                 print("No results to upload", flush=True)
