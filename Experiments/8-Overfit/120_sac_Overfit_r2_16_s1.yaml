@@ -73,7 +73,7 @@ env_config:
   randomSeed: null
   createMachines: false
   logLevel: 0
-  coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
+  coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
   randomPositioning: true
   curriculum_learning: false # If true, curriculum learning is enabled.
 # Special evaluation config. Keys specified here will override
