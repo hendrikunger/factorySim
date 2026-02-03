@@ -233,8 +233,8 @@ class EvalCallback(RLlibCallback):
             for episode_id, episode in data.items():
                 for _, infos in episode.items():
                     for step in range(len(infos['Step'])):
-                        reward = infos.get("Reward", -1.0)[step]
-                        if reward < 0.7:
+                        reward = infos.get("EvaluationResult", -1.0)[step]
+                        if reward < 0.3:
                             continue
                         else:
                             config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
