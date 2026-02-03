@@ -20,7 +20,7 @@ module load CUDA/12.6.0
 #export WANDB_DIR="/lscratch"
 #export WANDB_CACHE_DIR="/lscratch"
 
-apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py
+apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 83
 
 
 #Paula cluster
