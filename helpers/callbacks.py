@@ -131,7 +131,6 @@ class EvalCallback(RLlibCallback):
 
 
         print(f"--------------------------------------------EVAL END--------------------------------------------")
-        self.id_counter = {}
         data = {}
         
         #myData = metrics_logger.peek(('evaluation','env_runners'), compile=False)
@@ -174,7 +173,7 @@ class EvalCallback(RLlibCallback):
                     #infos is a dict of all metrics each value is a list of the values of all steps
                     for step in range(len(infos['Step'])):
                         row = []                     
-                        row_id = f"{episode_id}___{iteration:02}_{infos['Step'][step]}"
+                        row_id = f"{episode_id}___{int(iteration):02}_{infos['Step'][step]}"
                         row.append(row_id)
                         for key, values in infos.items():
                             
