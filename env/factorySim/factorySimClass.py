@@ -284,7 +284,7 @@ class FactorySim:
                     # self.currentRating = np.average(partialRatings, weights=weights).item() 
                     keys_vals = [(k, v) for k, v in self.RatingDict.items() if k not in ("Reward", "terminated")]
                     partialRatings = np.array([v for _, v in keys_vals])
-                    weights = np.array([1 if k == "ratingCollision" else 1 for k, _ in keys_vals])
+                    weights = np.array([3 if k == "ratingCollision" else 1 for k, _ in keys_vals])
                     self.currentRating = np.average(partialRatings, weights=weights).item()
 
 
