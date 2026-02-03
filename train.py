@@ -141,8 +141,8 @@ def run():
 
     training_iteration = f_config.get("training_iteration", 2)
     if args.test:
-        training_iteration = 2
-        f_config['evaluation_config']['evaluation_interval'] = 1
+        training_iteration = 50
+        f_config['evaluation_config']['evaluation_interval'] = 25
     stop = {
     "training_iteration": training_iteration, #Number of training iterations
     #"num_env_steps_sampled_lifetime": 15000000,
