@@ -185,7 +185,7 @@ def saveImages(listToSave, task_queue, render_result_queue, prefix):
 
     pending_render = {}          # task_id -> (rank, expected_fitness)
     for rank, ind in enumerate(listToSave, start=1):
-        print(f"{rank+1} - {ind.fitness.values}", flush=True)
+        print(f"{rank} - {ind.fitness.values}", flush=True)
         task_id = uuid.uuid4().hex
         pending_render[task_id] = (rank, ind.fitness.values[0])
         task_queue.put((task_id, ind, True, f"{prefix}_{rank}"))
