@@ -40,7 +40,6 @@ class FactorySim:
             
         self.timezero = time()
         self.lasttime = 0      
-        self.lastRating = 0  
         self.RatingDict = {}
         self.MachinesFarFromPath = set()
         self.machine_dict = None
@@ -248,60 +247,28 @@ class FactorySim:
 
 
     ## Total Rating Calculation 
-
-
+            keys_vals = [(k, v) for k, v in self.RatingDict.items() if k not in ("Reward", "terminated")]
+            partialRatings = np.array([v for _, v in keys_vals])
+            weights = np.array([3 if k == "ratingCollision" else 1 for k, _ in keys_vals])
+            self.RatingDict["EvaluationResult"] = np.average(partialRatings, weights=weights).item()
             match rewardMode:
                 case 1:
-                    # Rating is 0 if no collision, -1 if collision
-                    keys_vals = [(k, v) for k, v in self.RatingDict.items() if k not in ("Reward", "terminated")]
-                    partialRatings = np.array([v for _, v in keys_vals])
-                    weights = np.array([3 if k == "ratingCollision" else 1 for k, _ in keys_vals])
-
                     if(self.RatingDict.get("ratingCollision", -1) >= 0.5):
-                        self.currentRating = np.average(partialRatings, weights=weights).item()  
+                        self.currentRating = self.RatingDict["EvaluationResult"] 
                     else: 
                         self.currentRating = -1.0
-
                 case 2:
                     # Rating the difference to the last rating
-                    keys_vals = [(k, v) for k, v in self.RatingDict.items() if k not in ("Reward", "terminated", "EvaluationResult")]
-                    partialRatings = np.array([v for _, v in keys_vals])
-                    weights = np.array([3 if k == "ratingCollision" else 1 for k, _ in keys_vals])
-
-                    self.currentRating = np.average(partialRatings, weights=weights).item() 
-                    self.RatingDict["EvaluationResult"] = self.currentRating 
+                    self.currentRating = self.RatingDict["EvaluationResult"] 
                     
-
                     if self.currentRating > self.lastRating: 
                         self.lastRating = self.currentRating
                     else:
                         self.currentRating = self.currentRating - self.lastRating
 
                 case 3:
-                    # Weighted average of all ratings
-                    # partialRatings = np.array([v for k, v in self.RatingDict.items() if k != "Reward" and k != "terminated"])
-                    # weights = np.ones_like(partialRatings)
-                    # self.currentRating = np.average(partialRatings, weights=weights).item() 
-                    keys_vals = [(k, v) for k, v in self.RatingDict.items() if k not in ("Reward", "terminated")]
-                    partialRatings = np.array([v for _, v in keys_vals])
-                    weights = np.array([3 if k == "ratingCollision" else 1 for k, _ in keys_vals])
-                    self.currentRating = np.average(partialRatings, weights=weights).item()
+                    self.currentRating = self.RatingDict["EvaluationResult"] 
 
-
-
-            self.RatingDict["Reward"] = self.currentRating                 
-
-            #if(output["ratingCollision"] >= 0.5):
-            #    self.currentRating = 0.1
-            #else:
-            #    self.currentRating = -1
-
-        #if(self.collisionAfterLastUpdate):
-        #    self.currentRating = -0.8
-        #elif(output["ratingCollision"] < 1):
-        #    self.currentRating = -0.5
-        #else:
-        #    self.currentRating = self.mapRange(output["ratingMF"],(-2,1),(-1,1))
 
         else:
             if(self.verboseOutput >= 1):
