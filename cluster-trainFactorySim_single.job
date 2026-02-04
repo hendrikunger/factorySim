@@ -11,14 +11,22 @@
 
 module load CUDA/12.6.0
 
+set -euo pipefail
 
+# Create workspace (10 days here)
+WORKSPACE=$(ws_allocate "ray-${SLURM_JOB_ID}" 10 | grep -E '^/work/' | tail -n 1)
+export WORKSPACE
 
-export RAY_RESULTS_DIR=/work/$USER/factorySim/ray_results
-mkdir -p "$RAY_RESULTS_DIR"
-#export WANDB_CONFIG_DIR="/lscratch"
-export WANDB_DIR=/work/$USER/factorySim/wandb
-#export WANDB_CACHE_DIR="/lscratch"
-mkdir -p "$WANDB_DIR"
+export RAY_RESULTS_DIR="$WORKSPACE/ray_results"
+export WANDB_DIR="$WORKSPACE/wandb"
+export TMPDIR="$WORKSPACE/tmp"
+export RAY_TMPDIR="$WORKSPACE/ray_tmp"
+
+mkdir -p "$RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" "$RAY_TMPDIR"
+
+echo "WORKSPACE=$WORKSPACE"
+echo "RAY_RESULTS_DIR=$RAY_RESULTS_DIR"
+echo "WANDB_DIR=$WANDB_DIR"
 
 apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 83
 
