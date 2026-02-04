@@ -18,11 +18,10 @@ WORKSPACE=$(ws_allocate "ray-${SLURM_JOB_ID}" 10 | grep -E '^/work/' | tail -n 1
 export WORKSPACE
 
 export MY_RAY_RESULTS_DIR="$WORKSPACE/ray_results"
-export RAY_TMPDIR="$WORKSPACE/ray_tmp"
 export WANDB_DIR="$WORKSPACE/wandb"
 
 
-mkdir -p "$MY_RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" 
+mkdir -p "$MY_RAY_RESULTS_DIR" "$WANDB_DIR" 
 
 echo "WORKSPACE=$WORKSPACE"
 echo "RAY_RESULTS_DIR=$MY_RAY_RESULTS_DIR"
