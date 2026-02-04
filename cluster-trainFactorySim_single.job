@@ -20,9 +20,9 @@ export WORKSPACE
 export RAY_RESULTS_DIR="$WORKSPACE/ray_results"
 export RAY_TMPDIR="$WORKSPACE/ray_tmp"
 export WANDB_DIR="$WORKSPACE/wandb"
-export TMPDIR="$WORKSPACE/tmp"
 
-mkdir -p "$RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" "$RAY_TMPDIR"
+
+mkdir -p "$RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" 
 
 echo "WORKSPACE=$WORKSPACE"
 echo "RAY_RESULTS_DIR=$RAY_RESULTS_DIR"
