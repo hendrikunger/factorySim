@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --partition=paul,paula,clara
+#SBATCH --job-name=FactorySimContainerBuilder
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=1GB
+#SBATCH --time=1:00:00
+
+
+# rm -R -f factorySim 
+
+# git clone https://github.com/hendrikunger/factorySim.git
+
+# cd ~/factorySim
+
+# Create workspace (10 days here)
+WORKSPACE=$(ws_allocate "ray-${SLURM_JOB_ID}" 10 | grep -E '^/work/' | tail -n 1)
+export WORKSPACE
+
+export RAY_RESULTS_DIR="$WORKSPACE/ray_results"
+export WANDB_DIR="$WORKSPACE/wandb"
+export TMPDIR="$WORKSPACE/tmp"
+export RAY_TMPDIR="$WORKSPACE/ray_tmp"
+
+mkdir -p "$RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" "$RAY_TMPDIR"
+
+echo "WORKSPACE=$WORKSPACE"
+echo "RAY_RESULTS_DIR=$RAY_RESULTS_DIR"
+echo "WANDB_DIR=$WANDB_DIR"
+#clara cluster
+# run with sbatch slurm-buildContainer.job
+#X2VQtEV?vmYH3S9KPS% 
