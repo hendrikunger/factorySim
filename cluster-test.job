@@ -24,7 +24,7 @@ echo "WORKSPACE=$WORKSPACE"
 echo "RAY_RESULTS_DIR=$MY_RAY_RESULTS_DIR"
 echo "WANDB_DIR=$WANDB_DIR"
 
-apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 83
+apptainer exec --bind /work:/work --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 83
 
 #clara cluster
 # run with sbatch slurm-buildContainer.job
