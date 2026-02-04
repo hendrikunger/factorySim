@@ -12,13 +12,12 @@
 module load CUDA/12.6.0
 
 
-#wandb could not write to this directory
-#ws_allocate wandb 5
-#mkdir /lscratch/wandb
-
+export RAY_RESULTS_DIR=/work/$USER/factorySim/ray_results
+mkdir -p "$RAY_RESULTS_DIR"
 #export WANDB_CONFIG_DIR="/lscratch"
-#export WANDB_DIR="/lscratch"
+export WANDB_DIR=/work/$USER/factorySim/wandb
 #export WANDB_CACHE_DIR="/lscratch"
+mkdir -p "$WANDB_DIR"
 
 apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 71
 
