@@ -128,7 +128,7 @@ def run():
 
 
     if "SLURM_JOB_UID" in os.environ or sys.platform == "darwin" or platform.node() == "pop-os":
-        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env, include_dashboard=True, dashboard_host="0.0.0.0") 
+        ray.init(num_gpus=NUMGPUS, runtime_env=runtime_env, include_dashboard=True, dashboard_host="0.0.0.0", _temp_dir=os.environ.get("RAY_TMPDIR", "/tmp")) 
     else:
         #we are running on ray cluster
         runtime_env["py_modules"] = ["env/factorySim"]
