@@ -27,6 +27,12 @@ mkdir -p "$RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" "$RAY_TMPDIR"
 echo "WORKSPACE=$WORKSPACE"
 echo "RAY_RESULTS_DIR=$RAY_RESULTS_DIR"
 echo "WANDB_DIR=$WANDB_DIR"
+
+touch "$RAY_RESULTS_DIR/dummy"
+touch "$WANDB_DIR/dummy"
+touch "$TMPDIR/dummy"
+touch "$RAY_TMPDIR/dummy"
+
 #clara cluster
 # run with sbatch slurm-buildContainer.job
 #X2VQtEV?vmYH3S9KPS% 
