@@ -7,31 +7,26 @@
 #SBATCH --time=1:00:00
 
 
-# rm -R -f factorySim 
+module load CUDA/12.6.0
 
-# git clone https://github.com/hendrikunger/factorySim.git
-
-# cd ~/factorySim
+set -euo pipefail
 
 # Create workspace (10 days here)
 WORKSPACE=$(ws_allocate "ray-${SLURM_JOB_ID}" 10 | grep -E '^/work/' | tail -n 1)
 export WORKSPACE
 
 export RAY_RESULTS_DIR="$WORKSPACE/ray_results"
-export WANDB_DIR="$WORKSPACE/wandb"
-export TMPDIR="$WORKSPACE/tmp"
 export RAY_TMPDIR="$WORKSPACE/ray_tmp"
+export WANDB_DIR="$WORKSPACE/wandb"
 
-mkdir -p "$RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" "$RAY_TMPDIR"
+
+mkdir -p "$RAY_RESULTS_DIR" "$WANDB_DIR" "$TMPDIR" 
 
 echo "WORKSPACE=$WORKSPACE"
 echo "RAY_RESULTS_DIR=$RAY_RESULTS_DIR"
 echo "WANDB_DIR=$WANDB_DIR"
 
-touch "$RAY_RESULTS_DIR/dummy"
-touch "$WANDB_DIR/dummy"
-touch "$TMPDIR/dummy"
-touch "$RAY_TMPDIR/dummy"
+apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 83
 
 #clara cluster
 # run with sbatch slurm-buildContainer.job
