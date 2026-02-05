@@ -238,7 +238,7 @@ class EvalCallback(RLlibCallback):
                             continue
                         else:
                             config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
-                            rows.append([current_time, episode_id, "V1.0", reward, CREATOR, f"factorySim-{algo}-{current_iteration}", json.dumps(config_dict)])
+                            rows.append([current_time, episode_id, "V1.0", reward, CREATOR, f"factorySim-{algo}", json.dumps(config_dict)])
 
             if len(rows) == 0:
                 print("No results to upload", flush=True)
