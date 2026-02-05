@@ -165,7 +165,15 @@ class EvalCallback(RLlibCallback):
 
 
         if data:
-            self.upload_google_sheets(data, algo=algorithm.__class__.__name__, current_iteration=algorithm.iteration)
+            #Try to upload to google sheets up to 3 times
+            for i in range(3):
+                try:
+                    self.upload_google_sheets(data, algo=algorithm.__class__.__name__, current_iteration=algorithm.iteration)
+                    break
+                except Exception as e:
+                    if i == 2:
+                        print(f"Error uploading to google sheets: {e}", flush=True)
+
             tbl = wandb.Table(columns=["id"] + column_names)
             #iterate over all eval episodes
             for episode_id, episode in data.items():

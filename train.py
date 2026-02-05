@@ -438,7 +438,8 @@ def run():
     run_config=RunConfig(name="bert",
                             stop=stop,
                             checkpoint_config=checkpoint_config,
-                            #log_to_file="./wandb/latest-run/files/stdoutanderr.log",
+                            storage_path=os.getenv("MY_RAY_RESULTS_DIR", os.path.expanduser("~") + "/ray_results/"),
+                            log_to_file=True,
                             callbacks=[
                                 WandbLoggerCallback(project=f_config.get("project", "factorySim_TRAIN")  ,
                                                     log_config=True,

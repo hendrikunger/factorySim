@@ -12,15 +12,22 @@
 module load CUDA/12.6.0
 
 
-#wandb could not write to this directory
-#ws_allocate wandb 5
-#mkdir /lscratch/wandb
+set -euo pipefail
 
-#export WANDB_CONFIG_DIR="/lscratch"
-#export WANDB_DIR="/lscratch"
-#export WANDB_CACHE_DIR="/lscratch"
+# Create workspace (10 days here)
+WORKSPACE=$(ws_allocate "ray-${SLURM_JOB_ID}" 10 | grep -E '^/work/' | tail -n 1)
+export WORKSPACE
 
-apptainer exec --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 71
+export MY_RAY_RESULTS_DIR="$WORKSPACE/ray_results"
+export WANDB_DIR="$WORKSPACE/wandb"
+
+
+mkdir -p "$MY_RAY_RESULTS_DIR" "$WANDB_DIR" 
+
+echo "WORKSPACE=$WORKSPACE"
+echo "RAY_RESULTS_DIR=$MY_RAY_RESULTS_DIR"
+echo "WANDB_DIR=$WANDB_DIR"
+apptainer exec --bind /work:/work --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 71
 
 
 #Paula cluster
