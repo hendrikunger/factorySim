@@ -78,7 +78,6 @@ env_config:
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
-    inputfile: '' #Gets populated on runtime
     obs_type: image
     Loglevel: 0
     width: 128 #84
