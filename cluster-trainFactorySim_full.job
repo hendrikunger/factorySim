@@ -8,7 +8,7 @@
 #SBATCH --mem-per-cpu=6GB
 #SBATCH --time=24:00:00
 #SBATCH --mail-type=BEGIN,END
-#SBATCH --array=150-176
+#SBATCH --array=108-122
 # array von 1  bis 36 und  gleichzeitg
 
 module load CUDA/12.6.0
