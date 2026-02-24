@@ -242,7 +242,7 @@ class EvalCallback(RLlibCallback):
                 for _, infos in episode.items():
                     for step in range(len(infos['Step'])):
 
-                        isMaxDifficulty = infos.get('maxDifficulity')
+                        isMaxDifficulty = infos.get('maxDifficulity')[step]
                         print(f"Max Difficulty {isMaxDifficulty}")
                         #Skip upload if we are not running on max difficulty for the env
                         if not isMaxDifficulty: 
