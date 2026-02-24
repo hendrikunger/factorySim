@@ -259,9 +259,9 @@ class factorySimLive(mglw.WindowConfig):
             if key == keys.A:
                 self.agentInference()   
             # Debug Mode Rendering
-            if key == 65451 or key == keys.PAGE_UP: # Num Plus
+            if key == 65451 or key == keys.PAGE_UP or key == keys.E: # Num Plus
                 self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 3 else 0
-            if key == 65453 or key == keys. PAGE_DOWN: # Num Minus
+            if key == 65453 or key == keys.PAGE_DOWN or key == keys.R: # Num Minus
                 self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 3
             # Zoom
             if key == 43: # +
