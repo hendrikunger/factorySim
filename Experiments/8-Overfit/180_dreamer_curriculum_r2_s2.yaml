@@ -27,7 +27,7 @@ mini_batch_size_per_learner: 256 #100
 
 # Evaluate once per training iteration.
 evaluation_interval: 1
-training_iteration: 5 # Number of training iterations to run.
+training_iteration: 50 # Number of training iterations to run.
 
 ##PPO Config
 
