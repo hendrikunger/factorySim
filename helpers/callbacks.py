@@ -293,7 +293,7 @@ class CurriculumCallback(RLlibCallback):
     ) -> None:
         # Set the initial task to 3 elements, the practical minimum.
         algorithm._counters["current_maxMF_Elements"] = 3
-        print(f"Curriculum Learning Active - setting difficulty to {algorithm._counters["current_maxMF_Elements"]}")
+        print(f"Curriculum Learning Active - setting difficulty to {algorithm._counters['current_maxMF_Elements']}")
 
     def on_train_result(
         self,
