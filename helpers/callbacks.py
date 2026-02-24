@@ -91,7 +91,6 @@ class EvalCallback(RLlibCallback):
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
             for info in infos:
                 metrics_logger.log_dict(info, key=("myData", episode_id, str(self.id_counter[episode_id])), reduce="item_series")
-                print(f"MAX DIFFICULITY {info['maxDifficulity']}")
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
@@ -162,7 +161,7 @@ class EvalCallback(RLlibCallback):
                         data[episode][iteration][key] = config_dict
                     else:
                         data[episode][iteration][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', episode, iteration, key), compile=False)
-
+                        if key == "maxDifficulity": print("FOUND KEY______________________________")
 
 
         if data:
