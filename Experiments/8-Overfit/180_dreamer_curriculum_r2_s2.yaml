@@ -62,7 +62,7 @@ env_config:
   Loglevel: 0
   width: 128 #84
   height: 128 #84
-  maxMF_Elements: 0
+  maxMF_Elements: 3
   outputScale: 2 #10
   render_mode: null
   factoryconfig: SMALLSQUARE
@@ -91,4 +91,4 @@ evaluation_config:
     reward_function: 2
     actionRounds: 1 # Number of action rounds per machine during evaluation
     createMachines: false
-    logLevel: 0
+    maxMF_Elements: null
