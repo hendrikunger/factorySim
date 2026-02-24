@@ -161,7 +161,6 @@ class EvalCallback(RLlibCallback):
                         data[episode][iteration][key] = config_dict
                     else:
                         data[episode][iteration][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', episode, iteration, key), compile=False)
-                        if key == "maxDifficulity": print("FOUND KEY______________________________")
 
 
         if data:
@@ -237,12 +236,13 @@ class EvalCallback(RLlibCallback):
             rows = []
 
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+            #"maxDifficulity"
+            #data[episode][iteration][key]
             for episode_id, episode in data.items():
                 for _, infos in episode.items():
-                    isMaxDifficulity = infos[0].get('maxDifficulity')
+                    isMaxDifficulty = infos.get('maxDifficulity')
                     #Skip upload if we are not running on max difficulty for the env
-                    if not isMaxDifficulity: 
+                    if not isMaxDifficulty: 
                         print("Skipping upload because env is not on max difficulty")
                         continue
                     for step in range(len(infos['Step'])):
