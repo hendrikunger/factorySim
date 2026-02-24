@@ -91,7 +91,7 @@ class EvalCallback(RLlibCallback):
             #Save as a dict with key "myData" and the evalEnvID as subkey, so different episodes can be parsed later
             for info in infos:
                 metrics_logger.log_dict(info, key=("myData", episode_id, str(self.id_counter[episode_id])), reduce="item_series")
-                print(f"MAX DIFFICULITY{info['maxDifficulity']}")
+                print(f"MAX DIFFICULITY {info['maxDifficulity']}")
                 #Full Logging of all metrics
                 for key, value in info.items():
                     if key in self.ratings:
@@ -293,6 +293,7 @@ class CurriculumCallback(RLlibCallback):
     ) -> None:
         # Set the initial task to 3 elements, the practical minimum.
         algorithm._counters["current_maxMF_Elements"] = 3
+        print(f"Curriculum Learning Active - setting difficulty to {algorithm._counters["current_maxMF_Elements"]}")
 
     def on_train_result(
         self,
