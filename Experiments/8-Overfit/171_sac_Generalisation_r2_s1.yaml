@@ -78,6 +78,7 @@ env_config:
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
+    maxMF_Elements: null
     obs_type: image
     Loglevel: 0
     width: 128 #84
