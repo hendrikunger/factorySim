@@ -240,6 +240,11 @@ class EvalCallback(RLlibCallback):
 
             for episode_id, episode in data.items():
                 for _, infos in episode.items():
+                    isMaxDifficulity = infos[0].get('maxDifficulity')
+                    #Skip upload if we are not running on max difficulty for the env
+                    if not isMaxDifficulity: 
+                        print("Skipping upload because env is not on max difficulty")
+                        continue
                     for step in range(len(infos['Step'])):
                         reward = infos.get("EvaluationResult", -1.0)[step]
                         if reward < 0.7:

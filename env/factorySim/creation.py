@@ -136,14 +136,17 @@ class FactoryCreator():
         ifc_file = ifcopenshell.open(ifc_file_path)
         element_dict = {}
         elements = []
+        loadedEverything = False
         if(maxMFElements): 
             ifc_elements = ifc_file.by_type(elementName)
             #Find max amount of elements to export
+            if len(ifc_elements) == maxMFElements: loadedEverything=True
             amount = self.rng.integers(2, min(maxMFElements + 1, len(ifc_elements)))
             selected = self.rng.choice(np.arange(len(ifc_elements)-1), size=amount, replace=False)
             elements = [ifc_elements[i] for i in selected]
         else:
             elements = ifc_file.by_type(elementName)
+            loadedEverything=True
         for index, element in enumerate(elements):
             #get origin
             origin = element.ObjectPlacement.RelativePlacement.Location.Coordinates
@@ -233,7 +236,7 @@ class FactoryCreator():
             self.wall_dict = element_dict
 
 
-        return element_dict
+        return element_dict, loadedEverything
 
 
     def createRandomMaterialFlow(self, machine_dict: dict = None) -> pd.DataFrame:
