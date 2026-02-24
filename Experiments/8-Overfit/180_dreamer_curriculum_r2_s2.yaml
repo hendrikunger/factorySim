@@ -82,7 +82,6 @@ evaluation_config:
     Loglevel: 0
     width: 128 #84
     height: 128 #84
-    maxMF_Elements: null
     outputScale: 3 #10
     render_mode: rgb_array
     factoryconfig: SMALLSQUARE
