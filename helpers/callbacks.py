@@ -241,6 +241,7 @@ class EvalCallback(RLlibCallback):
             for episode_id, episode in data.items():
                 for _, infos in episode.items():
                     isMaxDifficulty = infos.get('maxDifficulity')
+                    print(f"Max Difficulty {isMaxDifficulty}")
                     #Skip upload if we are not running on max difficulty for the env
                     if not isMaxDifficulty: 
                         print("Skipping upload because env is not on max difficulty")
