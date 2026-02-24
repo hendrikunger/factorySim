@@ -242,14 +242,11 @@ class EvalCallback(RLlibCallback):
                 for _, infos in episode.items():
                     for step in range(len(infos['Step'])):
 
-                        isMaxDifficulty = infos.get('maxDifficulity')[step]
-                        print(f"Max Difficulty {isMaxDifficulty}")
                         #Skip upload if we are not running on max difficulty for the env
-                        if not isMaxDifficulty: 
-                            print("Skipping upload because env is not on max difficulty")
-                            continue
+                        isMaxDifficulty = infos.get('maxDifficulity')[step]
+                        #Check if reward if worthy of upload
                         reward = infos.get("EvaluationResult", -1.0)[step]
-                        if reward < 0.7:
+                        if reward < 0.7 or not isMaxDifficulty:
                             continue
                         else:
                             config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
