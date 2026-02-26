@@ -31,7 +31,7 @@ echo "WORKSPACE=$WORKSPACE"
 echo "RAY_RESULTS_DIR=$MY_RAY_RESULTS_DIR"
 echo "WANDB_DIR=$WANDB_DIR"
 
-apptainer exec --bind /work2:/work --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid "$SLURM_ARRAY_TASK_ID"
+#apptainer exec --bind /work2:/work --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid "$SLURM_ARRAY_TASK_ID"
 
 
 #Paula cluster
