@@ -47,6 +47,7 @@ class FactorySim:
         self.machineCollisionList = []
         self.wallCollisionList = []
         self.outsiderList = []
+        self.isMaxDifficulty = False
 
         #Importing Walls
         if path_to_ifc_file:
@@ -59,7 +60,7 @@ class FactorySim:
 
             logging.info(f"Lade: {self.ifc_file}")
                 
-            self.wall_dict = self.creator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True)
+            self.wall_dict, _ = self.creator.load_ifc_factory(self.ifc_file, "IFCWALL", recalculate_bb=True)
 
         else:
             self.wall_dict = {}
@@ -78,12 +79,12 @@ class FactorySim:
                 if(self.verboseOutput >= 2):
                     print(f"Lade: Demomaterialflussobjekte. Maximal {self.MAXMF_ELEMENTS} werden aus {self.ifc_file} geladen.")
                 #2 bis MAXMF_ELEMENTS aus der Datei mit Demomaterialflussobjekten laden.
-                self.machine_dict = self.creator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY", maxMFElements=self.MAXMF_ELEMENTS)
+                self.machine_dict, self.isMaxDifficulty = self.creator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY", maxMFElements=self.MAXMF_ELEMENTS)
             else:
                 #Import full file
                 if(self.verboseOutput >= 2):
                     print("Nutze alle MF Objekte in der IFC Datei")
-                self.machine_dict = self.creator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
+                self.machine_dict, self.isMaxDifficulty = self.creator.load_ifc_factory(self.ifc_file, "IFCBUILDINGELEMENTPROXY")
 
 
             if(self.verboseOutput >= 3):
@@ -202,6 +203,7 @@ class FactorySim:
     def evaluate(self, rewardMode = 2, actionRounds = 1):
 
         self.RatingDict = {}
+        self.RatingDict["maxDifficulity"] = self.isMaxDifficulty
         #In case caluclation fails set default rating
         self.currentRating = -5.0
 

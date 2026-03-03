@@ -163,7 +163,6 @@ class EvalCallback(RLlibCallback):
                         data[episode][iteration][key] = metrics_logger.peek(('evaluation','env_runners', 'myData', episode, iteration, key), compile=False)
 
 
-
         if data:
             #Try to upload to google sheets up to 3 times
             for i in range(3):
@@ -237,12 +236,17 @@ class EvalCallback(RLlibCallback):
             rows = []
 
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+            #"maxDifficulity"
+            #data[episode][iteration][key]
             for episode_id, episode in data.items():
                 for _, infos in episode.items():
                     for step in range(len(infos['Step'])):
+
+                        #Skip upload if we are not running on max difficulty for the env
+                        isMaxDifficulty = infos.get('maxDifficulity')[step]
+                        #Check if reward if worthy of upload
                         reward = infos.get("EvaluationResult", -1.0)[step]
-                        if reward < 0.7:
+                        if reward < 0.7 or not isMaxDifficulty:
                             continue
                         else:
                             config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
@@ -287,6 +291,7 @@ class CurriculumCallback(RLlibCallback):
     ) -> None:
         # Set the initial task to 3 elements, the practical minimum.
         algorithm._counters["current_maxMF_Elements"] = 3
+        print(f"Curriculum Learning Active - setting difficulty to {algorithm._counters['current_maxMF_Elements']}")
 
     def on_train_result(
         self,

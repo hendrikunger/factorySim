@@ -388,7 +388,7 @@ def main():
 
         obs, reward, terminated, truncated, info = env.step(env.action_space.sample()) 
         print(f"Step {env.stepCount}, Reward: {reward}, Terminated: {terminated},")
-        pprint(info["config"])
+        #pprint(info["config"])
         image = renderImage()
 
 

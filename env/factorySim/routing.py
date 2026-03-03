@@ -709,7 +709,7 @@ if __name__ == "__main__":
         #     "TestCaseZigZag" + ".ifc")
 
  
-        wall_dict = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
+        wall_dict, _ = factoryCreator.load_ifc_factory(ifcpath, "IFCWALL", recalculate_bb=True)
         bb = factoryCreator.bb 
         machine_dict = factoryCreator.create_factory()
         

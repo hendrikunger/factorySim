@@ -108,7 +108,6 @@ class factorySimLive(mglw.WindowConfig):
     def add_arguments(cls, parser):
         # Always call super
         super().add_arguments(parser)
-
         parser.add_argument(
             "-p","--problemID",
             type=int,
@@ -141,7 +140,6 @@ class factorySimLive(mglw.WindowConfig):
         #self.ifcPath = os.path.join(basePath, "2", "EDF.ifc")
         self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", "01.ifc")
         #self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation")
-
         if self.argv.problemID:
             self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", f"{self.argv.problemID:02d}.ifc")
             self.evalID = self.argv.problemID
@@ -166,7 +164,7 @@ class factorySimLive(mglw.WindowConfig):
 
         ifcPath = os.path.join(basePath, "FTS.ifc")
 
-        self.mobile_dict =self.factoryCreator.load_ifc_factory(ifcPath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
+        self.mobile_dict, _ =self.factoryCreator.load_ifc_factory(ifcPath, "IFCBUILDINGELEMENTPROXY", recalculate_bb=False)
         print(list(self.mobile_dict.values())[0].gid)
         self.nextGID = len(self.env.factory.machine_dict)
         self.set_factoryScale()
@@ -269,9 +267,9 @@ class factorySimLive(mglw.WindowConfig):
             if key == keys.A:
                 self.agentInference()   
             # Debug Mode Rendering
-            if key == 65451 or key == keys.PAGE_UP: # Num Plus
+            if key == 65451 or key == keys.PAGE_UP or key == keys.E: # Num Plus
                 self.currenDebugMode = self.currenDebugMode + 1 if self.currenDebugMode < 3 else 0
-            if key == 65453 or key == keys. PAGE_DOWN: # Num Minus
+            if key == 65453 or key == keys.PAGE_DOWN or key == keys.R: # Num Minus
                 self.currenDebugMode = self.currenDebugMode - 1 if self.currenDebugMode > 0 else 3
             # Zoom
             if key == 43: # +
@@ -307,10 +305,10 @@ class factorySimLive(mglw.WindowConfig):
                 else:
                     print("No live.ifc found")
             #Save Positions
-            if key == keys.END:
+            if key == keys.END or key.S:
                 self.env.factory.creator.save_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live_pos.json"), creator=self.Creator)
             # Load Positions
-            if key == keys.HOME:
+            if key == keys.HOME or key == keys.O:
                 self.env.factory.creator.load_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live_pos.json"))
                 self.set_factoryScale()
                 self.nextGID = len(self.env.factory.machine_dict)
@@ -836,7 +834,9 @@ class factorySimLive(mglw.WindowConfig):
 
 if __name__ == "__main__":
     if sys.platform == "darwin":
-        mglw.run_window_config(factorySimLive, args=('--window', 'pygame2'))
+        args = sys.argv[1:]
+        args.extend(['--window', 'pygame2'])
+        mglw.run_window_config(factorySimLive, args=args)
     else:
         mglw.run_window_config(factorySimLive)
     
