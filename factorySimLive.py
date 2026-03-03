@@ -15,6 +15,7 @@ import numpy as np
 from shapely.geometry import Point, Polygon, box, MultiPolygon
 from paho.mqtt import client as mqtt
 
+from env.factorySim.rendering import draw_text
 from factorySim.rendering import *
 from factorySim.creation import FactoryCreator
 import factorySim.baseConfigs as baseConfigs
@@ -100,6 +101,7 @@ class factorySimLive(mglw.WindowConfig):
     dpiScaler = 1
     is_online = check_internet_conn()
     EVALUATION = True
+    evalID = None
     GRIDSNAP = 1000.0  #in mm
       
     @classmethod
@@ -113,6 +115,12 @@ class factorySimLive(mglw.WindowConfig):
             default=2,
             help="Which - in the list of evaluation environments to use. Default is 1.",
         )
+        parser.add_argument(
+            "-n","--Name",
+            type=str,
+            default="Hendrik Unger",
+            help="Name of the Creator to use for upload.",
+        )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -120,6 +128,7 @@ class factorySimLive(mglw.WindowConfig):
         self.rng = np.random.default_rng()
         self.cmap = self.rng.random(size=(200, 3))
         self.executor = ThreadPoolExecutor(max_workers=1)
+        self.Creator = self.argv.Name
 
 
         
@@ -135,6 +144,7 @@ class factorySimLive(mglw.WindowConfig):
 
         if self.argv.problemID:
             self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", f"{self.argv.problemID:02d}.ifc")
+            self.evalID = self.argv.problemID
 
         with open(configpath, 'r') as f:
             self.f_config = yaml.load(f, Loader=yaml.FullLoader)
@@ -298,7 +308,7 @@ class factorySimLive(mglw.WindowConfig):
                     print("No live.ifc found")
             #Save Positions
             if key == keys.END:
-                self.env.factory.creator.save_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live_pos.json"))
+                self.env.factory.creator.save_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live_pos.json"), creator=self.Creator)
             # Load Positions
             if key == keys.HOME:
                 self.env.factory.creator.load_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), "live_pos.json"))
@@ -306,15 +316,25 @@ class factorySimLive(mglw.WindowConfig):
                 self.nextGID = len(self.env.factory.machine_dict)
                 self.selected = None
                 self.is_dirty = True
+            # Change EVAL ID - or +
+            if key == keys.Q or key == keys.W:
+                if self.evalID is not None:
+                    self.evalID = self.evalID - 1 if key == keys.Q else self.evalID + 1
+                    #check if eval id is valid
+                    self.evalID = max(1, self.evalID)
+                    directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", f"{self.evalID:02d}.ifc")
+                    # get list of ifc files in directory
+                    ifcFiles = [ f for f in os.listdir(os.path.dirname(directory)) if f.endswith('.ifc')]
+                    self.evalID = min(len(ifcFiles), self.evalID)
+
+                    self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", f"{self.evalID:02d}.ifc")
+                    self.recreateFactory(self.ifcPath)
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
             #Restart
             if key == keys.N:
-                self.create_factory()
-                self.set_factoryScale()
-                self.nextGID = len(self.env.factory.machine_dict) 
-                self.selected = None
+                self.recreateFactory(self.ifcPath)
             # End Drawing Mode
             if key == keys.ESCAPE:
                 self.clickedPoints.clear()
@@ -523,7 +543,8 @@ class factorySimLive(mglw.WindowConfig):
 
         color = (1.0, 1.0, 1.0) if self.is_darkmode else (0.0, 0.0, 0.0)
         mode = self.activeModes[Modes.DRAWING].name if self.activeModes[Modes.DRAWING].value else ""
-        draw_text(self.cctx,(f"{self.fps_counter:.0f}   {mode}"), color, (20, 200))
+        env =  f"ENVID {self.evalID}" if self.evalID else ""
+        draw_text(self.cctx,(f"{self.fps_counter:.0f}   {env}   {mode}"), color, (20, 200))
 
         if self.is_textrender:
         #Draw every rating on a new line
@@ -662,6 +683,12 @@ class factorySimLive(mglw.WindowConfig):
             indexNames = self.env.factory.dfMF[ (self.env.factory.dfMF['source'] == index) | (self.env.factory.dfMF['target'] == index) ].index
             self.env.factory.dfMF = self.env.factory.dfMF.drop(indexNames).reset_index(drop=True)
             self.update_needed()
+
+    def recreateFactory(self, ifcPath=None):
+        self.create_factory(ifcPath)
+        self.set_factoryScale()
+        self.nextGID = len(self.env.factory.machine_dict)
+        self.selected = None
             
     def create_factory(self, ifcPath=None):
         env_config = self.f_config['env_config'].copy()
