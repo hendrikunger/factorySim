@@ -305,7 +305,7 @@ class factorySimLive(mglw.WindowConfig):
                 else:
                     print("No live.ifc found")
             #Save Positions
-            if key == keys.END or key.S:
+            if key == keys.END or key == keys.S:
                 self.env.factory.creator.save_position_json(os.path.join(os.path.dirname(os.path.realpath(__file__)), f"live_pos.json"), creator=self.Creator)
             # Load Positions
             if key == keys.HOME or key == keys.O:
@@ -327,6 +327,9 @@ class factorySimLive(mglw.WindowConfig):
 
                     self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", f"{self.evalID:02d}.ifc")
                     self.recreateFactory(self.ifcPath)
+            # Upload to Eval Server
+            if key == keys.U:
+                self.uploadToLeaderboard()
             # Darkmode
             if key == keys.B:
                 self.is_darkmode = not self.is_darkmode
@@ -725,6 +728,24 @@ class factorySimLive(mglw.WindowConfig):
             self.env.factory.update(self.selected, action[0], action[1], action[2], 0)
             self.update_needed()
             
+    def uploadToLeaderboard(self):
+        #import if not defined to avoid unnecessary dependency for users who don't want to use this feature
+        import gspread
+        from datetime import datetime
+        gc = gspread.service_account(filename="factorysimleaderboard-credentials.json")
+        sh = gc.open("FactorySimLeaderboard")
+        worksheet = sh.worksheet("ManualScores")
+        config_dict = { "creator": self.Creator, "reward": self.env.factory.currentRating, "problem_id": self.evalID}
+        config_dict["config"] = self.env.factory.creator.getCoordinateDict()
+        individual = []
+        for value in config_dict["config"].values():
+            individual.extend([value["posX"], value["posY"], value["rotation"]])
+        config_dict["individual"] = individual
+    
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        row = [current_time, config_dict["problem_id"], "V1.0", config_dict["reward"], config_dict["creator"], "Manual", json.dumps(config_dict)]
+        worksheet.append_row(row, value_input_option="USER_ENTERED")
+        print(f"Uploaded  results to leaderboard", flush=True)
 
 
 
