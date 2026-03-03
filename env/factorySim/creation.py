@@ -369,16 +369,17 @@ class FactoryCreator():
         return data
 
 
-    def save_position_json(self, filename: str) -> None:
+    def save_position_json(self, filename: str, creator: str = "Hendrik Unger") -> None:
         """Saves all machine positions to a json file
 
         Args:
             filename (str): path to json file to save machine positions
+            creator (str): name of the creator to save in the json file
         """
         import json
 
         data = self.getCoordinateDict()
-        fulljson ={"config":data, "creator": "Hendrik Unger" }
+        fulljson ={"config":data, "creator": creator}
 
         with open(filename, 'w') as f:
             json.dump(fulljson, f, indent=4, sort_keys=True)
