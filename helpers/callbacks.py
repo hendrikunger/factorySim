@@ -239,14 +239,20 @@ class EvalCallback(RLlibCallback):
             #"maxDifficulity"
             #data[episode][iteration][key]
             for episode_id, episode in data.items():
-                for _, infos in episode.items():
+                print(f"Parsing episode {episode_id} for upload", flush=True)
+                for iteration, infos in episode.items():
+                    print(f"   Parsing iteration {iteration} for upload", flush=True)
+                    firstReward = infos.get("EvaluationResult", [-1.0])[0]
                     for step in range(len(infos['Step'])):
+                        
 
                         #Skip upload if we are not running on max difficulty for the env
                         isMaxDifficulty = infos.get('maxDifficulity')[step]
                         #Check if reward if worthy of upload
                         reward = infos.get("EvaluationResult", -1.0)[step]
-                        if reward < 0.7 or not isMaxDifficulty:
+
+                        print(f"      Parsing step {step} for upload  Reward: {reward}/{firstReward} maxDifficulity: {isMaxDifficulty}" , flush=True)
+                        if reward <= firstReward or not isMaxDifficulty:
                             continue
                         else:
                             config_dict = self.createUploadConfig(infos["config"], step, reward, episode_id, CREATOR)
