@@ -306,7 +306,7 @@ class FactorySim:
         return (f"REWARD              : {self.RatingDict.get('Reward', -100): 1.2f}{con}"
                 f"Evaluation Result   : {self.RatingDict.get('EvaluationResult', 0): 1.2f}{con}"
                 f"Material Flow       : {self.RatingDict.get('ratingMF', -100): 1.2f}{con}"
-                f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', -100): 1.2f}{con}"
+                #f"True Material Flow  : {self.RatingDict.get('ratingTrueMF', -100): 1.2f}{con}"
                 f"MF Intersections    : {self.RatingDict.get('MFIntersection', -100): 1.2f}{con}"
                 f"Collisions          : {self.RatingDict.get('ratingCollision', -100): 1.2f}{con}"
                 f"Route Continuity    : {self.RatingDict.get('routeContinuity', -100): 1.2f}{con}"
