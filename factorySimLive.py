@@ -348,6 +348,14 @@ class factorySimLive(mglw.WindowConfig):
             # C to screenshot
             if key == keys.C:
                 self.surface.write_to_png("liveScreenshot.png")
+            # Rotation of seleted object
+            if (key == keys.RIGHT or key == keys.LEFT) and self.selected is not None:
+                currentRotation = self.env.factory.machine_dict[self.selected].rotation
+                if key == keys.RIGHT:
+                    self.env.factory.machine_dict[self.selected].rotate_Item(currentRotation+np.pi/18)
+                else:
+                    self.env.factory.machine_dict[self.selected].rotate_Item(currentRotation-np.pi/18)
+                self.update_needed()
 
             if(Modes.has_value(key)):
                 self.activeModes[Modes(key)] = not self.activeModes[Modes(key)]
@@ -735,7 +743,7 @@ class factorySimLive(mglw.WindowConfig):
         gc = gspread.service_account(filename="factorysimleaderboard-credentials.json")
         sh = gc.open("FactorySimLeaderboard")
         worksheet = sh.worksheet("ManualScores")
-        config_dict = { "creator": self.Creator, "reward": self.env.factory.currentRating, "problem_id": self.evalID}
+        config_dict = { "creator": self.Creator, "reward": self.env.factory.currentRating, "problem_id": f"{self.evalID:02d}"}
         config_dict["config"] = self.env.factory.creator.getCoordinateDict()
         individual = []
         for value in config_dict["config"].values():
@@ -744,6 +752,7 @@ class factorySimLive(mglw.WindowConfig):
     
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         row = [current_time, config_dict["problem_id"], "V1.0", config_dict["reward"], config_dict["creator"], "Manual", json.dumps(config_dict)]
+        print(row)
         worksheet.append_row(row, value_input_option="USER_ENTERED")
         print(f"Uploaded  results to leaderboard", flush=True)
 
