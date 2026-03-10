@@ -740,7 +740,7 @@ class factorySimLive(mglw.WindowConfig):
         #import if not defined to avoid unnecessary dependency for users who don't want to use this feature
         import gspread
         from datetime import datetime
-        gc = gspread.service_account(filename="factorysimleaderboard-credentials.json")
+        gc = gspread.service_account(filename=os.path.join(os.path.dirname(os.path.realpath(__file__)), "factorysimleaderboard-credentials.json"))
         sh = gc.open("FactorySimLeaderboard")
         worksheet = sh.worksheet("ManualScores")
         config_dict = { "creator": self.Creator, "reward": self.env.factory.currentRating, "problem_id": f"{self.evalID:02d}"}
