@@ -14,7 +14,7 @@ module load CUDA/12.6.0
 set -euo pipefail
 
 # Create workspace (10 days here)
-WORKSPACE=$(ws_allocate "ray-${SLURM_JOB_ID}" 10 | grep -E '^/work/' | tail -n 1)
+WORKSPACE=$(ws_allocate "ray-${SLURM_JOB_ID}" 10 | grep -E '^/work2/' | tail -n 1)
 export WORKSPACE
 
 export MY_RAY_RESULTS_DIR="$WORKSPACE/ray_results"
@@ -27,7 +27,7 @@ echo "WORKSPACE=$WORKSPACE"
 echo "MY_RAY_RESULTS_DIR=$MY_RAY_RESULTS_DIR"
 echo "WANDB_DIR=$WANDB_DIR"
 
-apptainer exec --bind /work:/work --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 83
+apptainer exec --bind /work2:/work2 --nv "$HOME/factorySim/factorySim.sif" python3 -u train.py -cid 180
 
 
 #Paula cluster
