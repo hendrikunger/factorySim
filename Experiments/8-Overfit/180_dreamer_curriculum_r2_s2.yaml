@@ -79,16 +79,7 @@ env_config:
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
-    maxMF_Elements: null
-    Loglevel: 0
-    width: 128 #84
-    height: 128 #84
-    outputScale: 3 #10
     render_mode: rgb_array
-    factoryconfig: SMALLSQUARE
     prefix: null #Gets populated on runtime
     evaluation: true
     randomSeed: 84
-    reward_function: 2
-    actionRounds: 1 # Number of action rounds per machine during evaluation
-    createMachines: false
