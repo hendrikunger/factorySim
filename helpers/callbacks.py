@@ -246,7 +246,7 @@ class EvalCallback(RLlibCallback):
                         isMaxDifficulty = infos.get('maxDifficulity')[step]
                         #Check if reward if worthy of upload
                         reward = infos.get("EvaluationResult", -1.0)[step]
-                        if reward <= firstReward or not isMaxDifficulty:
+                        if reward <= firstReward or not isMaxDifficulty or reward < 0.7:
                             continue
                         else:
                             print(f"Uploading result for episode {episode_id}, iteration {iteration}, step {step} Reward: {reward}", flush=True)

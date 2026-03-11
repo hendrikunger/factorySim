@@ -290,7 +290,7 @@ class FactoryRating():
         if numBends == 0: return 1
         #normalise to 0-1
         angleList = angleList/180
-        #square to get a higher penalty for sharper bends
+        #square to get a higher penalty for sharper bendsmam
         angleList = np.power(angleList, 2)
         #Devide by count of bends in relation to number of simple edges, to penalize higher bend density
         #Penalizing having more bends then simple edges via maximum function
