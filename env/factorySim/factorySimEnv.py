@@ -287,7 +287,7 @@ class FactorySimEnv(gym.Env):
             self.currentReward = -10
             self.info = {}
             self.terminated = True
-        print(f"Step {self.stepCount}: Reward: {self.currentReward}, Terminated: {self.terminated}")
+        #print(f"Step {self.stepCount}: Reward: {self.currentReward}, Terminated: {self.terminated}")
 
 
     
