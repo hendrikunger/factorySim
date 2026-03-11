@@ -62,7 +62,7 @@ env_config:
   Loglevel: 0
   width: 128 #84
   height: 128 #84
-  maxMF_Elements: 3
+  maxMF_Elements: null
   outputScale: 2 #10
   render_mode: null
   factoryconfig: SMALLSQUARE
@@ -74,16 +74,12 @@ env_config:
   createMachines: false
   logLevel: 0
   coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
-  curriculum_learning: true # If true, curriculum learning is enabled.
+  curriculum_learning: false # If true, curriculum learning is enabled.
   randomPositioning: false
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
   env_config:
-    maxMF_Elements: null
-    outputScale: 3 #10
     render_mode: rgb_array
     evaluation: true
-    randomSeed: 126
-    createMachines: false
-    randomPositioning: false
+    outputScale: 3 #10

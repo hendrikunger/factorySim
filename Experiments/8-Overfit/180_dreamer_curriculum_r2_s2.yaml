@@ -80,6 +80,5 @@ env_config:
 evaluation_config:
   env_config:
     render_mode: rgb_array
-    prefix: null #Gets populated on runtime
     evaluation: true
-    randomSeed: 84
+    outputScale: 3 #10
