@@ -326,7 +326,7 @@ class factorySimLive(mglw.WindowConfig):
                     self.evalID = min(len(ifcFiles), self.evalID)
 
                     self.ifcPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "Evaluation", f"{self.evalID:02d}.ifc")
-                    self.recreateFactory(self.ifcPath)
+                    self.recreateFactory()
             # Upload to Eval Server
             if key == keys.U:
                 self.uploadToLeaderboard()
@@ -335,7 +335,7 @@ class factorySimLive(mglw.WindowConfig):
                 self.is_darkmode = not self.is_darkmode
             #Restart
             if key == keys.N:
-                self.recreateFactory(self.ifcPath)
+                self.recreateFactory()
             # End Drawing Mode
             if key == keys.ESCAPE:
                 self.clickedPoints.clear()
@@ -705,6 +705,8 @@ class factorySimLive(mglw.WindowConfig):
             env_config.update(self.f_config.get("evaluation_config", {}).get("env_config", {}))
         if ifcPath:
             env_config['inputfile'] = ifcPath
+        else:
+            env_config['inputfile'] = self.ifcPath
         self.env = FactorySimEnv( env_config = env_config)
         self.env.reset()
         #Print Factory Info 
