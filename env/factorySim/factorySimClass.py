@@ -109,11 +109,12 @@ class FactorySim:
         self.lastRating = 0
         self.currentRating    = 0 # Holds the Rating of the current state of the Layout 
 
-        self.lastUpdatedMachine = None #Hold uid of last updated machine for collision checking
+       
         self.collisionAfterLastUpdate = False # True if latest update leads to new collisions
 
-        self.episodeCounter = 0
         self.scale = 1 #Saves the scaling factor of provided factories for external access
+        self.episodeCounter = 0
+        self.lastUpdatedMachine = None #Hold uid of last updated machine for collision checking
 
         #Creating random positions
         if randomPos:
@@ -122,6 +123,9 @@ class FactorySim:
                     xPosition = self.rng.uniform(low=0, high=1),
                     yPosition = self.rng.uniform(low=0, high=1),
                     rotation = self.rng.uniform(low=0, high=1))
+            #reset episode counter and last updated machine after random initialization
+            self.episodeCounter = 0
+            self.lastUpdatedMachine = None
         
         #Import Materialflow from Excel
         if path_to_materialflow_file and not createMachines:
