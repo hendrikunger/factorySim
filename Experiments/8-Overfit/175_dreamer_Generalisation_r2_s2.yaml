@@ -82,5 +82,4 @@ evaluation_config:
     render_mode: rgb_array
     evaluation: true
     outputScale: 3 #10
-    randomPositioning: false
-    randomSeed: 84
+    
