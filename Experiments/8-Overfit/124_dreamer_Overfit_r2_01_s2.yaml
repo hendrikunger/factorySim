@@ -70,12 +70,12 @@ env_config:
   evaluation: false #Gets populated on runtime
   reward_function: 2
   actionRounds: 1 # Number of action rounds per machine during evaluation
-  randomSeed: 84
+  randomSeed: null
   createMachines: false
   logLevel: 0
   coordinateChannels: true # If true, the observation will contain the coordinates of the factory as channels.
   curriculum_learning: false # If true, curriculum learning is enabled.
-  randomPositioning: false
+  randomPositioning: true
 # Special evaluation config. Keys specified here will override
 # the same keys in the main config, but only for evaluation.
 evaluation_config:
@@ -83,3 +83,5 @@ evaluation_config:
     render_mode: rgb_array
     evaluation: true
     outputScale: 3 #10
+    randomPositioning: false
+    randomSeed: 84

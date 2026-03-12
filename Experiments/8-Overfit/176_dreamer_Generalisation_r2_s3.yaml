@@ -70,7 +70,7 @@ env_config:
   evaluation: false #Gets populated on runtime
   reward_function: 2
   actionRounds: 1 # Number of action rounds per machine during evaluation
-  randomSeed: 126
+  randomSeed: null
   createMachines: true
   logLevel: 0
   coordinateChannels: false # If true, the observation will contain the coordinates of the factory as channels.
@@ -82,3 +82,5 @@ evaluation_config:
     render_mode: rgb_array
     evaluation: true
     outputScale: 3 #10
+    randomPositioning: false
+    randomSeed: 126
