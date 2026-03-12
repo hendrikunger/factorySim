@@ -100,7 +100,7 @@ class factorySimLive(mglw.WindowConfig):
     #dpiScaler = 2 if sys.platform == "darwin" else 1
     dpiScaler = 1
     is_online = check_internet_conn()
-    EVALUATION = True
+    EVALUATION = False
     evalID = None
     GRIDSNAP = 1000.0  #in mm
       
