@@ -193,10 +193,10 @@ class EvalCallback(RLlibCallback):
                                 fulljson = self.createUploadConfig(values, step, infos.get("Reward", -1.0)[step], episode_id, CREATOR)
                                 value = json.dumps(fulljson)
                             else:
-                                value = values[step]
-                                if key == "Image":
-                                    value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
-
+                                if step <= len(values):
+                                    value = values[step]
+                                    if key == "Image":
+                                        value = wandb.Image(value, caption=row_id, grouping=int(episode_id))
                             row.append(value)
                         tbl.add_data(*row)
             evaluation_metrics["table"] = tbl
