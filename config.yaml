@@ -82,6 +82,8 @@ evaluation_config:
   env_config:
     outputScale: 3 #10
     evaluation: true
-    randomSeed: 42
+    randomSeed: null
     render_mode: rgb_array
     createMachines: false
+    randomPositioning: false
+    reward_function: 2
